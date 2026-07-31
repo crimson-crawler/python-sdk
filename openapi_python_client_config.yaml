@@ -1,0 +1,25 @@
+# Configuration for openapi-python-client codegen.
+#
+# Run via: uv run python scripts/codegen.py (from this package's root).
+#
+# The generated package lands at src/crimson_crawler_client/_generated/.
+# That directory is committed so source archives and checkouts are complete.
+# Release automation regenerates it from the shipped openapi.snapshot.json and
+# rejects any diff from the committed tree.
+
+project_name_override: "crimson_crawler_client"
+package_name_override: "_generated"
+
+# Use full path prefixes when synthesizing model class names so multiple
+# request bodies named e.g. "EnrichRequest" across tags don't collide.
+use_path_prefixes_for_title_model_names: true
+
+# Treat openapi field constraints (minLength, pattern, etc.) as runtime
+# validators on the generated dataclasses.
+field_constraints: true
+
+# Hooks run on the generated source after codegen. ruff lint+format keeps
+# the committed output deterministic regardless of who ran the codegen.
+post_hooks:
+  - "ruff check . --fix --select I"
+  - "ruff format ."

@@ -1,0 +1,106 @@
+[project]
+name = "crimson-crawler-client"
+version = "4.1.0"
+description = "Typed Python client for the Crimson Crawler API"
+dynamic = ["readme"]  # supplied by hatch_build.py:PackagedReadmeUrls
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Def-Logix, Inc." }]
+keywords = ["cti", "threat-intelligence", "openapi", "crimson-crawler"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.28,<1",
+    "attrs>=24.0",
+    "python-dateutil>=2.9",
+]
+
+[project.urls]
+Homepage = "https://crimsoncrawler.com"
+Repository = "https://github.com/crimson-crawler/python-sdk"
+Documentation = "https://crimsoncrawler.com/docs/clients/python-client/"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.15",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=7",
+    "mypy>=1.19,<2",
+    "openapi-python-client>=0.28.3",
+    "hatchling>=1.27,<2",
+    "twine==6.2.0",
+]
+
+# The package ships py.typed, which tells every downstream type checker its annotations are
+# authoritative. Only the hand-written wrapper is checked: _generated/ is mechanical codegen
+# output whose conventions are the generator's, matching the coverage and ruff exclusions.
+[tool.mypy]
+python_version = "3.11"
+files = ["src/crimson_crawler_client"]
+exclude = ["^src/crimson_crawler_client/_generated/"]
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "crimson_crawler_client._generated.*"
+ignore_errors = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+# Coverage targets the hand-written wrapper — the public API surface.
+# The generated `_generated/` tree is omitted because coverage targets the
+# hand-written wrapper; measuring mechanical codegen output would add noise.
+[tool.coverage.run]
+source = ["crimson_crawler_client"]
+omit = ["*/_generated/*"]
+
+[tool.coverage.report]
+fail_under = 80
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+# Include the generated `_generated/` implementation in both sdist and wheel.
+# The build hook below fails fast if a source archive or checkout is incomplete
+# instead of silently shipping a package that cannot import.
+artifacts = ["src/crimson_crawler_client/_generated"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crimson_crawler_client"]
+
+[tool.hatch.metadata.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.sdist.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["src/crimson_crawler_client", "README.md", "LICENSE", "hatch_build.py", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["src/crimson_crawler_client/_generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

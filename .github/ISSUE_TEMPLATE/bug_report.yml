@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible defect or documentation gap
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not submit vulnerabilities, live credentials, customer data, destructive payloads, or other private information here. Use the private process in SECURITY.md for security reports.
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version identifier
+      description: Provide the package, release, documentation, or server.json version that applies.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest safe request, command, configuration, or snippet that reproduces the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Security and compatibility impact
+      description: Describe any known security, compatibility, or migration impact. Do not disclose a vulnerability here.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safe-content
+    attributes:
+      label: Submission safety
+      options:
+        - label: I removed live credentials, customer data, destructive payloads, and other private information.
+          required: true
