@@ -38,7 +38,7 @@ dev = [
     "mypy>=1.19,<2",
     "openapi-python-client>=0.28.3",
     "hatchling>=1.27,<2",
-    "twine==6.2.0",
+    "twine==7.0.0",
 ]
 
 # The package ships py.typed, which tells every downstream type checker its annotations are
