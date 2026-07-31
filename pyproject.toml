@@ -32,7 +32,7 @@ Documentation = "https://crimsoncrawler.com/docs/clients/python-client/"
 [project.optional-dependencies]
 dev = [
     "ruff>=0.15",
-    "pytest>=8.0",
+    "pytest>=9.1.1",
     "pytest-asyncio>=0.24",
     "pytest-cov>=7",
     "mypy>=1.19,<2",
