@@ -1,0 +1,265 @@
+name: Release Python SDK
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.10.7"
+          enable-cache: false
+      - name: Verify tag targets public main
+        run: |
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || {
+            echo "Release tag must target the current public main commit." >&2
+            exit 1
+          }
+      - name: Verify release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os, re, tomllib
+          from pathlib import Path
+          tag = os.environ["RELEASE_TAG"]
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) is None or tag != f"v{version}":
+              raise SystemExit(f"Tag {tag!r} does not match Python SDK version {version}")
+          PY
+      - name: Build and verify
+        run: |
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct HEAD)"
+          export SOURCE_DATE_EPOCH
+          uv sync --locked --extra dev
+          uv run --locked --extra dev python scripts/codegen.py
+          git diff --exit-code -- src/crimson_crawler_client/_generated
+          uv run --locked --extra dev mypy
+          uv run --locked --extra dev pytest tests
+          repeat_dir="$(mktemp -d)"
+          trap 'rm -rf "$repeat_dir"' EXIT
+          uv build --no-build-isolation --no-create-gitignore
+          uv build --no-build-isolation --no-create-gitignore --out-dir "$repeat_dir"
+          diff -qr dist "$repeat_dir"
+          uv run --locked --extra dev twine check dist/*
+          uv run --no-project --python 3.11 python scripts/verify-public-artifacts.py --py-only
+          sdist_dir="$(mktemp -d)"
+          trap 'rm -rf "$repeat_dir" "$sdist_dir"' EXIT
+          tar -xzf dist/*.tar.gz -C "$sdist_dir"
+          ( cd "$sdist_dir"/*/ && uv build --wheel )
+          python - <<'PY'
+          import glob
+          import tarfile
+          import zipfile
+
+          wheel = glob.glob("dist/*.whl")
+          sdist = glob.glob("dist/*.tar.gz")
+          if len(wheel) != 1 or len(sdist) != 1:
+              raise SystemExit("Expected exactly one wheel and one sdist")
+          with zipfile.ZipFile(wheel[0]) as archive:
+              wheel_names = archive.namelist()
+          with tarfile.open(sdist[0], "r:gz") as archive:
+              sdist_names = archive.getnames()
+          if not any(name.endswith("/LICENSE") for name in wheel_names):
+              raise SystemExit("Wheel is missing LICENSE")
+          if not any(name.endswith("/LICENSE") for name in sdist_names):
+              raise SystemExit("Sdist is missing LICENSE")
+          if not any(name.endswith("/hatch_build.py") for name in sdist_names):
+              raise SystemExit("Sdist is missing hatch_build.py")
+          PY
+          wheel_smoke_dir="$(mktemp -d)"
+          sdist_smoke_dir="$(mktemp -d)"
+          trap 'rm -rf "$repeat_dir" "$sdist_dir" "$wheel_smoke_dir" "$sdist_smoke_dir"' EXIT
+          uv venv --no-project --python 3.11 "$wheel_smoke_dir"
+          uv pip install --python "$wheel_smoke_dir/bin/python" dist/*.whl
+          "$wheel_smoke_dir/bin/python" -c \
+            "from crimson_crawler_client import CrawlerClient, __version__; assert CrawlerClient and __version__"
+          uv venv --no-project --python 3.11 "$sdist_smoke_dir"
+          uv pip install --python "$sdist_smoke_dir/bin/python" dist/*.tar.gz
+          "$sdist_smoke_dir/bin/python" -c \
+            "from crimson_crawler_client import CrawlerClient, __version__; assert CrawlerClient and __version__"
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: dist
+          format: cyclonedx-json
+          output-file: SBOM.raw.cdx.json
+          upload-artifact: false
+      - name: Normalize SBOM and write checksums
+        run: |
+          python scripts/normalize-public-sbom.py SBOM.raw.cdx.json SBOM.cdx.json
+          rm SBOM.raw.cdx.json
+          for file in dist/* SBOM.cdx.json; do shasum -a 256 "$file"; done | sed 's#  .*/#  #' > SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: SBOM.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: distribution
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: checksums
+          path: SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+
+  registry:
+    name: Check public registry
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      publish: ${{ steps.registry.outputs.publish }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution
+          path: distribution
+      - name: Check PyPI state
+        id: registry
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if missing="$(python scripts/check-public-client-registry.py pypi crimson-crawler-client "${RELEASE_TAG#v}" distribution/*)"; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            status=$?
+            [[ $status -eq 10 ]] || exit "$status"
+            mkdir upload
+            while IFS= read -r file; do cp -- "$file" upload/; done <<< "$missing"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.registry.outputs.publish == 'true'
+        with:
+          name: publication
+          path: upload/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish package
+    needs: registry
+    if: needs.registry.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # OIDC for PyPI and Sigstore
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: publication
+          path: upload
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
+        with:
+          packages-dir: upload
+          attestations: true
+
+  attest:
+    name: Attest package artifacts
+    needs: [build, registry, publish]
+    if: >-
+      always() && needs.build.result == 'success' && needs.registry.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # Sign the GitHub artifact attestation
+      attestations: write # Publish the GitHub artifact attestation
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution
+          path: distribution
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sbom
+          path: sbom
+      - uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: distribution/*
+      - uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: distribution/*
+          sbom-path: sbom/SBOM.cdx.json
+
+  release:
+    name: Create GitHub release
+    needs: [build, registry, publish, attest]
+    if: >-
+      always() && needs.build.result == 'success' && needs.registry.result == 'success' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped') &&
+      needs.attest.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write # Create or verify the immutable GitHub Release
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution
+          path: release-assets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: checksums
+          path: release-assets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sbom
+          path: release-assets
+      - name: Create or verify release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ "$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft 2>/dev/null || true)" == "false" ]]; then
+            mkdir existing
+            gh release download "$GITHUB_REF_NAME" --dir existing
+            diff <(sha256sum release-assets/* | sed 's#release-assets/##') <(sha256sum existing/* | sed 's#existing/##')
+          else
+            gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+              gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "Python SDK $GITHUB_REF_NAME" --generate-notes
+            gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+            gh release edit "$GITHUB_REF_NAME" --draft=false --verify-tag
+          fi

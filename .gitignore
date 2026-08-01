@@ -1,0 +1,9 @@
+.env
+.npmrc
+.venv/
+dist/
+__pycache__/
+*.py[cod]
+.coverage
+.pytest_cache/
+.ruff_cache/
