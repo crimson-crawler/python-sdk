@@ -134,14 +134,15 @@ class TestEnrich:
             await api.enrich(text="x", poll_interval=0)
         assert exc.value.status == 401
 
-    async def test_times_out(self, ws):
+    async def test_rejects_invalid_timeout(self, ws):
         api, http = ws
         http.request.side_effect = [
             _resp(202, {"enrichment_id": "e" * 32}),
             _resp(200, {"status": "running"}),
         ]
-        with pytest.raises(TimeoutError):
+        with pytest.raises(ValueError, match="timeout"):
             await api.enrich(text="x", poll_interval=0, timeout=-1)
+        http.request.assert_not_called()
 
 
 class TestSaveAfterEnrich:

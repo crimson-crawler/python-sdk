@@ -87,7 +87,7 @@ class TestArtifacts:
         http.request.return_value = _resp(200, {"artifact": {"id": "a1", "content": "x"}})
         assert (await api.get_artifact("a1"))["content"] == "x"
 
-        http.request.return_value = _raw_resp(
+        http.send.return_value = _raw_resp(
             '{"report":1}',
             {
                 "x-artifact-id": "a1",
@@ -100,6 +100,18 @@ class TestArtifacts:
         assert raw["content"] == '{"report":1}'
         assert raw["kind"] == "artifact_enrichment"
         assert raw["name"] == "Scan · 5"  # URL-decoded
+
+    async def test_get_artifact_raw_rejects_body_above_buffer_limit(self, ws):
+        api, http = ws
+        http.send.return_value = _raw_resp(
+            "oversized",
+            {"content-length": "10000001"},
+        )
+
+        with pytest.raises(ValueError, match="10000000-byte"):
+            await api.get_artifact_raw("a1")
+        http.send.assert_awaited_once()
+        assert http.send.call_args.kwargs["stream"] is True
 
     async def test_update_artifact_folder_sentinel(self, ws):
         api, http = ws

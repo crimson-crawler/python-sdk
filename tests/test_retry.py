@@ -116,6 +116,28 @@ class _FailingAsyncStream(httpx.AsyncByteStream):
         self.closed = True
 
 
+class _UncloseableAsyncStream(httpx.AsyncByteStream):
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        raise httpx.ReadError("response body reset")
+        yield b""  # pragma: no cover
+
+    async def aclose(self) -> None:
+        raise RuntimeError("close failed")
+
+
+class _RecordingAsyncStream(httpx.AsyncByteStream):
+    def __init__(self) -> None:
+        self.read = False
+        self.closed = False
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        self.read = True
+        yield b"retry body"
+
+    async def aclose(self) -> None:
+        self.closed = True
+
+
 def _build(
     script: list[object], *, max_retries: int = 2, sleep=None, rng=None
 ) -> tuple[RetryTransport, _ScriptedTransport]:
@@ -229,6 +251,35 @@ class TestRetryTransport:
         assert inner.calls == 2
         assert sleep.calls == [RETRY_BASE_DELAY]
         assert failed_stream.closed
+
+    async def test_response_cleanup_failure_does_not_mask_retry(self) -> None:
+        sleep = _RecordingSleep()
+        retryable = httpx.Response(503, stream=_UncloseableAsyncStream())
+        transport, inner = _build([retryable, _response(200)], sleep=sleep)
+
+        response = await transport.handle_async_request(_make_request())
+
+        assert response.status_code == 200
+        assert inner.calls == 2
+
+    async def test_every_discarded_retry_response_is_consumed_and_closed(self) -> None:
+        sleep = _RecordingSleep()
+        first_stream = _RecordingAsyncStream()
+        second_stream = _RecordingAsyncStream()
+        transport, _ = _build(
+            [
+                httpx.Response(503, stream=first_stream),
+                httpx.Response(429, stream=second_stream),
+                _response(200),
+            ],
+            sleep=sleep,
+        )
+
+        response = await transport.handle_async_request(_make_request())
+
+        assert response.status_code == 200
+        assert first_stream.read and first_stream.closed
+        assert second_stream.read and second_stream.closed
 
     async def test_exhaust_then_return_final_503(self) -> None:
         sleep = _RecordingSleep()

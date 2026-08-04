@@ -86,8 +86,10 @@ def sync_detailed(
     - `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup
     - `error`: `error` contains the terminal failure
 
-    Polling consumes no request units. Use the same API key used to submit the job. A missing,
-    expired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.
+    Polling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner
+    that submitted the job can read it, and a different key receives 404. Anonymous, keyless, and
+    direct MCP submissions use a capability URL, so possession of the job UUID is sufficient to
+    read the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.
 
     Args:
         enrichment_id (str):
@@ -128,8 +130,10 @@ def sync(
     - `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup
     - `error`: `error` contains the terminal failure
 
-    Polling consumes no request units. Use the same API key used to submit the job. A missing,
-    expired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.
+    Polling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner
+    that submitted the job can read it, and a different key receives 404. Anonymous, keyless, and
+    direct MCP submissions use a capability URL, so possession of the job UUID is sufficient to
+    read the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.
 
     Args:
         enrichment_id (str):
@@ -165,8 +169,10 @@ async def asyncio_detailed(
     - `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup
     - `error`: `error` contains the terminal failure
 
-    Polling consumes no request units. Use the same API key used to submit the job. A missing,
-    expired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.
+    Polling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner
+    that submitted the job can read it, and a different key receives 404. Anonymous, keyless, and
+    direct MCP submissions use a capability URL, so possession of the job UUID is sufficient to
+    read the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.
 
     Args:
         enrichment_id (str):
@@ -205,8 +211,10 @@ async def asyncio(
     - `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup
     - `error`: `error` contains the terminal failure
 
-    Polling consumes no request units. Use the same API key used to submit the job. A missing,
-    expired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.
+    Polling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner
+    that submitted the job can read it, and a different key receives 404. Anonymous, keyless, and
+    direct MCP submissions use a capability URL, so possession of the job UUID is sufficient to
+    read the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.
 
     Args:
         enrichment_id (str):

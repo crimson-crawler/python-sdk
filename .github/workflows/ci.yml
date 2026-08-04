@@ -41,3 +41,24 @@ jobs:
           uv run --locked --extra dev ruff check
           uv run --locked --extra dev mypy
           uv run --locked --extra dev pytest tests
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      # Scans the whole tracked tree, not just packaged members: a credential pasted
+      # into a test, workflow, or doc is public the moment it lands here even when the
+      # release verifier excludes it from the wheel. `.gitleaks.toml` is the same
+      # policy the monorepo gate uses, exported to the repository root.
+      - name: Scan repository for secrets
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo" \
+            --workdir /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            dir . --config .gitleaks.toml --redact --no-banner

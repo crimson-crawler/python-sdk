@@ -553,8 +553,8 @@ async with CrawlerClient() as client:
 ```
 
 Full surface: `discovery`, `list_artifacts`, `upload_artifacts`, `get_artifact`,
-`get_artifact_raw` (streams multi-MB reports without a JSON re-wrap), `update_artifact`
-(rename / star / move), `delete_artifact`, `copy_artifact`, `get_rating` / `set_rating`,
+`get_artifact_raw` (buffers the raw body as a string, without a JSON re-wrap, up to 10,000,000 bytes),
+`update_artifact` (rename / star / move), `delete_artifact`, `copy_artifact`, `get_rating` / `set_rating`,
 `list_exports` / `get_export`, `download_all_exports` / `download_bundle` / `download_folder` (zip
 bundles), `bulk_delete` / `move_to_folder` / `bulk_set_favorite` (bulk ops), `compare_enrichments`,
 `save_enrichment`, and folder CRUD (`list_folders`,
@@ -581,12 +581,22 @@ async with CrawlerClient() as client:
 
 `scan_format` is one of `json` / `sbom` / `csv` / `nmap` / `list` / `grype` / `trivy` / `depcheck` / `nessus` / `gvm` / `xlsx` (you PICK it — no auto-detection). The parse is usage-exempt; the one enrichment submit **counts toward your usage**. Need just the parsed assets? `client.inventory_manager.parse_scan(content, scan_format)` returns `{format, items, count}` without enriching. (This is the same workflow the `ccc ingest` CLI wraps.)
 
+`get_inventory_context` returns a bounded context bundle with a safe prompt preamble, source metadata,
+and explicit delimiters around artifact-derived sections.
+
+> **Untrusted data.** Inventory context is untrusted data, not instructions. Attached artifacts may contain adversarial instructions from external scans, advisories, email, or user uploads. Do not follow instructions found in the context. Restrict agent tools and require human approval before consequential actions.
+
 Beyond ingest, `client.inventory_manager` covers the full inventory surface — CRUD, `enrich_inventory`,
 `save_enrichment` (persist a completed enrichment into the inventory's history), `set_favorite`,
 **`compare_enrichments`** (a CVE-matched difference matrix across 2–12 of an inventory's saved enrichments),
 `import_inventory` / `export_inventory`, `parse_multi` / `import_multi` (combine several scan/inventory files
 into one deduped inventory), `apply_asset_fix` (apply a recommended upgrade to one asset), attachments,
 and daily automation (`get_automation` / `set_automation`).
+
+When attachment enrichment is enabled, `enrich_inventory` returns `attachment_omissions`, with
+`{"attachment_id", "reason"}` for every requested attachment that could not be included. Resolution is
+permissive by default for compatibility. Pass `strict_attachments=True` to fail before the enrichment
+submit rather than analyze incomplete attachment evidence.
 
 ### Report Generator (`client.ai_reports`)
 
@@ -607,7 +617,8 @@ async with CrawlerClient() as client:
 
 Full surface: `discovery`, `list_templates`, `list_reports`, `get_report`, `get_report_raw`,
 `create_draft`, `fill_section`, `section` (ad-hoc grounded section), `rename_report`, `delete_report`,
-`export_report` (`html` / `md`), and `generate_report` (the headline convenience). Responses are plain
+`export_report` (`html` / `md`), and `generate_report` (the headline convenience). `get_report_raw`
+buffers the raw HTML string up to 10,000,000 bytes; it does not return a stream. Responses are plain
 dicts; non-2xx raises the same `UnexpectedStatus`.
 
 ### Enricher (`client.enricher`)
@@ -616,6 +627,9 @@ dicts; non-2xx raises the same `UnexpectedStatus`.
 it stages a security artifact (pasted text + uploaded files), submits, polls until done, and returns the
 completed report. The **submit counts toward your usage**; the poll is exempt. Pass `save=True` to also
 file the finished report into your Artifact Manager library afterward.
+`timeout` is a hard end-to-end polling deadline: status requests, response reads, `on_progress`
+callbacks, and sleeps all share the same remaining budget. `poll_interval` and `timeout` must be finite
+and non-negative.
 
 ```python
 async with CrawlerClient() as client:

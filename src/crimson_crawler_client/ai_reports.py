@@ -25,7 +25,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from ._url import path_segment
-from .artifact_manager import _safe_download_filename
+from .artifact_manager import _get_buffered_raw, _safe_download_filename
 from .exceptions import UnexpectedStatus
 
 if TYPE_CHECKING:
@@ -80,12 +80,17 @@ class AiReportsAPI:
         return (await self._request("GET", f"/ai-reports/reports/{path_segment(report_id)}")).json()["report"]
 
     async def get_report_raw(self, report_id: str) -> dict[str, Any]:
-        """Stream a report's HTML as the raw body (metadata in ``X-Artifact-*`` headers).
+        """Read a report's raw HTML into a string buffer (maximum 10,000,000 bytes).
 
+        This method does not return a streaming response. Metadata rides ``X-Artifact-*`` headers.
         Returns ``{"content": str, "id", "kind", "name", "format", "created_at"}``."""
-        resp = await self._request("GET", f"/ai-reports/reports/{path_segment(report_id)}", params={"raw": "1"})
+        content, resp = await _get_buffered_raw(
+            self._http,
+            f"/ai-reports/reports/{path_segment(report_id)}",
+            "Report Generator API",
+        )
         return {
-            "content": resp.text,
+            "content": content,
             "id": resp.headers.get("x-artifact-id", report_id),
             "kind": resp.headers.get("x-artifact-kind", ""),
             "name": resp.headers.get("x-artifact-name", ""),

@@ -6,7 +6,9 @@ callback (sync + async), and callback-error swallowing for the two async engines
 
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 from unittest.mock import AsyncMock
 
 import httpx
@@ -65,16 +67,71 @@ class TestPollUntilDone:
         )
         assert job["result"] == {"ok": True}
 
-    async def test_deadline_based_timeout_raises(self):
+    async def test_invalid_deadline_and_interval_raise(self):
         request = AsyncMock(return_value=_resp(200, {"status": "running"}))
-        with pytest.raises(TimeoutError):
+        with pytest.raises(ValueError, match="timeout"):
             await poll_until_done(
                 request,
                 "c" * 32,
-                "/v1/artifact-enrich/c" * 32,
+                "/v1/artifact-enrich/" + "c" * 32,
                 poll_interval=0,
                 timeout=-1,
             )
+        with pytest.raises(ValueError, match="poll_interval"):
+            await poll_until_done(
+                request,
+                "c" * 32,
+                "/v1/artifact-enrich/" + "c" * 32,
+                poll_interval=float("inf"),
+                timeout=1,
+            )
+
+    async def test_hung_status_request_obeys_hard_deadline(self):
+        async def hung_request(*_args, **_kwargs):
+            await asyncio.Event().wait()
+
+        started = time.monotonic()
+        with pytest.raises(TimeoutError, match="did not finish"):
+            await poll_until_done(
+                hung_request,
+                "c" * 32,
+                "/v1/artifact-enrich/" + "c" * 32,
+                poll_interval=0.01,
+                timeout=0.05,
+            )
+        assert time.monotonic() - started < 0.25
+
+    async def test_never_settling_progress_callback_obeys_hard_deadline(self):
+        request = AsyncMock(return_value=_resp(200, {"status": "running"}))
+
+        async def hung_progress(_job):
+            await asyncio.Event().wait()
+
+        started = time.monotonic()
+        with pytest.raises(TimeoutError, match="did not finish"):
+            await poll_until_done(
+                request,
+                "c" * 32,
+                "/v1/artifact-enrich/" + "c" * 32,
+                poll_interval=0.01,
+                timeout=0.05,
+                on_progress=hung_progress,
+            )
+        assert time.monotonic() - started < 0.25
+
+    async def test_long_sleep_is_clamped_to_remaining_deadline(self):
+        request = AsyncMock(return_value=_resp(200, {"status": "running"}))
+        started = time.monotonic()
+        with pytest.raises(TimeoutError, match="did not finish"):
+            await poll_until_done(
+                request,
+                "c" * 32,
+                "/v1/artifact-enrich/" + "c" * 32,
+                poll_interval=60,
+                timeout=0.05,
+            )
+        assert time.monotonic() - started < 0.25
+        assert 0 < request.call_args.kwargs["timeout"] <= 0.05
 
     async def test_engine_error_status_raises_unexpected_status(self):
         request = AsyncMock(return_value=_resp(200, {"status": "error", "error": "oom"}))

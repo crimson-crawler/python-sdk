@@ -88,6 +88,20 @@ _HEADER_AUTH_REWRITES: tuple[tuple[str, str, int], ...] = (
 )
 
 
+# ``UnexpectedStatus`` is part of the documented generated ``client.api``
+# escape hatch. Keep its response bytes available to callers, but never copy
+# them into the exception message where routine traceback logging would
+# disclose the full body.
+_UNEXPECTED_STATUS_REWRITE: tuple[str, str, int] = (
+    "        super().__init__(\n"
+    '            f"Unexpected status code: {status_code}\\n\\n'
+    "Response content:\\n{content.decode(errors='ignore')}\"\n"
+    "        )\n",
+    '        super().__init__(f"Unexpected status code: {status_code}; response body length: {len(content)} bytes")\n',
+    1,
+)
+
+
 def _apply(source: str, target: Path, patches: tuple[tuple[str, str, int], ...]) -> str:
     for old, new, count in patches:
         found = source.count(old)
@@ -95,28 +109,33 @@ def _apply(source: str, target: Path, patches: tuple[tuple[str, str, int], ...])
             raise SystemExit(
                 f"codegen: expected {count} occurrence(s) of {old.strip()[:60]!r} in "
                 f"{target.relative_to(CLIENT_DIR)}, found {found}. The generator's "
-                "output shape changed - re-point the credential patch before shipping, "
-                "or the published client will disclose API keys."
+                "output shape changed - re-point the security patch before shipping."
             )
         source = source.replace(old, new)
     return source
 
 
-def _redact_credentials_in_repr() -> None:
-    """Keep the generated clients from disclosing credentials via ``repr`` or headers."""
-    target = GENERATED_DIR / "client.py"
-    source = target.read_text(encoding="utf-8")
-    original = source
+def _apply_security_patches() -> None:
+    """Keep generated clients and exceptions from disclosing sensitive values."""
+    client_target = GENERATED_DIR / "client.py"
+    client_source = client_target.read_text(encoding="utf-8")
+    original_client_source = client_source
 
     # Each group is guarded independently so adding one later still applies to a
     # tree that already carries the others.
-    if "repr=False" not in source:
-        source = _apply(source, target, _REPR_REDACTIONS)
-    if "ApiKeyAuth" not in source:
-        source = _apply(source, target, (_HEADER_AUTH_IMPORT, *_HEADER_AUTH_REWRITES))
+    if "repr=False" not in client_source:
+        client_source = _apply(client_source, client_target, _REPR_REDACTIONS)
+    if "ApiKeyAuth" not in client_source:
+        client_source = _apply(client_source, client_target, (_HEADER_AUTH_IMPORT, *_HEADER_AUTH_REWRITES))
 
-    if source != original:
-        target.write_text(source, encoding="utf-8")
+    if client_source != original_client_source:
+        client_target.write_text(client_source, encoding="utf-8")
+
+    errors_target = GENERATED_DIR / "errors.py"
+    errors_source = errors_target.read_text(encoding="utf-8")
+    if "response body length:" not in errors_source:
+        errors_source = _apply(errors_source, errors_target, (_UNEXPECTED_STATUS_REWRITE,))
+        errors_target.write_text(errors_source, encoding="utf-8")
 
 
 def main() -> int:
@@ -167,7 +186,7 @@ def main() -> int:
         ]
         print(f"Running: {' '.join(cmd)}")
         subprocess.check_call(cmd, cwd=CLIENT_DIR)
-        _redact_credentials_in_repr()
+        _apply_security_patches()
     finally:
         schema_path.unlink(missing_ok=True)
 

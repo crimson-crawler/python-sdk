@@ -28,7 +28,7 @@ import base64
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
-from ._poll import ProgressCallback, poll_until_done
+from ._poll import ProgressCallback, poll_until_done, validate_poll_options
 from ._url import path_segment
 from .exceptions import UnexpectedStatus
 
@@ -98,8 +98,12 @@ class InventoryManagerAPI:
         *,
         params: dict[str, Any] | None = None,
         json: Any = None,
+        timeout: float | None = None,
     ) -> httpx.Response:
-        resp = await self._http.request(method, path, params=params, json=json)
+        kwargs: dict[str, Any] = {"params": params, "json": json}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        resp = await self._http.request(method, path, **kwargs)
         if not 200 <= resp.status_code < 300:
             raise UnexpectedStatus(
                 resp.status_code, resp.content, f"Inventory Manager API {resp.status_code} on {path}"
@@ -120,10 +124,11 @@ class InventoryManagerAPI:
         return (await self._request("GET", f"/inventory-manager/inventories/{path_segment(inventory_id)}")).json()
 
     async def get_inventory_context(self, inventory_id: str) -> dict[str, Any]:
-        """An inventory as a **one-shot, LLM-ready context window** — a single bounded text bundle
-        (inventory + latest-enrichment findings + what changed + attached excerpts). Returns
-        ``{id, name, inventory_name, description, monitoring, stats, context}`` where ``context`` is
-        the ready-to-use text."""
+        """An inventory as a one-shot, bounded context bundle with artifact provenance and delimiters.
+
+        Returns ``{id, name, inventory_name, description, monitoring, stats, context}``. ``context`` starts
+        with a safe prompt preamble that labels the enclosed inventory and artifact text as untrusted data.
+        """
         return (
             await self._request(
                 "GET",
@@ -522,6 +527,7 @@ class InventoryManagerAPI:
         on_progress: ProgressCallback | None = None,
         save: bool = False,
         enrich_attachments: bool | None = None,
+        strict_attachments: bool = False,
     ) -> dict[str, Any]:
         """Enrich an inventory's inventory end-to-end against the /v1 engine: submit → poll → return the report.
 
@@ -546,11 +552,16 @@ class InventoryManagerAPI:
         Enrichment over them (references surface on the report's ``attachment_enrichment``). ``None`` (default)
         honors the inventory's saved toggle; pass ``True``/``False`` to force it for this run.
 
+        Attachment resolution stays permissive by default for compatibility. The result carries
+        ``attachment_omissions`` records (``attachment_id`` + ``reason``) for every skipped artifact.
+        Set ``strict_attachments=True`` to fail before submission if any requested attachment is unavailable.
+
         Returns ``{enrichment_id, report}``. If the inventory's inventory is empty this short-circuits and
         returns ``{"enrichment_id": None, "empty": True}`` without submitting. Raises
         :class:`UnexpectedStatus` on a non-2xx (or enrichment error), or :class:`TimeoutError` if the
         enrichment doesn't finish within ``timeout`` seconds.
         """
+        validate_poll_options(poll_interval, timeout)
         manifest = await self.get_inventory(inventory_id)
         items = manifest.get("inventory") or []
         if not items:
@@ -558,13 +569,19 @@ class InventoryManagerAPI:
         do_attach = bool(manifest.get("enrich_attachments")) if enrich_attachments is None else enrich_attachments
         attachments_text: str | None = None
         attachments_files: list[dict[str, str]] = []
+        attachment_omissions: list[dict[str, str]] = []
         if do_attach:
             ids = [
                 attachment_id
                 for attachment in (manifest.get("attached") or [])
                 if isinstance(attachment, dict) and (attachment_id := attachment.get("id"))
             ]
-            attachments_text, attachments_files = await self._resolve_attachments(ids)
+            attachments_text, attachments_files, attachment_omissions = await self._resolve_attachments(ids)
+            if strict_attachments and attachment_omissions:
+                omitted_ids = ", ".join(item["attachment_id"] for item in attachment_omissions)
+                raise RuntimeError(
+                    f"unable to resolve {len(attachment_omissions)} requested attachment(s): {omitted_ids}"
+                )
         result = await self.enrich_items(
             items,
             include=include,
@@ -574,45 +591,74 @@ class InventoryManagerAPI:
             attachments_text=attachments_text,
             attachments_files=attachments_files,
         )
+        if do_attach:
+            result["attachment_omissions"] = attachment_omissions
         if save and result.get("enrichment_id"):
             result["saved"] = await self.save_enrichment(inventory_id, result["enrichment_id"])
         return result
 
-    async def _resolve_attachments(self, attachment_ids: list[str]) -> tuple[str | None, list[dict[str, str]]]:
-        """Fetch the inventory's attached artifacts (≤20) and split them for the engine: TEXT artifacts are
-        concatenated into ``attachments_text``; BINARY ones (``X-Artifact-Format: file`` — spreadsheets, PDF,
-        scan XML) are forwarded RAW (their stored base64) as ``attachments_files`` so the engine's parsers
-        mine them — no SDK-side binary extraction needed. Best-effort; per-text-attachment ≤80 KB, text total
-        ≤500 KB, files ≤20."""
+    async def _resolve_attachments(
+        self, attachment_ids: list[str]
+    ) -> tuple[str | None, list[dict[str, str]], list[dict[str, str]]]:
+        """Resolve attachment evidence and return text, files, and structured omission records."""
         parts: list[str] = []
         files: list[dict[str, str]] = []
+        omissions = [
+            {
+                "attachment_id": attachment_id,
+                "reason": "attachment limit exceeded (maximum 20)",
+            }
+            for attachment_id in attachment_ids[20:]
+        ]
         total = 0
-        for aid in attachment_ids[:20]:
+        for attachment_id in attachment_ids[:20]:
             try:
                 resp = await self._http.request(
                     "GET",
-                    f"/artifact-manager/artifacts/{path_segment(aid)}",
+                    f"/artifact-manager/artifacts/{path_segment(attachment_id)}",
                     params={"raw": "1"},
                 )
                 if not 200 <= resp.status_code < 300:
+                    omissions.append(
+                        {
+                            "attachment_id": attachment_id,
+                            "reason": f"HTTP {resp.status_code}",
+                        }
+                    )
                     continue
                 content = resp.text
                 if not content:
+                    omissions.append(
+                        {
+                            "attachment_id": attachment_id,
+                            "reason": "empty response body",
+                        }
+                    )
                     continue
-                name = unquote(resp.headers.get("X-Artifact-Name", "") or aid)
-                if resp.headers.get("X-Artifact-Format", "") == "file":  # binary → forward to the engine's parsers
-                    if len(files) < 20:
-                        files.append({"filename": name, "content_b64": content})
+                name = unquote(resp.headers.get("X-Artifact-Name", "") or attachment_id)
+                if resp.headers.get("X-Artifact-Format", "") == "file":
+                    files.append({"filename": name, "content_b64": content})
                     continue
-                chunk = content[:80_000]
+                if total >= 500_000:
+                    omissions.append(
+                        {
+                            "attachment_id": attachment_id,
+                            "reason": "combined attachment text limit exceeded",
+                        }
+                    )
+                    continue
+                chunk = content[: min(80_000, 500_000 - total)]
                 parts.append(f"--- Attached: {name} ---\n{chunk}")
                 total += len(chunk)
-                if total >= 400_000:
-                    break
-            except Exception:  # noqa: BLE001 — attachment resolution is best-effort
-                continue
+            except Exception as exc:  # noqa: BLE001 — permissive mode reports each omitted attachment
+                omissions.append(
+                    {
+                        "attachment_id": attachment_id,
+                        "reason": str(exc) or type(exc).__name__,
+                    }
+                )
         text = "\n\n".join(parts)
-        return (text[:500_000] if text.strip() else None, files)
+        return (text if text.strip() else None, files, omissions)
 
     async def save_enrichment(self, inventory_id: str, enrichment_id: str) -> dict[str, Any]:
         """Persist a COMPLETED inventory enrichment into this inventory's saved history, by its engine
@@ -652,6 +698,7 @@ class InventoryManagerAPI:
         ``attachments_files`` (optional) drive the engine's mini Artifact-Enricher stage over the inventory's
         attached artifacts (text-rendered + raw binary files the engine parses). Raises
         :class:`UnexpectedStatus` on a non-2xx / engine error, or :class:`TimeoutError` on the deadline."""
+        validate_poll_options(poll_interval, timeout)
         body: dict[str, Any] = {"items": items}
         if include:
             body["include"] = include

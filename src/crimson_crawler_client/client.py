@@ -241,7 +241,8 @@ def _warn_connection_override(
 ) -> None:
     if base_url != BASE_URL:
         warnings.warn(
-            f"Crimson Crawler API origin overridden by {base_url_source}: {base_url}",
+            f"Crimson Crawler API origin override is active (source: {base_url_source}); "
+            "inspect client.base_url explicitly for the configured origin",
             RuntimeWarning,
             stacklevel=3,
         )

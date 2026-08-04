@@ -136,8 +136,11 @@ class RetryTransport(httpx.BaseTransport, httpx.AsyncBaseTransport):
                 retry_after = response.headers.get("retry-after")
                 try:
                     response.read()  # drain so the connection can be reused
-                except httpx.TransportError:
-                    response.close()
+                except Exception:  # noqa: BLE001 — cleanup failure must not mask the retry
+                    try:
+                        response.close()
+                    except Exception:  # noqa: BLE001 — best-effort release
+                        pass
                 self._sync_sleep(self._retry_delay(attempt, retry_after=retry_after))
                 attempt += 1
                 continue
@@ -159,8 +162,11 @@ class RetryTransport(httpx.BaseTransport, httpx.AsyncBaseTransport):
                 retry_after = response.headers.get("retry-after")
                 try:
                     await response.aread()  # drain so the connection can be reused
-                except httpx.TransportError:
-                    await response.aclose()
+                except Exception:  # noqa: BLE001 — cleanup failure must not mask the retry
+                    try:
+                        await response.aclose()
+                    except Exception:  # noqa: BLE001 — best-effort release
+                        pass
                 await self._sleep(self._retry_delay(attempt, retry_after=retry_after))
                 attempt += 1
                 continue

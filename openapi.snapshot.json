@@ -14161,7 +14161,7 @@
     },
     "/v1/artifact-enrich/{enrichment_id}": {
       "get": {
-        "description": "Poll an Artifact Enrichment until it finishes.\n\nReturns overall `progress`, ordered stage and substage progress, a rolling event feed, and one\nof these states:\n\n- `queued`: waiting for a slot; `queue_position` is the number of jobs ahead\n- `running`: enrichment is in progress\n- `done`: `result` contains the completed `ArtifactEnrichmentReport`\n- `error`: `error` contains the terminal failure\n\nPolling consumes no request units. Use the same API key used to submit the job. A missing,\nexpired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.",
+        "description": "Poll an Artifact Enrichment until it finishes.\n\nReturns overall `progress`, ordered stage and substage progress, a rolling event feed, and one\nof these states:\n\n- `queued`: waiting for a slot; `queue_position` is the number of jobs ahead\n- `running`: enrichment is in progress\n- `done`: `result` contains the completed `ArtifactEnrichmentReport`\n- `error`: `error` contains the terminal failure\n\nPolling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner\nthat submitted the job can read it, and a different key receives 404. Anonymous, keyless, and\ndirect MCP submissions use a capability URL, so possession of the job UUID is sufficient to\nread the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.",
         "operationId": "artifact_enrich_status",
         "parameters": [
           {
@@ -19845,7 +19845,7 @@
     },
     "/v1/inventory-enrich/{enrichment_id}": {
       "get": {
-        "description": "Poll an Inventory Enrichment until it finishes.\n\nReturns overall `progress`, ordered stage and substage progress, a rolling event feed, and one\nof these states:\n\n- `queued`: waiting for a slot; `queue_position` is the number of jobs ahead\n- `running`: enrichment is in progress\n- `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup\n- `error`: `error` contains the terminal failure\n\nPolling consumes no request units. Use the same API key used to submit the job. A missing,\nexpired, malformed, or owner-hidden identifier returns 404 or 422 as documented below.",
+        "description": "Poll an Inventory Enrichment until it finishes.\n\nReturns overall `progress`, ordered stage and substage progress, a rolling event feed, and one\nof these states:\n\n- `queued`: waiting for a slot; `queue_position` is the number of jobs ahead\n- `running`: enrichment is in progress\n- `done`: `result` contains per-asset findings, remediation data, and the portfolio rollup\n- `error`: `error` contains the terminal failure\n\nPolling consumes no request units. Authenticated jobs are owner-gated: only the API-key owner\nthat submitted the job can read it, and a different key receives 404. Anonymous, keyless, and\ndirect MCP submissions use a capability URL, so possession of the job UUID is sufficient to\nread the result. A missing, expired, malformed, or owner-hidden identifier returns 404 or 422.",
         "operationId": "inventory_enrich_status",
         "parameters": [
           {

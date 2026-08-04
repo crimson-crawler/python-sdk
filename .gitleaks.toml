@@ -1,0 +1,13 @@
+# Public package/source gate: scan every exported file, including tests.
+# Keep exceptions value-scoped; path allowlists could hide a real credential.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact synthetic CLI test keys"
+regexTarget = "secret"
+regexes = [
+  '''^env-key-12345678$''',
+  '''^env-key-1234567890abcdef$''',
+]

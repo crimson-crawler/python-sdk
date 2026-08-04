@@ -1,0 +1,249 @@
+name: Recover release v4.1.0
+
+# One-time recovery for a single incident. `v4.1.0` published to PyPI and then failed
+# SBOM attestation, so an immutable package exists with an artifact attestation but no
+# SBOM attestation and no GitHub Release. PyPI never permits reusing a version, so the
+# only correct repair is to reattest the bytes that are already public and create the
+# missing Release against the existing tag.
+#
+# Every constant below is hard-coded on purpose. This workflow takes no inputs, so it
+# cannot be aimed at another tag, version, or run, and it contains no registry
+# publication step and no git write of any kind. It is idempotent: rerunning it verifies
+# and reuses what already exists.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: recover-v4.1.0
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  EXPECTED_REPOSITORY: crimson-crawler/python-sdk
+  RECOVERY_TAG: v4.1.0
+  RECOVERY_VERSION: 4.1.0
+  PACKAGE_NAME: crimson-crawler-client
+  # The run whose artifacts hold the exact bytes PyPI serves. Its artifacts expire
+  # 2026-08-11; after that this workflow cannot recover the original files and must not
+  # be used, because rebuilding is not a permitted substitute.
+  ORIGINAL_RUN_ID: "30868211502"
+  # The annotated tag v4.1.0 resolves to this commit. If it ever differs, the tag moved
+  # and this recovery must stop rather than attest something else.
+  EXPECTED_TAG_COMMIT: 00234784380f48a8dd5af9634cb2335d10cc3a8d
+
+jobs:
+  recover:
+    name: Recover and validate original artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read # Read artifacts from the original release run
+    steps:
+      - name: Refuse to run outside the intended repository
+        run: |
+          [[ "$GITHUB_REPOSITORY" == "$EXPECTED_REPOSITORY" ]] || {
+            echo "::error::This recovery is scoped to $EXPECTED_REPOSITORY, not $GITHUB_REPOSITORY."
+            exit 1
+          }
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.11"
+      # Read-only tag inspection. Nothing here creates, moves, or deletes a ref.
+      - name: Confirm the tag still targets its original commit
+        run: |
+          git fetch --no-tags origin "refs/tags/${RECOVERY_TAG}:refs/tags/${RECOVERY_TAG}"
+          actual="$(git rev-parse "refs/tags/${RECOVERY_TAG}^{commit}")"
+          echo "tag ${RECOVERY_TAG} -> commit ${actual}"
+          [[ "$actual" == "$EXPECTED_TAG_COMMIT" ]] || {
+            echo "::error::${RECOVERY_TAG} targets ${actual}, expected ${EXPECTED_TAG_COMMIT}. The tag moved; stopping."
+            exit 1
+          }
+      - name: Download the original distribution
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: distribution
+          path: original
+          run-id: ${{ env.ORIGINAL_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Download the original checksums
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: checksums
+          path: original-checksums
+          run-id: ${{ env.ORIGINAL_RUN_ID }}
+          github-token: ${{ github.token }}
+      - name: Confirm exactly one wheel and one sdist were recovered
+        run: |
+          shopt -s nullglob
+          wheels=(original/*.whl)
+          sdists=(original/*.tar.gz)
+          echo "recovered: ${wheels[*]} ${sdists[*]}"
+          [[ ${#wheels[@]} -eq 1 && ${#sdists[@]} -eq 1 ]] || {
+            echo "::error::Expected one wheel and one sdist; found ${#wheels[@]} and ${#sdists[@]}."
+            exit 1
+          }
+      - name: Verify recovered digests against the original checksums
+        run: |
+          echo "--- original SHA256SUMS from run ${ORIGINAL_RUN_ID}"
+          cat original-checksums/SHA256SUMS
+          echo "--- digests of the recovered files"
+          ( cd original && sha256sum ./*.whl ./*.tar.gz )
+          # The original SHA256SUMS also covered the defective SBOM, which is deliberately
+          # NOT reused, so compare only the distribution entries.
+          ( cd original && for file in ./*.whl ./*.tar.gz; do
+              name="$(basename "$file")"
+              expected="$(awk -v n="$name" '$2 == n {print $1}' ../original-checksums/SHA256SUMS)"
+              actual="$(sha256sum "$file" | awk '{print $1}')"
+              [[ -n "$expected" ]] || { echo "::error::$name absent from the original SHA256SUMS."; exit 1; }
+              [[ "$expected" == "$actual" ]] || {
+                echo "::error::$name digest $actual does not match the recorded $expected."
+                exit 1
+              }
+            done )
+      # The decisive identity check: the recovered bytes must be the bytes the registry
+      # already serves. Exit 0 means every local file is present upstream with a matching
+      # digest; anything else means these are not the published artifacts.
+      - name: Verify the recovered files are the ones PyPI serves
+        run: |
+          python scripts/check-public-client-registry.py \
+            pypi "$PACKAGE_NAME" "$RECOVERY_VERSION" original/*.whl original/*.tar.gz
+      - name: Generate a corrected SBOM from the recovered wheel
+        run: |
+          python scripts/generate-public-sbom.py \
+            --wheel original/*.whl \
+            --lock uv.lock \
+            --output SBOM.raw.cdx.json
+      - name: Validate and normalize the corrected SBOM
+        run: |
+          python scripts/normalize-public-sbom.py SBOM.raw.cdx.json SBOM.cdx.json \
+            --expect-component "$PACKAGE_NAME" \
+            --require-dependency httpx \
+            --require-dependency attrs \
+            --require-dependency python-dateutil
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          # The exact trio actions/attest checks before it will treat this as CycloneDX.
+          sbom = json.loads(Path("SBOM.cdx.json").read_text())
+          for field in ("bomFormat", "serialNumber", "specVersion"):
+              if not sbom.get(field):
+                  raise SystemExit(f"SBOM is missing {field}; actions/attest would reject it")
+          print(f"subject: {sbom['metadata']['component']['name']}")
+          print(f"components: {len(sbom['components'])}")
+          PY
+      # Supersedes the original checksum file, because the corrected SBOM has a different
+      # digest than the defective one the first run recorded. The distribution digests are
+      # unchanged and were verified against both the original file and PyPI above.
+      - name: Write checksums for the exact release assets
+        run: |
+          cp original/*.whl original/*.tar.gz .
+          for file in ./*.whl ./*.tar.gz SBOM.cdx.json; do sha256sum "$file"; done \
+            | sed 's#\./##' > SHA256SUMS
+          cat SHA256SUMS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recovered-distribution
+          path: |
+            ./*.whl
+            ./*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recovered-sbom
+          path: SBOM.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recovered-checksums
+          path: SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    name: Attest the original artifacts
+    needs: recover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # Sign the attestation
+      attestations: write # Publish the attestation
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recovered-distribution
+          path: distribution
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recovered-sbom
+          path: sbom
+      # Attesting bytes that are already public is the point: the subject digests are the
+      # ones PyPI serves, confirmed in the previous job.
+      - uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: distribution/*
+      - uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: distribution/*
+          sbom-path: sbom/SBOM.cdx.json
+
+  release:
+    name: Create the missing GitHub release
+    needs: [recover, attest]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write # Create the Release against the existing tag
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recovered-distribution
+          path: release-assets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recovered-sbom
+          path: release-assets
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: recovered-checksums
+          path: release-assets
+      # Draft first, verify the uploaded assets, then flip to published. `--verify-tag`
+      # refuses to invent a tag, so this can only ever attach to the existing one.
+      - name: Create the release as a draft and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ "$(gh release view "$RECOVERY_TAG" --json isDraft --jq .isDraft 2>/dev/null || true)" == "false" ]]; then
+            echo "Release ${RECOVERY_TAG} is already published; verifying its assets instead."
+          else
+            gh release view "$RECOVERY_TAG" >/dev/null 2>&1 ||
+              gh release create "$RECOVERY_TAG" --draft --verify-tag \
+                --title "Python SDK ${RECOVERY_TAG}" --generate-notes
+            gh release upload "$RECOVERY_TAG" release-assets/* --clobber
+          fi
+      - name: Verify the release assets match what was attested
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir uploaded
+          gh release download "$RECOVERY_TAG" --dir uploaded
+          diff \
+            <(cd release-assets && sha256sum ./* | sed 's#\./##' | sort) \
+            <(cd uploaded && sha256sum ./* | sed 's#\./##' | sort)
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release edit "$RECOVERY_TAG" --draft=false --verify-tag

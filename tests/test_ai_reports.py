@@ -66,13 +66,25 @@ class TestReadAndManage:
 
     async def test_get_report_raw(self, ws):
         api, http = ws
-        http.request.return_value = _raw_resp(
+        http.send.return_value = _raw_resp(
             "<h1>Report</h1>", {"x-artifact-id": "r1", "x-artifact-format": "html_report"}
         )
         out = await api.get_report_raw("r1")
         assert out["content"] == "<h1>Report</h1>"
         assert out["format"] == "html_report"
-        assert http.request.call_args.kwargs["params"] == {"raw": "1"}
+        http.build_request.assert_called_once_with("GET", "/ai-reports/reports/r1", params={"raw": "1"})
+        assert http.send.call_args.kwargs["stream"] is True
+
+    async def test_get_report_raw_rejects_body_above_buffer_limit(self, ws):
+        api, http = ws
+        http.send.return_value = _raw_resp(
+            "oversized",
+            {"content-length": "10000001"},
+        )
+
+        with pytest.raises(ValueError, match="10000000-byte"):
+            await api.get_report_raw("r1")
+        http.send.assert_awaited_once()
 
     async def test_rename_report(self, ws):
         api, http = ws

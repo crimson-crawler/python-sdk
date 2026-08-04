@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ._poll import ProgressCallback, poll_until_done
+from ._poll import ProgressCallback, poll_until_done, validate_poll_options
 from ._url import path_segment
 from .exceptions import UnexpectedStatus
 
@@ -41,8 +41,12 @@ class EnricherAPI:
         *,
         params: dict[str, Any] | None = None,
         json: Any = None,
+        timeout: float | None = None,
     ) -> httpx.Response:
-        resp = await self._http.request(method, path, params=params, json=json)
+        kwargs: dict[str, Any] = {"params": params, "json": json}
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        resp = await self._http.request(method, path, **kwargs)
         if not 200 <= resp.status_code < 300:
             raise UnexpectedStatus(resp.status_code, resp.content, f"Enricher API {resp.status_code} on {path}")
         return resp
@@ -86,6 +90,7 @@ class EnricherAPI:
         ``saved`` (the ``{enrichment_artifact_id}`` / ``{already_persisted}`` save response). Saving is
         usage-exempt.
         """
+        validate_poll_options(poll_interval, timeout)
         body: dict[str, Any] = {}
         for key, val in (
             ("text", text),

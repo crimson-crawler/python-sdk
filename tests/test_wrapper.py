@@ -1,9 +1,8 @@
 """Wrapper-layer unit tests for crimson_crawler_client.
 
 Covers the hand-written code in `client.py`, `exceptions.py`, `presets.py`,
-and `__init__.py` — the parts CI's `build-client:docker` doesn't otherwise
-exercise. Generated `_generated/` modules are not tested here (they're
-regenerated from `openapi.snapshot.json` on every CI run).
+and `__init__.py`, plus security-sensitive patches applied to the generated
+layer by `scripts/codegen.py`.
 """
 
 from __future__ import annotations
@@ -29,6 +28,7 @@ from crimson_crawler_client import (
     presets,
 )
 from crimson_crawler_client._auth import ApiKeyAuth
+from crimson_crawler_client._generated.errors import UnexpectedStatus as GeneratedUnexpectedStatus
 from crimson_crawler_client._generated.models import (
     ArtifactEnrichmentJobResponse,
     ArtifactEnrichmentJobResponseStatus,
@@ -185,13 +185,28 @@ class TestConstructor:
             CrawlerClient(api_key="k", base_url="http://evil.example")
 
     def test_http_loopback_base_url_is_allowed_and_warns(self) -> None:
-        with pytest.warns(RuntimeWarning, match="origin overridden by constructor argument"):
+        with pytest.warns(RuntimeWarning, match="origin override is active"):
             client = CrawlerClient(api_key="k", base_url="http://localhost:8000")
         assert client.base_url == "http://localhost:8000"
 
-    def test_non_default_origin_warns(self) -> None:
-        with pytest.warns(RuntimeWarning, match=r"https://api\.example"):
+    def test_non_default_origin_warning_names_constructor_source_without_hostname(self) -> None:
+        with pytest.warns(RuntimeWarning) as captured:
             CrawlerClient(api_key="k", base_url="https://api.example")
+        message = str(captured[0].message)
+        assert "origin override is active" in message
+        assert "constructor argument" in message
+        assert "api.example" not in message
+
+    def test_non_default_origin_warning_names_environment_source_without_hostname(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv(ENV_BASE_URL, "https://internal.example")
+        with pytest.warns(RuntimeWarning) as captured:
+            CrawlerClient(api_key="k")
+        message = str(captured[0].message)
+        assert "origin override is active" in message
+        assert f"{ENV_BASE_URL} environment variable" in message
+        assert "internal.example" not in message
 
     def test_default_verify_ssl_is_true(self) -> None:
         client = CrawlerClient(api_key="k")
@@ -286,6 +301,16 @@ class TestCredentialDisclosure:
     # _headers fields. attrs @define would otherwise put both in __repr__, so any
     # traceback rendering locals would print a live API key. These tests fail if
     # that patch stops applying after an openapi-python-client upgrade.
+    def test_generated_unexpected_status_keeps_body_out_of_message(self) -> None:
+        content = b"arbitrary sensitive response content"
+        exc = GeneratedUnexpectedStatus(502, content)
+
+        assert exc.status_code == 502
+        assert exc.content is content
+        assert "502" in str(exc)
+        assert str(len(content)) in str(exc)
+        assert content.decode() not in str(exc)
+
     def test_repr_does_not_disclose_api_key(self) -> None:
         client = CrawlerClient(api_key="ck_live_repr_probe")
         assert "ck_live_repr_probe" not in repr(client.api)

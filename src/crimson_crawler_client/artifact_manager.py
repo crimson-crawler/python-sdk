@@ -39,6 +39,37 @@ if TYPE_CHECKING:
 _UNSET: Any = object()
 """Sentinel distinguishing "don't touch the folder" from "move to root (None)"."""
 
+_MAX_BUFFERED_RAW_BYTES = 10_000_000
+
+
+async def _get_buffered_raw(
+    http: httpx.AsyncClient,
+    path: str,
+    error_context: str,
+) -> tuple[str, httpx.Response]:
+    request = http.build_request("GET", path, params={"raw": "1"})
+    response = await http.send(request, stream=True)
+    try:
+        if not 200 <= response.status_code < 300:
+            body = await response.aread()
+            raise UnexpectedStatus(response.status_code, body, f"{error_context} {response.status_code} on {path}")
+        declared = response.headers.get("content-length")
+        try:
+            declared_size = int(declared) if declared is not None else None
+        except ValueError:
+            declared_size = None
+        if declared_size is not None and declared_size > _MAX_BUFFERED_RAW_BYTES:
+            raise ValueError(f"raw response exceeds the {_MAX_BUFFERED_RAW_BYTES}-byte buffer limit")
+
+        content = bytearray()
+        async for chunk in response.aiter_bytes():
+            if len(content) + len(chunk) > _MAX_BUFFERED_RAW_BYTES:
+                raise ValueError(f"raw response exceeds the {_MAX_BUFFERED_RAW_BYTES}-byte buffer limit")
+            content.extend(chunk)
+        return bytes(content).decode(response.encoding or "utf-8", errors="replace"), response
+    finally:
+        await response.aclose()
+
 
 def _safe_download_filename(disposition: str, fallback: str) -> str:
     def basename(value: str) -> str:
@@ -144,20 +175,19 @@ class ArtifactManagerAPI:
         return resp.json()["artifact"]
 
     async def get_artifact_raw(self, artifact_id: str) -> dict[str, Any]:
-        """Stream an artifact's content as the raw body — the efficient way to pull
-        a multi-MB enrichment report (no JSON re-wrap). Metadata rides ``X-Artifact-*``
-        headers.
+        """Read an artifact's raw body into a string buffer.
 
-        Returns:
-            ``{"content": str, "id", "kind", "name", "format", "mime", "created_at"}``.
+        The buffer is limited to 10,000,000 bytes; this method does not return a streaming response.
+        Metadata rides ``X-Artifact-*`` headers. Returns
+        ``{"content": str, "id", "kind", "name", "format", "mime", "created_at"}``.
         """
-        resp = await self._request(
-            "GET",
+        content, resp = await _get_buffered_raw(
+            self._http,
             f"/artifact-manager/artifacts/{path_segment(artifact_id)}",
-            params={"raw": "1"},
+            "Artifact Manager API",
         )
         return {
-            "content": resp.text,
+            "content": content,
             "id": resp.headers.get("x-artifact-id", artifact_id),
             "kind": resp.headers.get("x-artifact-kind", ""),
             "name": unquote(resp.headers.get("x-artifact-name", "")),
