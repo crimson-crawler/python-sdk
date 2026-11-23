@@ -1,4 +1,4 @@
-"""Shared submit→poll core for the two async-enrichment engines (Enricher + Inventory).
+"""Shared submit→poll core for the three async-enrichment engines (Enricher + Inventory + Event).
 
 Both ``client.enricher.enrich`` and ``client.inventory_manager.enrich_inventory`` submit a job to a
 ``/v1/*-enrich`` engine and then poll ``GET /v1/*-enrich/{id}`` until it finishes. The loop lives here

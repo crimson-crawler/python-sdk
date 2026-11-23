@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentMetaOverallConfidenceType0(str, Enum):
+class ArtifactEnrichmentMetaOverallConfidenceType0(StrEnum):
     HIGH = "high"
     LOW = "low"
     MODERATE = "moderate"

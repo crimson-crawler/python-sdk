@@ -9,9 +9,8 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
-    from ..models.group_detail import GroupDetail
-    from ..models.sector_detail_groups_item_type_2 import SectorDetailGroupsItemType2
-    from ..models.technique_detail import TechniqueDetail
+    from ..models.hierarchy_ref import HierarchyRef
+    from ..models.revision_entry import RevisionEntry
 
 
 T = TypeVar("T", bound="SectorDetail")
@@ -19,36 +18,38 @@ T = TypeVar("T", bound="SectorDetail")
 
 @_attrs_define
 class SectorDetail:
-    """Industry sector threat profile - groups and techniques targeting this sector.
+    """Industry sector profile — name, sub-sectors, aliases, and STIX identity class.
 
     Attributes:
         aliases (list[str] | Unset): Known aliases for this sector
         description (None | str | Unset): Sector threat landscape description
-        groups (list[GroupDetail | SectorDetailGroupsItemType2 | str] | Unset): Threat groups known to target this
-            sector
         identity_class (str | Unset): STIX identity_class (e.g. 'class') Default: ''.
         name (None | str | Unset): Sector name (e.g. 'Financial Services')
+        parent_sectors (list[HierarchyRef] | Unset): Ancestor sectors from the sector bundle's parent chain (e.g. high-
+            tech -> Technologies), so a caller can expand the `sectors[]` slugs to real objects.
+        revision_history (list[RevisionEntry] | Unset): The object's revision history from `/objects/{id}/versions/`.
+            Opt-in via include=['versions']; attached to every detail row this response returns — the endpoint's own object
+            AND the rows nested in its list layers (search hits, technique-context entries), one deduped cached read per
+            distinct object. Zero reads when the token is omitted.
         sector_id (str | Unset): Sector identifier Default: ''.
         sectors (list[str] | Unset): Sub-sector list (NACE / NAICS-style breakdown)
         stix_id (str | Unset): STIX object identifier Default: ''.
-        techniques (list[str | TechniqueDetail] | Unset): ATT&CK techniques used against this sector
     """
 
     aliases: list[str] | Unset = UNSET
     description: None | str | Unset = UNSET
-    groups: list[GroupDetail | SectorDetailGroupsItemType2 | str] | Unset = UNSET
     identity_class: str | Unset = ""
     name: None | str | Unset = UNSET
+    parent_sectors: list[HierarchyRef] | Unset = UNSET
+    revision_history: list[RevisionEntry] | Unset = UNSET
     sector_id: str | Unset = ""
     sectors: list[str] | Unset = UNSET
     stix_id: str | Unset = ""
-    techniques: list[str | TechniqueDetail] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.group_detail import GroupDetail
-        from ..models.sector_detail_groups_item_type_2 import SectorDetailGroupsItemType2
-        from ..models.technique_detail import TechniqueDetail
+        from ..models.hierarchy_ref import HierarchyRef  # noqa: PLC0415
+        from ..models.revision_entry import RevisionEntry  # noqa: PLC0415
 
         aliases: list[str] | Unset = UNSET
         if not isinstance(self.aliases, Unset):
@@ -60,19 +61,6 @@ class SectorDetail:
         else:
             description = self.description
 
-        groups: list[dict[str, Any] | str] | Unset = UNSET
-        if not isinstance(self.groups, Unset):
-            groups = []
-            for groups_item_data in self.groups:
-                groups_item: dict[str, Any] | str
-                if isinstance(groups_item_data, GroupDetail):
-                    groups_item = groups_item_data.to_dict()
-                elif isinstance(groups_item_data, SectorDetailGroupsItemType2):
-                    groups_item = groups_item_data.to_dict()
-                else:
-                    groups_item = groups_item_data
-                groups.append(groups_item)
-
         identity_class = self.identity_class
 
         name: None | str | Unset
@@ -80,6 +68,20 @@ class SectorDetail:
             name = UNSET
         else:
             name = self.name
+
+        parent_sectors: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.parent_sectors, Unset):
+            parent_sectors = []
+            for parent_sectors_item_data in self.parent_sectors:
+                parent_sectors_item = parent_sectors_item_data.to_dict()
+                parent_sectors.append(parent_sectors_item)
+
+        revision_history: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.revision_history, Unset):
+            revision_history = []
+            for revision_history_item_data in self.revision_history:
+                revision_history_item = revision_history_item_data.to_dict()
+                revision_history.append(revision_history_item)
 
         sector_id = self.sector_id
 
@@ -89,17 +91,6 @@ class SectorDetail:
 
         stix_id = self.stix_id
 
-        techniques: list[dict[str, Any] | str] | Unset = UNSET
-        if not isinstance(self.techniques, Unset):
-            techniques = []
-            for techniques_item_data in self.techniques:
-                techniques_item: dict[str, Any] | str
-                if isinstance(techniques_item_data, TechniqueDetail):
-                    techniques_item = techniques_item_data.to_dict()
-                else:
-                    techniques_item = techniques_item_data
-                techniques.append(techniques_item)
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -107,28 +98,27 @@ class SectorDetail:
             field_dict["aliases"] = aliases
         if description is not UNSET:
             field_dict["description"] = description
-        if groups is not UNSET:
-            field_dict["groups"] = groups
         if identity_class is not UNSET:
             field_dict["identity_class"] = identity_class
         if name is not UNSET:
             field_dict["name"] = name
+        if parent_sectors is not UNSET:
+            field_dict["parent_sectors"] = parent_sectors
+        if revision_history is not UNSET:
+            field_dict["revision_history"] = revision_history
         if sector_id is not UNSET:
             field_dict["sector_id"] = sector_id
         if sectors is not UNSET:
             field_dict["sectors"] = sectors
         if stix_id is not UNSET:
             field_dict["stix_id"] = stix_id
-        if techniques is not UNSET:
-            field_dict["techniques"] = techniques
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.group_detail import GroupDetail
-        from ..models.sector_detail_groups_item_type_2 import SectorDetailGroupsItemType2
-        from ..models.technique_detail import TechniqueDetail
+        from ..models.hierarchy_ref import HierarchyRef  # noqa: PLC0415
+        from ..models.revision_entry import RevisionEntry  # noqa: PLC0415
 
         d = dict(src_dict)
         aliases = cast(list[str], d.pop("aliases", UNSET))
@@ -142,35 +132,6 @@ class SectorDetail:
 
         description = _parse_description(d.pop("description", UNSET))
 
-        _groups = d.pop("groups", UNSET)
-        groups: list[GroupDetail | SectorDetailGroupsItemType2 | str] | Unset = UNSET
-        if _groups is not UNSET:
-            groups = []
-            for groups_item_data in _groups:
-
-                def _parse_groups_item(data: object) -> GroupDetail | SectorDetailGroupsItemType2 | str:
-                    try:
-                        if not isinstance(data, dict):
-                            raise TypeError()
-                        groups_item_type_1 = GroupDetail.from_dict(data)
-
-                        return groups_item_type_1
-                    except (TypeError, ValueError, AttributeError, KeyError):
-                        pass
-                    try:
-                        if not isinstance(data, dict):
-                            raise TypeError()
-                        groups_item_type_2 = SectorDetailGroupsItemType2.from_dict(data)
-
-                        return groups_item_type_2
-                    except (TypeError, ValueError, AttributeError, KeyError):
-                        pass
-                    return cast(GroupDetail | SectorDetailGroupsItemType2 | str, data)
-
-                groups_item = _parse_groups_item(groups_item_data)
-
-                groups.append(groups_item)
-
         identity_class = d.pop("identity_class", UNSET)
 
         def _parse_name(data: object) -> None | str | Unset:
@@ -182,43 +143,40 @@ class SectorDetail:
 
         name = _parse_name(d.pop("name", UNSET))
 
+        _parent_sectors = d.pop("parent_sectors", UNSET)
+        parent_sectors: list[HierarchyRef] | Unset = UNSET
+        if _parent_sectors is not UNSET:
+            parent_sectors = []
+            for parent_sectors_item_data in _parent_sectors:
+                parent_sectors_item = HierarchyRef.from_dict(parent_sectors_item_data)
+
+                parent_sectors.append(parent_sectors_item)
+
+        _revision_history = d.pop("revision_history", UNSET)
+        revision_history: list[RevisionEntry] | Unset = UNSET
+        if _revision_history is not UNSET:
+            revision_history = []
+            for revision_history_item_data in _revision_history:
+                revision_history_item = RevisionEntry.from_dict(revision_history_item_data)
+
+                revision_history.append(revision_history_item)
+
         sector_id = d.pop("sector_id", UNSET)
 
         sectors = cast(list[str], d.pop("sectors", UNSET))
 
         stix_id = d.pop("stix_id", UNSET)
 
-        _techniques = d.pop("techniques", UNSET)
-        techniques: list[str | TechniqueDetail] | Unset = UNSET
-        if _techniques is not UNSET:
-            techniques = []
-            for techniques_item_data in _techniques:
-
-                def _parse_techniques_item(data: object) -> str | TechniqueDetail:
-                    try:
-                        if not isinstance(data, dict):
-                            raise TypeError()
-                        techniques_item_type_1 = TechniqueDetail.from_dict(data)
-
-                        return techniques_item_type_1
-                    except (TypeError, ValueError, AttributeError, KeyError):
-                        pass
-                    return cast(str | TechniqueDetail, data)
-
-                techniques_item = _parse_techniques_item(techniques_item_data)
-
-                techniques.append(techniques_item)
-
         sector_detail = cls(
             aliases=aliases,
             description=description,
-            groups=groups,
             identity_class=identity_class,
             name=name,
+            parent_sectors=parent_sectors,
+            revision_history=revision_history,
             sector_id=sector_id,
             sectors=sectors,
             stix_id=stix_id,
-            techniques=techniques,
         )
 
         sector_detail.additional_properties = d

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnrichCampaignRequestFramework(str, Enum):
+class EnrichCampaignRequestFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

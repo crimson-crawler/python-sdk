@@ -18,7 +18,11 @@ class BatchD3FENDItem:
     Attributes:
         d3fend_id (None | str | Unset): D3FEND identifier for direct lookup (e.g. D3-AL)
         include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: details,
-            knowledgebase, summary, techniques, web, web_scrape.
+            knowledgebase, summary, techniques, versions. `versions` attaches the object's KB revision history
+            (`revision_history`). `techniques` loads the object's bundle for `related_techniques` without publishing the
+            object itself, which still requires `details`/`versions`. `related_techniques` stays empty by data — D3FEND's
+            ATT&CK links name mitigations (`M####`), so the corpus carries no D3FEND→technique edge — and the response
+            carries an `errors[]` entry with `error: "no_mapping"` saying so.
         search (None | str | Unset): Text query to search defensive techniques
         type_ (Literal['defend'] | Unset): Selects D3FEND enrichment for this batch item Default: 'defend'.
     """

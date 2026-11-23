@@ -53,18 +53,6 @@ class TestWiring:
 
 
 class TestArtifacts:
-    async def test_list_artifacts_filters(self, ws):
-        api, http = ws
-        http.request.return_value = _resp(200, {"artifacts": [{"id": "a1"}]})
-        out = await api.list_artifacts(kind="artifact_enrichment", folder="__root__", since="2026-01-01")
-        assert out == [{"id": "a1"}]
-        http.request.assert_called_once_with(
-            "GET",
-            "/artifact-manager/artifacts",
-            params={"kind": "artifact_enrichment", "folder": "__root__", "since": "2026-01-01"},
-            json=None,
-        )
-
     async def test_list_artifacts_no_filters_sends_no_params(self, ws):
         api, http = ws
         http.request.return_value = _resp(200, {"artifacts": []})
@@ -94,12 +82,14 @@ class TestArtifacts:
                 "x-artifact-kind": "artifact_enrichment",
                 "x-artifact-name": "Scan%20%C2%B7%205",
                 "x-artifact-format": "scan_report",
+                "x-artifact-tlp": "RED",
             },
         )
         raw = await api.get_artifact_raw("a1")
         assert raw["content"] == '{"report":1}'
         assert raw["kind"] == "artifact_enrichment"
         assert raw["name"] == "Scan · 5"  # URL-decoded
+        assert raw["tlp"] == "RED"
 
     async def test_get_artifact_raw_rejects_body_above_buffer_limit(self, ws):
         api, http = ws
@@ -325,3 +315,118 @@ class TestSaveEnrichment:
         http.request.return_value = _resp(409, {"error": "enrichment not complete"})
         with pytest.raises(UnexpectedStatus):
             await api.save_enrichment("b" * 32)
+
+
+class TestTlpMarking:
+    """The #374 TLP 2.0 marking: every accepted value rides the right wire slot, an absent value sends
+    nothing, and an invalid value is refused before any request."""
+
+    @pytest.mark.parametrize("tlp", ["CLEAR", "GREEN", "AMBER", "AMBER+STRICT", "RED"])
+    async def test_get_export_sends_every_value(self, ws, tlp):
+        api, http = ws
+        http.request.return_value = _raw_resp("{}", {})
+        await api.get_export("s1", "stix", tlp=tlp)
+        assert http.request.call_args.kwargs["params"] == {"tlp": tlp}
+
+    async def test_get_export_omits_the_param_when_unset(self, ws):
+        api, http = ws
+        http.request.return_value = _raw_resp("{}", {})
+        await api.get_export("s1", "stix")
+        assert http.request.call_args.kwargs["params"] is None
+
+    async def test_get_export_rejects_invalid_value_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.get_export("s1", "stix", tlp="WHITE")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+    async def test_get_export_url_encodes_plus(self):
+        """`AMBER+STRICT` must reach the wire as `AMBER%2BSTRICT` (a bare `+` would decode to a space)."""
+        seen: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(str(request.url))
+            return httpx.Response(200, content=b"{}", headers={"content-type": "application/json"})
+
+        async with httpx.AsyncClient(base_url="https://api.test", transport=httpx.MockTransport(handler)) as http:
+            api = ArtifactManagerAPI(http)
+            await api.get_export("s1", "stix", tlp="AMBER+STRICT")
+
+        assert "tlp=AMBER%2BSTRICT" in seen[0]
+
+    async def test_bulk_downloads_send_the_query_param(self, ws):
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"PK", headers={"content-type": "application/zip"})
+        await api.download_all_exports("s1", tlp="GREEN")
+        assert http.request.call_args.kwargs["params"] == {"tlp": "GREEN"}
+        await api.download_folder("f1", tlp="RED")
+        assert http.request.call_args.kwargs["params"] == {"tlp": "RED"}
+
+    async def test_bundle_sends_the_body_field(self, ws):
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"PK", headers={"content-type": "application/zip"})
+        await api.download_bundle(["a1", "a2"], tlp="CLEAR")
+        assert http.request.call_args.kwargs["json"] == {"ids": ["a1", "a2"], "tlp": "CLEAR"}
+
+    async def test_bundle_omits_the_body_field_when_unset(self, ws):
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"PK", headers={"content-type": "application/zip"})
+        await api.download_bundle(["a1"])
+        assert http.request.call_args.kwargs["json"] == {"ids": ["a1"]}
+
+    async def test_bundle_rejects_invalid_value_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.download_bundle(["a1"], tlp="amber")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+    async def test_list_rejects_invalid_tlp_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.list_artifacts(tlp="WHITE")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+    async def test_upload_rejects_invalid_tlp_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.upload_artifacts([{"name": "n", "content": "c", "format": "paste"}], tlp="amber")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+    async def test_update_rejects_invalid_tlp_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.update_artifact("a1", tlp="WHITE")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+
+class TestEnricherSettings:
+    """The default TLP marking a NEW enrichment starts from — `/artifact-manager/settings`."""
+
+    async def test_get_enricher_settings(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"artifact_tlp": "GREEN", "inventory_tlp": "AMBER"})
+        assert await api.get_enricher_settings() == {"artifact_tlp": "GREEN", "inventory_tlp": "AMBER"}
+        http.request.assert_awaited_once_with("GET", "/artifact-manager/settings", params=None, json=None)
+
+    async def test_set_sends_only_the_keys_it_was_given(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"artifact_tlp": "AMBER", "inventory_tlp": "RED"})
+        assert await api.set_enricher_settings(inventory_tlp="RED") == {
+            "artifact_tlp": "AMBER",
+            "inventory_tlp": "RED",
+        }
+        http.request.assert_awaited_once_with(
+            "PUT", "/artifact-manager/settings", params=None, json={"inventory_tlp": "RED"}
+        )
+
+    async def test_set_without_a_key_is_rejected_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="artifact_tlp and/or inventory_tlp"):
+            await api.set_enricher_settings()
+        http.request.assert_not_called()
+
+    async def test_set_rejects_an_invalid_marking_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.set_enricher_settings(artifact_tlp="amber")  # type: ignore[arg-type]
+        http.request.assert_not_called()

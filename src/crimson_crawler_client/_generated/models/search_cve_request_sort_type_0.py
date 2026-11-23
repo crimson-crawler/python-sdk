@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SearchCVERequestSortType0(str, Enum):
+class SearchCVERequestSortType0(StrEnum):
     CREATED_ASCENDING = "created_ascending"
     CREATED_DESCENDING = "created_descending"
     EPSS_SCORE_DESCENDING = "epss_score_descending"

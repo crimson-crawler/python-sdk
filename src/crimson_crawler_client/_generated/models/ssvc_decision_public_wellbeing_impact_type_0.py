@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionPublicWellbeingImpactType0(str, Enum):
+class SSVCDecisionPublicWellbeingImpactType0(StrEnum):
     IRREVERSIBLE = "irreversible"
     MATERIAL = "material"
     MINIMAL = "minimal"

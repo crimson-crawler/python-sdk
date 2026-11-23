@@ -20,12 +20,15 @@ class SearchD3FENDRequest:
         query (str): Search query
         d3fend_form (None | SearchD3FENDRequestD3FendFormType0 | Unset): Filter by D3FEND form: tactic, mitigation, sub-
             mitigation, artifact
+        include (list[str] | Unset): Result layers to include. `versions` defaults on and attaches each D3FEND row's KB
+            revision history; pass an empty list to omit it.
         limit (int | Unset): Maximum results (1-100) Default: 20.
         page (int | Unset): Page number for pagination (1-indexed, max 100) Default: 1.
     """
 
     query: str
     d3fend_form: None | SearchD3FENDRequestD3FendFormType0 | Unset = UNSET
+    include: list[str] | Unset = UNSET
     limit: int | Unset = 20
     page: int | Unset = 1
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -41,6 +44,10 @@ class SearchD3FENDRequest:
         else:
             d3fend_form = self.d3fend_form
 
+        include: list[str] | Unset = UNSET
+        if not isinstance(self.include, Unset):
+            include = self.include
+
         limit = self.limit
 
         page = self.page
@@ -54,6 +61,8 @@ class SearchD3FENDRequest:
         )
         if d3fend_form is not UNSET:
             field_dict["d3fend_form"] = d3fend_form
+        if include is not UNSET:
+            field_dict["include"] = include
         if limit is not UNSET:
             field_dict["limit"] = limit
         if page is not UNSET:
@@ -83,6 +92,8 @@ class SearchD3FENDRequest:
 
         d3fend_form = _parse_d3fend_form(d.pop("d3fend_form", UNSET))
 
+        include = cast(list[str], d.pop("include", UNSET))
+
         limit = d.pop("limit", UNSET)
 
         page = d.pop("page", UNSET)
@@ -90,6 +101,7 @@ class SearchD3FENDRequest:
         search_d3fend_request = cls(
             query=query,
             d3fend_form=d3fend_form,
+            include=include,
             limit=limit,
             page=page,
         )

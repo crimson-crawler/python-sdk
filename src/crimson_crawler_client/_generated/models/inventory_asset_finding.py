@@ -6,12 +6,14 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generator, TextIO, TypeVar, cas
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
+from ..models.inventory_asset_finding_match import InventoryAssetFindingMatch
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.error_detail import ErrorDetail
     from ..models.inventory_advisory import InventoryAdvisory
     from ..models.inventory_cve import InventoryCVE
+    from ..models.product_lifecycle import ProductLifecycle
 
 
 T = TypeVar("T", bound="InventoryAssetFinding")
@@ -23,34 +25,61 @@ class InventoryAssetFinding:
 
     Attributes:
         product (str): Product name (echoed)
-        advisories (list[InventoryAdvisory] | Unset): Non-CVE OSV advisories (package assets only), severity-desc (≤25)
-        advisory_count (int | Unset): Non-CVE OSV advisories captured (GHSA/PYSEC/… with no CVE alias) Default: 0.
+        advisories (list[InventoryAdvisory] | Unset): OSV advisories not enriched into top_cves (package assets only),
+            severity-desc (≤200)
+        advisory_count (int | Unset): OSV advisories captured that did not become top_cves (no CVE alias, or a CVE alias
+            the CVE catalog could not resolve) Default: 0.
+        asset_class (None | str | Unset): OT/ICS asset class supplied by the caller (echoed, never inferred): plc, hmi,
+            rtu, ied, sis, historian, engineering_workstation, gateway, sensor, or other. Null for a non-OT asset.
         asset_groups (list[str] | Unset): Additional organizational groups supplied for the asset
         category (None | str | Unset): Asset category (echoed)
         cpe (None | str | Unset): CPE 2.3 identifier supplied for the asset
         criticality (None | str | Unset): Asset criticality (echoed)
-        cve_count (int | Unset): Distinct CVEs captured across the asset's versions Default: 0.
+        cve_count (int | Unset): Distinct CVEs still actionable on this asset, across its versions. VEX-suppressed
+            findings are EXCLUDED here (they are reported by the rollup's vex_suppressed_cves) but RETAINED in top_cves, so
+            top_cves can be longer than cve_count. Default: 0.
         ecosystem (None | str | Unset): Package ecosystem (echoed; set ⇒ OSV-enriched package asset)
         environment (None | str | Unset): Deployment environment supplied for the asset
         errors (list[ErrorDetail] | Unset): Per-asset partial-failure details
         exposure (None | str | Unset): Deployment exposure supplied for the asset
-        fixable_cve_count (int | Unset): How many of the asset's captured CVEs have a known published fix version
-            Default: 0.
+        firmware_version (None | str | Unset): Firmware version supplied by the caller (echoed)
+        fixable_cve_count (int | Unset): How many of the asset's actionable CVEs have a known published fix version
+            (VEX-suppressed findings excluded) Default: 0.
         group (None | str | Unset): Primary organizational group supplied for the asset
-        kev_count (int | Unset): How many captured CVEs are KEV-listed Default: 0.
-        max_weaponization (float | None | Unset): Highest weaponization score across the asset's CVEs
+        hardware_version (None | str | Unset): Hardware model/revision supplied by the caller (echoed)
+        kev_count (int | Unset): How many of the asset's actionable CVEs are KEV-listed (VEX-suppressed findings
+            excluded — a suppressed KEV CVE is still in top_cves with kev=true). Default: 0.
+        lifecycle (None | ProductLifecycle | Unset): endoflife.date lifecycle for this asset's product (support/EOL and
+            latest release). Null when the product has no slug match or the read failed.
+        match (InventoryAssetFindingMatch | Unset): Why this asset matched what it did: 'package' when an OSV probe
+            answered for the (ecosystem, name), 'cpe' when a CPE candidate's product token equals the requested product
+            exactly, 'cpe_fuzzy' when candidates exist but none is exact, 'none' when nothing resolved (identifier
+            unresolved, no candidates, unsupported ecosystem, or every probe failed). Default:
+            InventoryAssetFindingMatch.NONE.
+        match_detail (None | str | Unset): Human-readable detail on the match: the ecosystem/package OSV answered for,
+            the resolved 'vendor:product' candidates (with the CPE candidate count), or why nothing matched. Null for the
+            degraded/error finding.
+        max_weaponization (float | None | Unset): Highest weaponization score across the asset's actionable CVEs (VEX-
+            suppressed excluded)
         notes (None | str | Unset): Note (echoed)
         owner (None | str | Unset): Responsible team or person supplied for the asset
+        protocols (list[str] | Unset): Industrial protocols supplied by the caller (echoed; each label ≤64 characters)
+        purdue_level (int | None | Unset): ISA/IEC 62443 Purdue level 0-5 supplied by the caller (echoed); null when
+            unknown
+        purl (None | str | Unset): Scanner Package URL supplied for a distro package (echoed; the VEX binding leaf)
         recommended_fix_version (None | str | Unset): Upgrade target that clears EVERY fixable CVE on this asset AND is
             verified against known CVEs affecting the target itself (bumped past vulnerable intermediate versions, bounded
             verification). None when no CVE has a known published fix.
         recommended_fix_version_kev (None | str | Unset): The urgent minimum: upgrade target that clears all KEV-listed
             CVEs on this asset (highest fix version among KEV CVEs). None when no KEV CVE has a known fix.
+        safety_critical (bool | None | Unset): Safety-instrumented-function membership supplied by the caller (echoed).
+            Null = unknown; false = explicitly not safety-critical.
         source_refs (list[str] | Unset): Source identifiers or references supplied for the asset
         status (str | Unset): 'ok' or 'error' (enrichment failed for this asset) Default: 'ok'.
         stix_id (None | str | Unset): STIX identifier supplied for the asset
         tags (list[str] | Unset): Free-form labels supplied for the asset
-        top_cves (list[InventoryCVE] | Unset): Captured CVEs, KEV-first then weaponization/CVSS-desc (≤25)
+        top_cves (list[InventoryCVE] | Unset): Captured CVEs, KEV-first then weaponization/CVSS-desc (≤200). Includes
+            VEX-suppressed findings, each flagged suppressed_by_vex with its justification.
         vendor (None | str | Unset): Vendor (echoed)
         versions (list[str] | Unset): Versions assessed (echoed)
     """
@@ -58,6 +87,7 @@ class InventoryAssetFinding:
     product: str
     advisories: list[InventoryAdvisory] | Unset = UNSET
     advisory_count: int | Unset = 0
+    asset_class: None | str | Unset = UNSET
     asset_groups: list[str] | Unset = UNSET
     category: None | str | Unset = UNSET
     cpe: None | str | Unset = UNSET
@@ -67,14 +97,23 @@ class InventoryAssetFinding:
     environment: None | str | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
     exposure: None | str | Unset = UNSET
+    firmware_version: None | str | Unset = UNSET
     fixable_cve_count: int | Unset = 0
     group: None | str | Unset = UNSET
+    hardware_version: None | str | Unset = UNSET
     kev_count: int | Unset = 0
+    lifecycle: None | ProductLifecycle | Unset = UNSET
+    match: InventoryAssetFindingMatch | Unset = InventoryAssetFindingMatch.NONE
+    match_detail: None | str | Unset = UNSET
     max_weaponization: float | None | Unset = UNSET
     notes: None | str | Unset = UNSET
     owner: None | str | Unset = UNSET
+    protocols: list[str] | Unset = UNSET
+    purdue_level: int | None | Unset = UNSET
+    purl: None | str | Unset = UNSET
     recommended_fix_version: None | str | Unset = UNSET
     recommended_fix_version_kev: None | str | Unset = UNSET
+    safety_critical: bool | None | Unset = UNSET
     source_refs: list[str] | Unset = UNSET
     status: str | Unset = "ok"
     stix_id: None | str | Unset = UNSET
@@ -85,9 +124,10 @@ class InventoryAssetFinding:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.error_detail import ErrorDetail
-        from ..models.inventory_advisory import InventoryAdvisory
-        from ..models.inventory_cve import InventoryCVE
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.inventory_advisory import InventoryAdvisory  # noqa: PLC0415
+        from ..models.inventory_cve import InventoryCVE  # noqa: PLC0415
+        from ..models.product_lifecycle import ProductLifecycle  # noqa: PLC0415
 
         product = self.product
 
@@ -99,6 +139,12 @@ class InventoryAssetFinding:
                 advisories.append(advisories_item)
 
         advisory_count = self.advisory_count
+
+        asset_class: None | str | Unset
+        if isinstance(self.asset_class, Unset):
+            asset_class = UNSET
+        else:
+            asset_class = self.asset_class
 
         asset_groups: list[str] | Unset = UNSET
         if not isinstance(self.asset_groups, Unset):
@@ -149,6 +195,12 @@ class InventoryAssetFinding:
         else:
             exposure = self.exposure
 
+        firmware_version: None | str | Unset
+        if isinstance(self.firmware_version, Unset):
+            firmware_version = UNSET
+        else:
+            firmware_version = self.firmware_version
+
         fixable_cve_count = self.fixable_cve_count
 
         group: None | str | Unset
@@ -157,7 +209,31 @@ class InventoryAssetFinding:
         else:
             group = self.group
 
+        hardware_version: None | str | Unset
+        if isinstance(self.hardware_version, Unset):
+            hardware_version = UNSET
+        else:
+            hardware_version = self.hardware_version
+
         kev_count = self.kev_count
+
+        lifecycle: dict[str, Any] | None | Unset
+        if isinstance(self.lifecycle, Unset):
+            lifecycle = UNSET
+        elif isinstance(self.lifecycle, ProductLifecycle):
+            lifecycle = self.lifecycle.to_dict()
+        else:
+            lifecycle = self.lifecycle
+
+        match: str | Unset = UNSET
+        if not isinstance(self.match, Unset):
+            match = self.match.value
+
+        match_detail: None | str | Unset
+        if isinstance(self.match_detail, Unset):
+            match_detail = UNSET
+        else:
+            match_detail = self.match_detail
 
         max_weaponization: float | None | Unset
         if isinstance(self.max_weaponization, Unset):
@@ -177,6 +253,22 @@ class InventoryAssetFinding:
         else:
             owner = self.owner
 
+        protocols: list[str] | Unset = UNSET
+        if not isinstance(self.protocols, Unset):
+            protocols = self.protocols
+
+        purdue_level: int | None | Unset
+        if isinstance(self.purdue_level, Unset):
+            purdue_level = UNSET
+        else:
+            purdue_level = self.purdue_level
+
+        purl: None | str | Unset
+        if isinstance(self.purl, Unset):
+            purl = UNSET
+        else:
+            purl = self.purl
+
         recommended_fix_version: None | str | Unset
         if isinstance(self.recommended_fix_version, Unset):
             recommended_fix_version = UNSET
@@ -188,6 +280,12 @@ class InventoryAssetFinding:
             recommended_fix_version_kev = UNSET
         else:
             recommended_fix_version_kev = self.recommended_fix_version_kev
+
+        safety_critical: bool | None | Unset
+        if isinstance(self.safety_critical, Unset):
+            safety_critical = UNSET
+        else:
+            safety_critical = self.safety_critical
 
         source_refs: list[str] | Unset = UNSET
         if not isinstance(self.source_refs, Unset):
@@ -233,6 +331,8 @@ class InventoryAssetFinding:
             field_dict["advisories"] = advisories
         if advisory_count is not UNSET:
             field_dict["advisory_count"] = advisory_count
+        if asset_class is not UNSET:
+            field_dict["asset_class"] = asset_class
         if asset_groups is not UNSET:
             field_dict["asset_groups"] = asset_groups
         if category is not UNSET:
@@ -251,22 +351,40 @@ class InventoryAssetFinding:
             field_dict["errors"] = errors
         if exposure is not UNSET:
             field_dict["exposure"] = exposure
+        if firmware_version is not UNSET:
+            field_dict["firmware_version"] = firmware_version
         if fixable_cve_count is not UNSET:
             field_dict["fixable_cve_count"] = fixable_cve_count
         if group is not UNSET:
             field_dict["group"] = group
+        if hardware_version is not UNSET:
+            field_dict["hardware_version"] = hardware_version
         if kev_count is not UNSET:
             field_dict["kev_count"] = kev_count
+        if lifecycle is not UNSET:
+            field_dict["lifecycle"] = lifecycle
+        if match is not UNSET:
+            field_dict["match"] = match
+        if match_detail is not UNSET:
+            field_dict["match_detail"] = match_detail
         if max_weaponization is not UNSET:
             field_dict["max_weaponization"] = max_weaponization
         if notes is not UNSET:
             field_dict["notes"] = notes
         if owner is not UNSET:
             field_dict["owner"] = owner
+        if protocols is not UNSET:
+            field_dict["protocols"] = protocols
+        if purdue_level is not UNSET:
+            field_dict["purdue_level"] = purdue_level
+        if purl is not UNSET:
+            field_dict["purl"] = purl
         if recommended_fix_version is not UNSET:
             field_dict["recommended_fix_version"] = recommended_fix_version
         if recommended_fix_version_kev is not UNSET:
             field_dict["recommended_fix_version_kev"] = recommended_fix_version_kev
+        if safety_critical is not UNSET:
+            field_dict["safety_critical"] = safety_critical
         if source_refs is not UNSET:
             field_dict["source_refs"] = source_refs
         if status is not UNSET:
@@ -286,9 +404,10 @@ class InventoryAssetFinding:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.error_detail import ErrorDetail
-        from ..models.inventory_advisory import InventoryAdvisory
-        from ..models.inventory_cve import InventoryCVE
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.inventory_advisory import InventoryAdvisory  # noqa: PLC0415
+        from ..models.inventory_cve import InventoryCVE  # noqa: PLC0415
+        from ..models.product_lifecycle import ProductLifecycle  # noqa: PLC0415
 
         d = dict(src_dict)
         product = d.pop("product")
@@ -303,6 +422,15 @@ class InventoryAssetFinding:
                 advisories.append(advisories_item)
 
         advisory_count = d.pop("advisory_count", UNSET)
+
+        def _parse_asset_class(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        asset_class = _parse_asset_class(d.pop("asset_class", UNSET))
 
         asset_groups = cast(list[str], d.pop("asset_groups", UNSET))
 
@@ -371,6 +499,15 @@ class InventoryAssetFinding:
 
         exposure = _parse_exposure(d.pop("exposure", UNSET))
 
+        def _parse_firmware_version(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        firmware_version = _parse_firmware_version(d.pop("firmware_version", UNSET))
+
         fixable_cve_count = d.pop("fixable_cve_count", UNSET)
 
         def _parse_group(data: object) -> None | str | Unset:
@@ -382,7 +519,49 @@ class InventoryAssetFinding:
 
         group = _parse_group(d.pop("group", UNSET))
 
+        def _parse_hardware_version(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        hardware_version = _parse_hardware_version(d.pop("hardware_version", UNSET))
+
         kev_count = d.pop("kev_count", UNSET)
+
+        def _parse_lifecycle(data: object) -> None | ProductLifecycle | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                lifecycle_type_0 = ProductLifecycle.from_dict(data)
+
+                return lifecycle_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(None | ProductLifecycle | Unset, data)
+
+        lifecycle = _parse_lifecycle(d.pop("lifecycle", UNSET))
+
+        _match = d.pop("match", UNSET)
+        match: InventoryAssetFindingMatch | Unset
+        if isinstance(_match, Unset):
+            match = UNSET
+        else:
+            match = InventoryAssetFindingMatch(_match)
+
+        def _parse_match_detail(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        match_detail = _parse_match_detail(d.pop("match_detail", UNSET))
 
         def _parse_max_weaponization(data: object) -> float | None | Unset:
             if data is None:
@@ -411,6 +590,26 @@ class InventoryAssetFinding:
 
         owner = _parse_owner(d.pop("owner", UNSET))
 
+        protocols = cast(list[str], d.pop("protocols", UNSET))
+
+        def _parse_purdue_level(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        purdue_level = _parse_purdue_level(d.pop("purdue_level", UNSET))
+
+        def _parse_purl(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        purl = _parse_purl(d.pop("purl", UNSET))
+
         def _parse_recommended_fix_version(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -428,6 +627,15 @@ class InventoryAssetFinding:
             return cast(None | str | Unset, data)
 
         recommended_fix_version_kev = _parse_recommended_fix_version_kev(d.pop("recommended_fix_version_kev", UNSET))
+
+        def _parse_safety_critical(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        safety_critical = _parse_safety_critical(d.pop("safety_critical", UNSET))
 
         source_refs = cast(list[str], d.pop("source_refs", UNSET))
 
@@ -468,6 +676,7 @@ class InventoryAssetFinding:
             product=product,
             advisories=advisories,
             advisory_count=advisory_count,
+            asset_class=asset_class,
             asset_groups=asset_groups,
             category=category,
             cpe=cpe,
@@ -477,14 +686,23 @@ class InventoryAssetFinding:
             environment=environment,
             errors=errors,
             exposure=exposure,
+            firmware_version=firmware_version,
             fixable_cve_count=fixable_cve_count,
             group=group,
+            hardware_version=hardware_version,
             kev_count=kev_count,
+            lifecycle=lifecycle,
+            match=match,
+            match_detail=match_detail,
             max_weaponization=max_weaponization,
             notes=notes,
             owner=owner,
+            protocols=protocols,
+            purdue_level=purdue_level,
+            purl=purl,
             recommended_fix_version=recommended_fix_version,
             recommended_fix_version_kev=recommended_fix_version_kev,
+            safety_critical=safety_critical,
             source_refs=source_refs,
             status=status,
             stix_id=stix_id,

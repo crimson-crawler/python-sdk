@@ -99,8 +99,6 @@ def sync_detailed(
     - `cves` — CVEs mapped to the software's techniques
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for malware analysis reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the software's capabilities and detection
     priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the software's
@@ -158,8 +156,6 @@ def sync(
     - `cves` — CVEs mapped to the software's techniques
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for malware analysis reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the software's capabilities and detection
     priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the software's
@@ -212,8 +208,6 @@ async def asyncio_detailed(
     - `cves` — CVEs mapped to the software's techniques
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for malware analysis reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the software's capabilities and detection
     priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the software's
@@ -269,8 +263,6 @@ async def asyncio(
     - `cves` — CVEs mapped to the software's techniques
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for malware analysis reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the software's capabilities and detection
     priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the software's

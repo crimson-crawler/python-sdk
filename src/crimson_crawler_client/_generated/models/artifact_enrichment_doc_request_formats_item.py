@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentDocRequestFormatsItem(str, Enum):
+class ArtifactEnrichmentDocRequestFormatsItem(StrEnum):
     CSAF = "csaf"
     CSV = "csv"
     JSON = "json"

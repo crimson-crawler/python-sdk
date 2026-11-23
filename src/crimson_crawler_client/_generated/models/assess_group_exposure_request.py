@@ -21,14 +21,22 @@ class AssessGroupExposureRequest:
             AssessGroupExposureRequestFramework.ENTERPRISE.
         group_ids (list[str] | None | Unset): List of ATT&CK group IDs (e.g. ['G0016', 'G0032'])
         include (list[str] | Unset): Assessment layers to include. Replaces the default list. Allowed values: cves,
-            defend, details, locations, navigator, nist_controls, sectors, summary, techniques, tie.
+            defend, defend_full, details, log_sources, log_sources_full, navigator, nist_controls, summary, techniques, tie,
+            versions. The technique-derived layers resolve the technique set they read, so `defend`, `nist_controls` and
+            `tie` answer without `techniques`. Log sources require `techniques` and use the page-local catalogue.
+        limit (int | Unset): Maximum combined techniques per page (1–50) Default: 10.
+        offset (int | Unset): Zero-based offset into the sorted technique IDs Default: 0.
         search (list[str] | None | Unset): List of group names to search (e.g. ['APT28', 'Lazarus Group'])
+        snapshot_id (None | str | Unset): Snapshot returned by page 0; required for later pages
     """
 
     framework: AssessGroupExposureRequestFramework | Unset = AssessGroupExposureRequestFramework.ENTERPRISE
     group_ids: list[str] | None | Unset = UNSET
     include: list[str] | Unset = UNSET
+    limit: int | Unset = 10
+    offset: int | Unset = 0
     search: list[str] | None | Unset = UNSET
+    snapshot_id: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -49,6 +57,10 @@ class AssessGroupExposureRequest:
         if not isinstance(self.include, Unset):
             include = self.include
 
+        limit = self.limit
+
+        offset = self.offset
+
         search: list[str] | None | Unset
         if isinstance(self.search, Unset):
             search = UNSET
@@ -57,6 +69,12 @@ class AssessGroupExposureRequest:
 
         else:
             search = self.search
+
+        snapshot_id: None | str | Unset
+        if isinstance(self.snapshot_id, Unset):
+            snapshot_id = UNSET
+        else:
+            snapshot_id = self.snapshot_id
 
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -67,8 +85,14 @@ class AssessGroupExposureRequest:
             field_dict["group_ids"] = group_ids
         if include is not UNSET:
             field_dict["include"] = include
+        if limit is not UNSET:
+            field_dict["limit"] = limit
+        if offset is not UNSET:
+            field_dict["offset"] = offset
         if search is not UNSET:
             field_dict["search"] = search
+        if snapshot_id is not UNSET:
+            field_dict["snapshot_id"] = snapshot_id
 
         return field_dict
 
@@ -101,6 +125,10 @@ class AssessGroupExposureRequest:
 
         include = cast(list[str], d.pop("include", UNSET))
 
+        limit = d.pop("limit", UNSET)
+
+        offset = d.pop("offset", UNSET)
+
         def _parse_search(data: object) -> list[str] | None | Unset:
             if data is None:
                 return data
@@ -118,11 +146,23 @@ class AssessGroupExposureRequest:
 
         search = _parse_search(d.pop("search", UNSET))
 
+        def _parse_snapshot_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        snapshot_id = _parse_snapshot_id(d.pop("snapshot_id", UNSET))
+
         assess_group_exposure_request = cls(
             framework=framework,
             group_ids=group_ids,
             include=include,
+            limit=limit,
+            offset=offset,
             search=search,
+            snapshot_id=snapshot_id,
         )
 
         assess_group_exposure_request.additional_properties = d

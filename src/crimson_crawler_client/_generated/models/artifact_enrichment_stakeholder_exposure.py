@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentStakeholderExposure(str, Enum):
+class ArtifactEnrichmentStakeholderExposure(StrEnum):
     CONTROLLED = "controlled"
     OPEN = "open"
     SMALL = "small"

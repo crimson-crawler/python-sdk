@@ -83,7 +83,8 @@ def sync_detailed(
 
     Combine any of the filters below to scope the result set. Each result carries severity, a public-
     exploit
-    count, and a weaponization score. Provide at least one search parameter.
+    count, an EPSS probability with its percentile rank, and a weaponization score. Provide at least one
+    search parameter.
 
     **Filters**
 
@@ -92,7 +93,9 @@ def sync_detailed(
       does not filter results
     - `cwe_id` — filter by weakness type (e.g. `CWE-79`)
     - `cpe` — filter by affected product (CPE string)
-    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1190`)
+    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1078`). Links come from the
+      CVE→CWE→CAPEC→ATT&CK chain, which MITRE's CAPEC taxonomy maps only in part, so several common
+      techniques (`T1190`, `T1059`, `T1068`) have no link there and always return nothing
     - `capec_id` — filter CVEs linked to a CAPEC attack pattern (e.g. `CAPEC-665`)
     - `cvss_min` — minimum CVSS v3.1 base score (`0.0`-`10.0`)
     - `cvss_v2_min` — minimum CVSS v2 base score (`0.0`-`10.0`)
@@ -101,13 +104,14 @@ def sync_detailed(
     - `epss_percentile_min` — minimum EPSS percentile (`0.0`-`1.0`), rank against all CVEs rather than
     the raw score
     - `kev_only` — only return CVEs in the Known Exploited Vulnerabilities catalog
-    - `cpes_not_vulnerable` — exclude CVEs requiring (but not vulnerable in) this CPE 2.3 string
+    - `cpes_not_vulnerable` — only CVEs whose `not_vulnerable` set carries this CPE 2.3 string (a
+      positive containment filter, not an exclusion — a CPE no CVE lists there returns nothing)
     - `created_by_ref` — filter by CNA or numbering-authority identity STIX ID
     - `stix_id` — filter by exact vulnerability STIX ID
     - `modified_min` / `modified_max` — restrict to a modification-date range
     - `created_min` / `created_max` — restrict to a creation-date range
-    - `vuln_status` — vulnerability status: `Analyzed`, `Awaiting Analysis`, `Modified`, `Received`,
-    `Rejected`
+    - `vuln_status` — vulnerability status: `Received`, `Awaiting Analysis`, `Undergoing Analysis`,
+      `Analyzed`, `Modified`, `Deferred`, `Rejected`
 
     **Sort options**
 
@@ -121,8 +125,15 @@ def sync_detailed(
     **Include options**
 
     - `details` — full vulnerability detail per result
+    - `statistics` — corpus coverage and freshness (counts, deltas, CVSS/EPSS distributions)
+    - `cna` — the CNA directory for the search
+    - `epss_reports` — EPSS scores for exactly the CVEs this search returned (`epss_reports`,
+      with the source's own `epss_reports_total` / `epss_reports_page` metadata)
+    - `kb_rankings` — up to 100 CVE-volume ranking rows per knowledge base, without yearly trends
+    - `kb_rankings_full` — all fetched ranking rows and yearly trends
 
-    Omitted include values return as empty arrays. The `errors` array reports any partial failures.
+    All except `kb_rankings_full` are default. An explicit include replaces the default;
+    omitted layers return empty arrays. The `errors` array reports any partial failures.
 
     Args:
         body (SearchCVERequest): Search vulnerabilities by severity, exploit status, technique,
@@ -159,7 +170,8 @@ def sync(
 
     Combine any of the filters below to scope the result set. Each result carries severity, a public-
     exploit
-    count, and a weaponization score. Provide at least one search parameter.
+    count, an EPSS probability with its percentile rank, and a weaponization score. Provide at least one
+    search parameter.
 
     **Filters**
 
@@ -168,7 +180,9 @@ def sync(
       does not filter results
     - `cwe_id` — filter by weakness type (e.g. `CWE-79`)
     - `cpe` — filter by affected product (CPE string)
-    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1190`)
+    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1078`). Links come from the
+      CVE→CWE→CAPEC→ATT&CK chain, which MITRE's CAPEC taxonomy maps only in part, so several common
+      techniques (`T1190`, `T1059`, `T1068`) have no link there and always return nothing
     - `capec_id` — filter CVEs linked to a CAPEC attack pattern (e.g. `CAPEC-665`)
     - `cvss_min` — minimum CVSS v3.1 base score (`0.0`-`10.0`)
     - `cvss_v2_min` — minimum CVSS v2 base score (`0.0`-`10.0`)
@@ -177,13 +191,14 @@ def sync(
     - `epss_percentile_min` — minimum EPSS percentile (`0.0`-`1.0`), rank against all CVEs rather than
     the raw score
     - `kev_only` — only return CVEs in the Known Exploited Vulnerabilities catalog
-    - `cpes_not_vulnerable` — exclude CVEs requiring (but not vulnerable in) this CPE 2.3 string
+    - `cpes_not_vulnerable` — only CVEs whose `not_vulnerable` set carries this CPE 2.3 string (a
+      positive containment filter, not an exclusion — a CPE no CVE lists there returns nothing)
     - `created_by_ref` — filter by CNA or numbering-authority identity STIX ID
     - `stix_id` — filter by exact vulnerability STIX ID
     - `modified_min` / `modified_max` — restrict to a modification-date range
     - `created_min` / `created_max` — restrict to a creation-date range
-    - `vuln_status` — vulnerability status: `Analyzed`, `Awaiting Analysis`, `Modified`, `Received`,
-    `Rejected`
+    - `vuln_status` — vulnerability status: `Received`, `Awaiting Analysis`, `Undergoing Analysis`,
+      `Analyzed`, `Modified`, `Deferred`, `Rejected`
 
     **Sort options**
 
@@ -197,8 +212,15 @@ def sync(
     **Include options**
 
     - `details` — full vulnerability detail per result
+    - `statistics` — corpus coverage and freshness (counts, deltas, CVSS/EPSS distributions)
+    - `cna` — the CNA directory for the search
+    - `epss_reports` — EPSS scores for exactly the CVEs this search returned (`epss_reports`,
+      with the source's own `epss_reports_total` / `epss_reports_page` metadata)
+    - `kb_rankings` — up to 100 CVE-volume ranking rows per knowledge base, without yearly trends
+    - `kb_rankings_full` — all fetched ranking rows and yearly trends
 
-    Omitted include values return as empty arrays. The `errors` array reports any partial failures.
+    All except `kb_rankings_full` are default. An explicit include replaces the default;
+    omitted layers return empty arrays. The `errors` array reports any partial failures.
 
     Args:
         body (SearchCVERequest): Search vulnerabilities by severity, exploit status, technique,
@@ -230,7 +252,8 @@ async def asyncio_detailed(
 
     Combine any of the filters below to scope the result set. Each result carries severity, a public-
     exploit
-    count, and a weaponization score. Provide at least one search parameter.
+    count, an EPSS probability with its percentile rank, and a weaponization score. Provide at least one
+    search parameter.
 
     **Filters**
 
@@ -239,7 +262,9 @@ async def asyncio_detailed(
       does not filter results
     - `cwe_id` — filter by weakness type (e.g. `CWE-79`)
     - `cpe` — filter by affected product (CPE string)
-    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1190`)
+    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1078`). Links come from the
+      CVE→CWE→CAPEC→ATT&CK chain, which MITRE's CAPEC taxonomy maps only in part, so several common
+      techniques (`T1190`, `T1059`, `T1068`) have no link there and always return nothing
     - `capec_id` — filter CVEs linked to a CAPEC attack pattern (e.g. `CAPEC-665`)
     - `cvss_min` — minimum CVSS v3.1 base score (`0.0`-`10.0`)
     - `cvss_v2_min` — minimum CVSS v2 base score (`0.0`-`10.0`)
@@ -248,13 +273,14 @@ async def asyncio_detailed(
     - `epss_percentile_min` — minimum EPSS percentile (`0.0`-`1.0`), rank against all CVEs rather than
     the raw score
     - `kev_only` — only return CVEs in the Known Exploited Vulnerabilities catalog
-    - `cpes_not_vulnerable` — exclude CVEs requiring (but not vulnerable in) this CPE 2.3 string
+    - `cpes_not_vulnerable` — only CVEs whose `not_vulnerable` set carries this CPE 2.3 string (a
+      positive containment filter, not an exclusion — a CPE no CVE lists there returns nothing)
     - `created_by_ref` — filter by CNA or numbering-authority identity STIX ID
     - `stix_id` — filter by exact vulnerability STIX ID
     - `modified_min` / `modified_max` — restrict to a modification-date range
     - `created_min` / `created_max` — restrict to a creation-date range
-    - `vuln_status` — vulnerability status: `Analyzed`, `Awaiting Analysis`, `Modified`, `Received`,
-    `Rejected`
+    - `vuln_status` — vulnerability status: `Received`, `Awaiting Analysis`, `Undergoing Analysis`,
+      `Analyzed`, `Modified`, `Deferred`, `Rejected`
 
     **Sort options**
 
@@ -268,8 +294,15 @@ async def asyncio_detailed(
     **Include options**
 
     - `details` — full vulnerability detail per result
+    - `statistics` — corpus coverage and freshness (counts, deltas, CVSS/EPSS distributions)
+    - `cna` — the CNA directory for the search
+    - `epss_reports` — EPSS scores for exactly the CVEs this search returned (`epss_reports`,
+      with the source's own `epss_reports_total` / `epss_reports_page` metadata)
+    - `kb_rankings` — up to 100 CVE-volume ranking rows per knowledge base, without yearly trends
+    - `kb_rankings_full` — all fetched ranking rows and yearly trends
 
-    Omitted include values return as empty arrays. The `errors` array reports any partial failures.
+    All except `kb_rankings_full` are default. An explicit include replaces the default;
+    omitted layers return empty arrays. The `errors` array reports any partial failures.
 
     Args:
         body (SearchCVERequest): Search vulnerabilities by severity, exploit status, technique,
@@ -304,7 +337,8 @@ async def asyncio(
 
     Combine any of the filters below to scope the result set. Each result carries severity, a public-
     exploit
-    count, and a weaponization score. Provide at least one search parameter.
+    count, an EPSS probability with its percentile rank, and a weaponization score. Provide at least one
+    search parameter.
 
     **Filters**
 
@@ -313,7 +347,9 @@ async def asyncio(
       does not filter results
     - `cwe_id` — filter by weakness type (e.g. `CWE-79`)
     - `cpe` — filter by affected product (CPE string)
-    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1190`)
+    - `attack_id` — filter CVEs linked to an ATT&CK technique (e.g. `T1078`). Links come from the
+      CVE→CWE→CAPEC→ATT&CK chain, which MITRE's CAPEC taxonomy maps only in part, so several common
+      techniques (`T1190`, `T1059`, `T1068`) have no link there and always return nothing
     - `capec_id` — filter CVEs linked to a CAPEC attack pattern (e.g. `CAPEC-665`)
     - `cvss_min` — minimum CVSS v3.1 base score (`0.0`-`10.0`)
     - `cvss_v2_min` — minimum CVSS v2 base score (`0.0`-`10.0`)
@@ -322,13 +358,14 @@ async def asyncio(
     - `epss_percentile_min` — minimum EPSS percentile (`0.0`-`1.0`), rank against all CVEs rather than
     the raw score
     - `kev_only` — only return CVEs in the Known Exploited Vulnerabilities catalog
-    - `cpes_not_vulnerable` — exclude CVEs requiring (but not vulnerable in) this CPE 2.3 string
+    - `cpes_not_vulnerable` — only CVEs whose `not_vulnerable` set carries this CPE 2.3 string (a
+      positive containment filter, not an exclusion — a CPE no CVE lists there returns nothing)
     - `created_by_ref` — filter by CNA or numbering-authority identity STIX ID
     - `stix_id` — filter by exact vulnerability STIX ID
     - `modified_min` / `modified_max` — restrict to a modification-date range
     - `created_min` / `created_max` — restrict to a creation-date range
-    - `vuln_status` — vulnerability status: `Analyzed`, `Awaiting Analysis`, `Modified`, `Received`,
-    `Rejected`
+    - `vuln_status` — vulnerability status: `Received`, `Awaiting Analysis`, `Undergoing Analysis`,
+      `Analyzed`, `Modified`, `Deferred`, `Rejected`
 
     **Sort options**
 
@@ -342,8 +379,15 @@ async def asyncio(
     **Include options**
 
     - `details` — full vulnerability detail per result
+    - `statistics` — corpus coverage and freshness (counts, deltas, CVSS/EPSS distributions)
+    - `cna` — the CNA directory for the search
+    - `epss_reports` — EPSS scores for exactly the CVEs this search returned (`epss_reports`,
+      with the source's own `epss_reports_total` / `epss_reports_page` metadata)
+    - `kb_rankings` — up to 100 CVE-volume ranking rows per knowledge base, without yearly trends
+    - `kb_rankings_full` — all fetched ranking rows and yearly trends
 
-    Omitted include values return as empty arrays. The `errors` array reports any partial failures.
+    All except `kb_rankings_full` are default. An explicit include replaces the default;
+    omitted layers return empty arrays. The `errors` array reports any partial failures.
 
     Args:
         body (SearchCVERequest): Search vulnerabilities by severity, exploit status, technique,

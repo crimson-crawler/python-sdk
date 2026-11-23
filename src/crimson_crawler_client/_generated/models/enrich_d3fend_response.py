@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from ..models.error_detail import ErrorDetail
     from ..models.knowledgebase_result import KnowledgebaseResult
     from ..models.technique_detail import TechniqueDetail
-    from ..models.web_result import WebResult
 
 
 T = TypeVar("T", bound="EnrichD3FENDResponse")
@@ -26,28 +25,30 @@ class EnrichD3FENDResponse:
     Attributes:
         d3fend (D3FENDDetail | None | Unset): Defensive technique details (when looked up by ID)
         errors (list[ErrorDetail] | Unset): Partial failure details
+        identifier_resolved (bool | None | Unset): Whether a direct-lookup identifier resolved to a record. `false`
+            means the id was not found, so every layer below is empty for that reason rather than because the record exists
+            and has no data — the two were previously indistinguishable. `null` when the request used `search` instead of an
+            id (a legitimate no-match), or when the include set meant the lookup was never attempted.
         knowledgebase (list[KnowledgebaseResult] | Unset): Related intelligence from the knowledge base
         related_techniques (list[TechniqueDetail] | Unset): ATT&CK techniques this defends against
         search_results (list[D3FENDDetail] | Unset): Matching defensive techniques (when searched by text)
         summary (None | str | Unset): AI-generated summary
-        web (list[WebResult] | Unset): Web search results
     """
 
     d3fend: D3FENDDetail | None | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
     related_techniques: list[TechniqueDetail] | Unset = UNSET
     search_results: list[D3FENDDetail] | Unset = UNSET
     summary: None | str | Unset = UNSET
-    web: list[WebResult] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.web_result import WebResult
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
 
         d3fend: dict[str, Any] | None | Unset
         if isinstance(self.d3fend, Unset):
@@ -63,6 +64,12 @@ class EnrichD3FENDResponse:
             for errors_item_data in self.errors:
                 errors_item = errors_item_data.to_dict()
                 errors.append(errors_item)
+
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
 
         knowledgebase: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.knowledgebase, Unset):
@@ -91,13 +98,6 @@ class EnrichD3FENDResponse:
         else:
             summary = self.summary
 
-        web: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.web, Unset):
-            web = []
-            for web_item_data in self.web:
-                web_item = web_item_data.to_dict()
-                web.append(web_item)
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -105,6 +105,8 @@ class EnrichD3FENDResponse:
             field_dict["d3fend"] = d3fend
         if errors is not UNSET:
             field_dict["errors"] = errors
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
         if knowledgebase is not UNSET:
             field_dict["knowledgebase"] = knowledgebase
         if related_techniques is not UNSET:
@@ -113,18 +115,15 @@ class EnrichD3FENDResponse:
             field_dict["search_results"] = search_results
         if summary is not UNSET:
             field_dict["summary"] = summary
-        if web is not UNSET:
-            field_dict["web"] = web
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.web_result import WebResult
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
 
         d = dict(src_dict)
 
@@ -153,6 +152,15 @@ class EnrichD3FENDResponse:
                 errors_item = ErrorDetail.from_dict(errors_item_data)
 
                 errors.append(errors_item)
+
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
 
         _knowledgebase = d.pop("knowledgebase", UNSET)
         knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
@@ -190,23 +198,14 @@ class EnrichD3FENDResponse:
 
         summary = _parse_summary(d.pop("summary", UNSET))
 
-        _web = d.pop("web", UNSET)
-        web: list[WebResult] | Unset = UNSET
-        if _web is not UNSET:
-            web = []
-            for web_item_data in _web:
-                web_item = WebResult.from_dict(web_item_data)
-
-                web.append(web_item)
-
         enrich_d3fend_response = cls(
             d3fend=d3fend,
             errors=errors,
+            identifier_resolved=identifier_resolved,
             knowledgebase=knowledgebase,
             related_techniques=related_techniques,
             search_results=search_results,
             summary=summary,
-            web=web,
         )
 
         enrich_d3fend_response.additional_properties = d

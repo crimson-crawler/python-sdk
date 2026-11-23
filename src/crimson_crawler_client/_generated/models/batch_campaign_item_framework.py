@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BatchCampaignItemFramework(str, Enum):
+class BatchCampaignItemFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

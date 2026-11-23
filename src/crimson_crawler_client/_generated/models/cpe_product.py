@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, BinaryIO, Generator, TextIO, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Generator, TextIO, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -17,7 +17,11 @@ class CPEProduct:
 
     Attributes:
         cpe (str | Unset): CPE 2.3 URI string Default: ''.
+        created (None | str | Unset): When NVD first published this CPE dictionary entry (ISO 8601)
+        modified (None | str | Unset): When NVD last revised this CPE dictionary entry (ISO 8601)
+        part (str | Unset): CPE part: 'a' application, 'o' operating system, 'h' hardware Default: ''.
         product (str | Unset): Product name Default: ''.
+        revoked (bool | Unset): Whether this CPE entry has been revoked from the dictionary Default: False.
         stix_id (str | Unset): Unique object identifier for cross-referencing Default: ''.
         title (str | Unset): Human-readable product title Default: ''.
         vendor (str | Unset): Vendor name Default: ''.
@@ -25,7 +29,11 @@ class CPEProduct:
     """
 
     cpe: str | Unset = ""
+    created: None | str | Unset = UNSET
+    modified: None | str | Unset = UNSET
+    part: str | Unset = ""
     product: str | Unset = ""
+    revoked: bool | Unset = False
     stix_id: str | Unset = ""
     title: str | Unset = ""
     vendor: str | Unset = ""
@@ -35,7 +43,23 @@ class CPEProduct:
     def to_dict(self) -> dict[str, Any]:
         cpe = self.cpe
 
+        created: None | str | Unset
+        if isinstance(self.created, Unset):
+            created = UNSET
+        else:
+            created = self.created
+
+        modified: None | str | Unset
+        if isinstance(self.modified, Unset):
+            modified = UNSET
+        else:
+            modified = self.modified
+
+        part = self.part
+
         product = self.product
+
+        revoked = self.revoked
 
         stix_id = self.stix_id
 
@@ -50,8 +74,16 @@ class CPEProduct:
         field_dict.update({})
         if cpe is not UNSET:
             field_dict["cpe"] = cpe
+        if created is not UNSET:
+            field_dict["created"] = created
+        if modified is not UNSET:
+            field_dict["modified"] = modified
+        if part is not UNSET:
+            field_dict["part"] = part
         if product is not UNSET:
             field_dict["product"] = product
+        if revoked is not UNSET:
+            field_dict["revoked"] = revoked
         if stix_id is not UNSET:
             field_dict["stix_id"] = stix_id
         if title is not UNSET:
@@ -68,7 +100,29 @@ class CPEProduct:
         d = dict(src_dict)
         cpe = d.pop("cpe", UNSET)
 
+        def _parse_created(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        created = _parse_created(d.pop("created", UNSET))
+
+        def _parse_modified(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        modified = _parse_modified(d.pop("modified", UNSET))
+
+        part = d.pop("part", UNSET)
+
         product = d.pop("product", UNSET)
+
+        revoked = d.pop("revoked", UNSET)
 
         stix_id = d.pop("stix_id", UNSET)
 
@@ -80,7 +134,11 @@ class CPEProduct:
 
         cpe_product = cls(
             cpe=cpe,
+            created=created,
+            modified=modified,
+            part=part,
             product=product,
+            revoked=revoked,
             stix_id=stix_id,
             title=title,
             vendor=vendor,

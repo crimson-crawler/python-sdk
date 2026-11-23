@@ -17,7 +17,9 @@ class DetectionDetail:
 
     Attributes:
         data_component (str | Unset): Data component (e.g. 'Process Creation') Default: ''.
-        data_source (str | Unset): Data source name (e.g. 'Process', 'Network Traffic') Default: ''.
+        data_source (str | Unset): Data source name (e.g. 'Process', 'Network Traffic') — the parent `x-mitre-data-
+            source` this component belongs to. Empty when the ATT&CK data does not resolve one, never a guessed name.
+            `data_component` names the component itself. Default: ''.
         description (str | Unset): Detection guidance Default: ''.
         stix_id (str | Unset): Unique object identifier for cross-referencing Default: ''.
     """

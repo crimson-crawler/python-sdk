@@ -87,25 +87,25 @@ def sync_detailed(
 
     **Include options**
 
-    - `details` — full group profile (aliases, description, references, attributed techniques)
+    - `details` — full group profile (aliases, description, references, `campaigns` attributed to it)
     - `techniques` — resolved ATT&CK technique objects with mitigations and detection guidance
     - `software` — malware and tools used by this group
-    - `campaigns` — threat campaigns attributed to this group
+    - `campaigns` — campaigns attributed to this group by MITRE
     - `tie` — technique likelihood predictions for the group's known techniques
     - `navigator` — ATT&CK Navigator layer JSON for the group's technique coverage
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the group's techniques
+    - `cves` — CVEs in events explicitly attributed to the group
     - `misp` — matching threat intelligence events
-    - `sectors` — industry sectors this group is known to target
-    - `locations` — geographic regions this group is known to target
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat group analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the group's profile and technique priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the group's techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+
+    `details` is not the only gate on the group profile: any token that loads the group's bundle
+    (`techniques`, `software`, `campaigns`, `mitigations`, `detections`, `defend`, `cves`, `tie` or
+    `versions`) also returns it, because one bundle fetch serves all of them.
 
     Args:
         body (EnrichGroupRequest): Look up or search threat actor groups with their techniques and
@@ -146,25 +146,25 @@ def sync(
 
     **Include options**
 
-    - `details` — full group profile (aliases, description, references, attributed techniques)
+    - `details` — full group profile (aliases, description, references, `campaigns` attributed to it)
     - `techniques` — resolved ATT&CK technique objects with mitigations and detection guidance
     - `software` — malware and tools used by this group
-    - `campaigns` — threat campaigns attributed to this group
+    - `campaigns` — campaigns attributed to this group by MITRE
     - `tie` — technique likelihood predictions for the group's known techniques
     - `navigator` — ATT&CK Navigator layer JSON for the group's technique coverage
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the group's techniques
+    - `cves` — CVEs in events explicitly attributed to the group
     - `misp` — matching threat intelligence events
-    - `sectors` — industry sectors this group is known to target
-    - `locations` — geographic regions this group is known to target
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat group analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the group's profile and technique priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the group's techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+
+    `details` is not the only gate on the group profile: any token that loads the group's bundle
+    (`techniques`, `software`, `campaigns`, `mitigations`, `detections`, `defend`, `cves`, `tie` or
+    `versions`) also returns it, because one bundle fetch serves all of them.
 
     Args:
         body (EnrichGroupRequest): Look up or search threat actor groups with their techniques and
@@ -200,25 +200,25 @@ async def asyncio_detailed(
 
     **Include options**
 
-    - `details` — full group profile (aliases, description, references, attributed techniques)
+    - `details` — full group profile (aliases, description, references, `campaigns` attributed to it)
     - `techniques` — resolved ATT&CK technique objects with mitigations and detection guidance
     - `software` — malware and tools used by this group
-    - `campaigns` — threat campaigns attributed to this group
+    - `campaigns` — campaigns attributed to this group by MITRE
     - `tie` — technique likelihood predictions for the group's known techniques
     - `navigator` — ATT&CK Navigator layer JSON for the group's technique coverage
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the group's techniques
+    - `cves` — CVEs in events explicitly attributed to the group
     - `misp` — matching threat intelligence events
-    - `sectors` — industry sectors this group is known to target
-    - `locations` — geographic regions this group is known to target
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat group analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the group's profile and technique priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the group's techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+
+    `details` is not the only gate on the group profile: any token that loads the group's bundle
+    (`techniques`, `software`, `campaigns`, `mitigations`, `detections`, `defend`, `cves`, `tie` or
+    `versions`) also returns it, because one bundle fetch serves all of them.
 
     Args:
         body (EnrichGroupRequest): Look up or search threat actor groups with their techniques and
@@ -257,25 +257,25 @@ async def asyncio(
 
     **Include options**
 
-    - `details` — full group profile (aliases, description, references, attributed techniques)
+    - `details` — full group profile (aliases, description, references, `campaigns` attributed to it)
     - `techniques` — resolved ATT&CK technique objects with mitigations and detection guidance
     - `software` — malware and tools used by this group
-    - `campaigns` — threat campaigns attributed to this group
+    - `campaigns` — campaigns attributed to this group by MITRE
     - `tie` — technique likelihood predictions for the group's known techniques
     - `navigator` — ATT&CK Navigator layer JSON for the group's technique coverage
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the group's techniques
+    - `cves` — CVEs in events explicitly attributed to the group
     - `misp` — matching threat intelligence events
-    - `sectors` — industry sectors this group is known to target
-    - `locations` — geographic regions this group is known to target
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat group analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the group's profile and technique priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the group's techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+
+    `details` is not the only gate on the group profile: any token that loads the group's bundle
+    (`techniques`, `software`, `campaigns`, `mitigations`, `detections`, `defend`, `cves`, `tie` or
+    `versions`) also returns it, because one bundle fetch serves all of them.
 
     Args:
         body (EnrichGroupRequest): Look up or search threat actor groups with their techniques and

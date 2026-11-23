@@ -104,17 +104,22 @@ def sync_detailed(
     defensive guidance, source research, SSVC decisions, NIST controls, timeline and similarity context,
     and AI-assisted summaries.
 
-    The advisory core is always returned. `cves[]` populates only when at least one CVE-chain option
-    is requested (the fan-out is bounded and deduped per request).
+    The default advisory set excludes restricted and unknown-licence sources. Add `osv_restricted`
+    to request them. Withdrawn advisories remain listed but do not count as active vulnerabilities.
+
+    Results are paged. Pass `snapshot_id` and `next_offset` from page 0 to continue; a 409 requires
+    a fresh walk. `advisories_discovered` and `cves_discovered` report totals, while
+    `cves_enrichment_limit` and `rollups_over` describe the bounded CVE enrichment.
 
     Args:
-        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package via
-            OSV.dev.
+        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package in the
+            stored OSV corpus.
 
             Keyed by package **ecosystem + name (+ optional version)** — the dependency-vuln
             surface (npm / PyPI / Go / Maven / crates.io / …) that the CPE-keyed `enrich/product`
             can't reach. With a version, results are filtered to advisories whose affected ranges
-            include it; without one, every advisory for the package is returned.
+            include it; without one, eligible advisories for the package are paged without version
+            filtering.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -168,17 +173,22 @@ def sync(
     defensive guidance, source research, SSVC decisions, NIST controls, timeline and similarity context,
     and AI-assisted summaries.
 
-    The advisory core is always returned. `cves[]` populates only when at least one CVE-chain option
-    is requested (the fan-out is bounded and deduped per request).
+    The default advisory set excludes restricted and unknown-licence sources. Add `osv_restricted`
+    to request them. Withdrawn advisories remain listed but do not count as active vulnerabilities.
+
+    Results are paged. Pass `snapshot_id` and `next_offset` from page 0 to continue; a 409 requires
+    a fresh walk. `advisories_discovered` and `cves_discovered` report totals, while
+    `cves_enrichment_limit` and `rollups_over` describe the bounded CVE enrichment.
 
     Args:
-        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package via
-            OSV.dev.
+        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package in the
+            stored OSV corpus.
 
             Keyed by package **ecosystem + name (+ optional version)** — the dependency-vuln
             surface (npm / PyPI / Go / Maven / crates.io / …) that the CPE-keyed `enrich/product`
             can't reach. With a version, results are filtered to advisories whose affected ranges
-            include it; without one, every advisory for the package is returned.
+            include it; without one, eligible advisories for the package are paged without version
+            filtering.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -227,17 +237,22 @@ async def asyncio_detailed(
     defensive guidance, source research, SSVC decisions, NIST controls, timeline and similarity context,
     and AI-assisted summaries.
 
-    The advisory core is always returned. `cves[]` populates only when at least one CVE-chain option
-    is requested (the fan-out is bounded and deduped per request).
+    The default advisory set excludes restricted and unknown-licence sources. Add `osv_restricted`
+    to request them. Withdrawn advisories remain listed but do not count as active vulnerabilities.
+
+    Results are paged. Pass `snapshot_id` and `next_offset` from page 0 to continue; a 409 requires
+    a fresh walk. `advisories_discovered` and `cves_discovered` report totals, while
+    `cves_enrichment_limit` and `rollups_over` describe the bounded CVE enrichment.
 
     Args:
-        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package via
-            OSV.dev.
+        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package in the
+            stored OSV corpus.
 
             Keyed by package **ecosystem + name (+ optional version)** — the dependency-vuln
             surface (npm / PyPI / Go / Maven / crates.io / …) that the CPE-keyed `enrich/product`
             can't reach. With a version, results are filtered to advisories whose affected ranges
-            include it; without one, every advisory for the package is returned.
+            include it; without one, eligible advisories for the package are paged without version
+            filtering.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -289,17 +304,22 @@ async def asyncio(
     defensive guidance, source research, SSVC decisions, NIST controls, timeline and similarity context,
     and AI-assisted summaries.
 
-    The advisory core is always returned. `cves[]` populates only when at least one CVE-chain option
-    is requested (the fan-out is bounded and deduped per request).
+    The default advisory set excludes restricted and unknown-licence sources. Add `osv_restricted`
+    to request them. Withdrawn advisories remain listed but do not count as active vulnerabilities.
+
+    Results are paged. Pass `snapshot_id` and `next_offset` from page 0 to continue; a 409 requires
+    a fresh walk. `advisories_discovered` and `cves_discovered` report totals, while
+    `cves_enrichment_limit` and `rollups_over` describe the bounded CVE enrichment.
 
     Args:
-        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package via
-            OSV.dev.
+        body (EnrichPackageRequest): Find vulnerabilities affecting an open-source package in the
+            stored OSV corpus.
 
             Keyed by package **ecosystem + name (+ optional version)** — the dependency-vuln
             surface (npm / PyPI / Go / Maven / crates.io / …) that the CPE-keyed `enrich/product`
             can't reach. With a version, results are filtered to advisories whose affected ranges
-            include it; without one, every advisory for the package is returned.
+            include it; without one, eligible advisories for the package are paged without version
+            filtering.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

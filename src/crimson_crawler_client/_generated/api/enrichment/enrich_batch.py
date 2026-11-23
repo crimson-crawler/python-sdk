@@ -76,7 +76,7 @@ def sync_detailed(
     client: AuthenticatedClient,
     body: EnrichBatchRequest,
 ) -> Response[Any | EnrichBatchResponse]:
-    r"""Enrich Mixed Batch
+    """Enrich Mixed Batch
 
      Batch-run multiple enrich/* lookups in one request, preserving input order.
 
@@ -89,24 +89,33 @@ def sync_detailed(
 
     **Supported types**
 
-    Each of the 16 maps 1:1 to a `/v1/enrich/*` endpoint:
+    Each of the 18 maps 1:1 to a `/v1/enrich/*` endpoint:
 
     - `cve`, `product`, `package`, `cwe`, `capec`, `technique`, `ioc`, `group`
-    - `software`, `campaign`, `atlas`, `disarm`, `location`, `sector`, `defend`, `poc_source`
+    - `software`, `campaign`, `atlas`, `disarm`, `f3`, `cloak`, `location`, `sector`, `defend`,
+    `poc_source`
 
     Partial failure is isolated: one item failing does not fail the batch. Each result reports
-    `status=\"ok\"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
-    `status=\"error\"` (the item dispatch itself raised, with details in the item's `errors`). Results
-    preserve input order.
+    `status="ok"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
+    `status="error"` (the item was rejected by validation, or its dispatch raised, with details in
+    the item's `errors`). An item that no supported type accepts — an unknown `type`, a missing or
+    invalid required field, or a non-object entry — is answered this way rather than with a 422, so
+    one malformed item never discards the batch's other results. Results preserve input order.
 
     A batch consumes one request unit.
 
     Args:
         body (EnrichBatchRequest): Batch-run up to 50 enrich/* lookups in one request.
 
-            Each item carries a `type` discriminator naming one of the 16 enrich types
+            Each item carries a `type` discriminator naming one of the 18 enrich types
             plus that type's identifier fields and its own per-type `include` list. The
             51st item is rejected with HTTP 422 via the `max_length` constraint.
+
+            An item that no type accepts (unknown discriminator, or a missing/invalid required field
+            for a
+            known one) is NOT a request-level error: it comes back as its own `status="error"` result
+            so the
+            batch's other items still run.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,7 +141,7 @@ def sync(
     client: AuthenticatedClient,
     body: EnrichBatchRequest,
 ) -> Any | EnrichBatchResponse | None:
-    r"""Enrich Mixed Batch
+    """Enrich Mixed Batch
 
      Batch-run multiple enrich/* lookups in one request, preserving input order.
 
@@ -145,24 +154,33 @@ def sync(
 
     **Supported types**
 
-    Each of the 16 maps 1:1 to a `/v1/enrich/*` endpoint:
+    Each of the 18 maps 1:1 to a `/v1/enrich/*` endpoint:
 
     - `cve`, `product`, `package`, `cwe`, `capec`, `technique`, `ioc`, `group`
-    - `software`, `campaign`, `atlas`, `disarm`, `location`, `sector`, `defend`, `poc_source`
+    - `software`, `campaign`, `atlas`, `disarm`, `f3`, `cloak`, `location`, `sector`, `defend`,
+    `poc_source`
 
     Partial failure is isolated: one item failing does not fail the batch. Each result reports
-    `status=\"ok\"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
-    `status=\"error\"` (the item dispatch itself raised, with details in the item's `errors`). Results
-    preserve input order.
+    `status="ok"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
+    `status="error"` (the item was rejected by validation, or its dispatch raised, with details in
+    the item's `errors`). An item that no supported type accepts — an unknown `type`, a missing or
+    invalid required field, or a non-object entry — is answered this way rather than with a 422, so
+    one malformed item never discards the batch's other results. Results preserve input order.
 
     A batch consumes one request unit.
 
     Args:
         body (EnrichBatchRequest): Batch-run up to 50 enrich/* lookups in one request.
 
-            Each item carries a `type` discriminator naming one of the 16 enrich types
+            Each item carries a `type` discriminator naming one of the 18 enrich types
             plus that type's identifier fields and its own per-type `include` list. The
             51st item is rejected with HTTP 422 via the `max_length` constraint.
+
+            An item that no type accepts (unknown discriminator, or a missing/invalid required field
+            for a
+            known one) is NOT a request-level error: it comes back as its own `status="error"` result
+            so the
+            batch's other items still run.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,7 +201,7 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     body: EnrichBatchRequest,
 ) -> Response[Any | EnrichBatchResponse]:
-    r"""Enrich Mixed Batch
+    """Enrich Mixed Batch
 
      Batch-run multiple enrich/* lookups in one request, preserving input order.
 
@@ -196,24 +214,33 @@ async def asyncio_detailed(
 
     **Supported types**
 
-    Each of the 16 maps 1:1 to a `/v1/enrich/*` endpoint:
+    Each of the 18 maps 1:1 to a `/v1/enrich/*` endpoint:
 
     - `cve`, `product`, `package`, `cwe`, `capec`, `technique`, `ioc`, `group`
-    - `software`, `campaign`, `atlas`, `disarm`, `location`, `sector`, `defend`, `poc_source`
+    - `software`, `campaign`, `atlas`, `disarm`, `f3`, `cloak`, `location`, `sector`, `defend`,
+    `poc_source`
 
     Partial failure is isolated: one item failing does not fail the batch. Each result reports
-    `status=\"ok\"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
-    `status=\"error\"` (the item dispatch itself raised, with details in the item's `errors`). Results
-    preserve input order.
+    `status="ok"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
+    `status="error"` (the item was rejected by validation, or its dispatch raised, with details in
+    the item's `errors`). An item that no supported type accepts — an unknown `type`, a missing or
+    invalid required field, or a non-object entry — is answered this way rather than with a 422, so
+    one malformed item never discards the batch's other results. Results preserve input order.
 
     A batch consumes one request unit.
 
     Args:
         body (EnrichBatchRequest): Batch-run up to 50 enrich/* lookups in one request.
 
-            Each item carries a `type` discriminator naming one of the 16 enrich types
+            Each item carries a `type` discriminator naming one of the 18 enrich types
             plus that type's identifier fields and its own per-type `include` list. The
             51st item is rejected with HTTP 422 via the `max_length` constraint.
+
+            An item that no type accepts (unknown discriminator, or a missing/invalid required field
+            for a
+            known one) is NOT a request-level error: it comes back as its own `status="error"` result
+            so the
+            batch's other items still run.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -237,7 +264,7 @@ async def asyncio(
     client: AuthenticatedClient,
     body: EnrichBatchRequest,
 ) -> Any | EnrichBatchResponse | None:
-    r"""Enrich Mixed Batch
+    """Enrich Mixed Batch
 
      Batch-run multiple enrich/* lookups in one request, preserving input order.
 
@@ -250,24 +277,33 @@ async def asyncio(
 
     **Supported types**
 
-    Each of the 16 maps 1:1 to a `/v1/enrich/*` endpoint:
+    Each of the 18 maps 1:1 to a `/v1/enrich/*` endpoint:
 
     - `cve`, `product`, `package`, `cwe`, `capec`, `technique`, `ioc`, `group`
-    - `software`, `campaign`, `atlas`, `disarm`, `location`, `sector`, `defend`, `poc_source`
+    - `software`, `campaign`, `atlas`, `disarm`, `f3`, `cloak`, `location`, `sector`, `defend`,
+    `poc_source`
 
     Partial failure is isolated: one item failing does not fail the batch. Each result reports
-    `status=\"ok\"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
-    `status=\"error\"` (the item dispatch itself raised, with details in the item's `errors`). Results
-    preserve input order.
+    `status="ok"` (the enrichment ran — per-layer partial failures stay inside `data.errors`) or
+    `status="error"` (the item was rejected by validation, or its dispatch raised, with details in
+    the item's `errors`). An item that no supported type accepts — an unknown `type`, a missing or
+    invalid required field, or a non-object entry — is answered this way rather than with a 422, so
+    one malformed item never discards the batch's other results. Results preserve input order.
 
     A batch consumes one request unit.
 
     Args:
         body (EnrichBatchRequest): Batch-run up to 50 enrich/* lookups in one request.
 
-            Each item carries a `type` discriminator naming one of the 16 enrich types
+            Each item carries a `type` discriminator naming one of the 18 enrich types
             plus that type's identifier fields and its own per-type `include` list. The
             51st item is rejected with HTTP 422 via the `max_length` constraint.
+
+            An item that no type accepts (unknown discriminator, or a missing/invalid required field
+            for a
+            known one) is NOT a request-level error: it comes back as its own `status="error"` result
+            so the
+            batch's other items still run.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

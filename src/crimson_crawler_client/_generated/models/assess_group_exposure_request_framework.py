@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AssessGroupExposureRequestFramework(str, Enum):
+class AssessGroupExposureRequestFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

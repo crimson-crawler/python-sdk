@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentStakeholderMissionPrevalence(str, Enum):
+class ArtifactEnrichmentStakeholderMissionPrevalence(StrEnum):
     ESSENTIAL = "essential"
     MINIMAL = "minimal"
     SUPPORT = "support"

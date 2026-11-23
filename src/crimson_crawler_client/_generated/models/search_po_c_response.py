@@ -24,7 +24,8 @@ class SearchPoCResponse:
         cve_id (str): CVE identifier that was searched
         errors (list[ErrorDetail] | Unset): Partial failure details
         results (list[PoCEntry] | Unset): PoC repositories sorted by stars
-        total (int | Unset): Total number of PoC repositories found Default: 0.
+        total (int | Unset): Total PoC repositories found for the CVE — NOT the page size; `results` holds at most
+            `limit` Default: 0.
     """
 
     cve_id: str
@@ -34,8 +35,8 @@ class SearchPoCResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.error_detail import ErrorDetail
-        from ..models.po_c_entry import PoCEntry
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.po_c_entry import PoCEntry  # noqa: PLC0415
 
         cve_id = self.cve_id
 
@@ -73,8 +74,8 @@ class SearchPoCResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.error_detail import ErrorDetail
-        from ..models.po_c_entry import PoCEntry
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.po_c_entry import PoCEntry  # noqa: PLC0415
 
         d = dict(src_dict)
         cve_id = d.pop("cve_id")

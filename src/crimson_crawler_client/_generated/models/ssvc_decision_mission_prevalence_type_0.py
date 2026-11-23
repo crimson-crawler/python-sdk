@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionMissionPrevalenceType0(str, Enum):
+class SSVCDecisionMissionPrevalenceType0(StrEnum):
     ESSENTIAL = "essential"
     MINIMAL = "minimal"
     SUPPORT = "support"

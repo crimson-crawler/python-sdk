@@ -88,9 +88,7 @@ def sync_detailed(
     - `details` — resolved threat-actor group profiles (aliases, first/last seen, software)
     - `techniques` — deduplicated technique surface across the group set
     - `tie` — per-technique likelihood predictions
-    - `cves` — CVEs known to map to any technique in the combined set
-    - `sectors` — sector context aggregated across the groups
-    - `locations` — geographic context aggregated across the groups
+    - `cves` — CVEs in events explicitly attributed to a selected group
     - `defend` — D3FEND defensive techniques and countermeasures
     - `navigator` — ATT&CK Navigator layer JSON
     - `summary` — AI-generated narrative covering shared techniques and coverage gaps
@@ -137,9 +135,7 @@ def sync(
     - `details` — resolved threat-actor group profiles (aliases, first/last seen, software)
     - `techniques` — deduplicated technique surface across the group set
     - `tie` — per-technique likelihood predictions
-    - `cves` — CVEs known to map to any technique in the combined set
-    - `sectors` — sector context aggregated across the groups
-    - `locations` — geographic context aggregated across the groups
+    - `cves` — CVEs in events explicitly attributed to a selected group
     - `defend` — D3FEND defensive techniques and countermeasures
     - `navigator` — ATT&CK Navigator layer JSON
     - `summary` — AI-generated narrative covering shared techniques and coverage gaps
@@ -181,9 +177,7 @@ async def asyncio_detailed(
     - `details` — resolved threat-actor group profiles (aliases, first/last seen, software)
     - `techniques` — deduplicated technique surface across the group set
     - `tie` — per-technique likelihood predictions
-    - `cves` — CVEs known to map to any technique in the combined set
-    - `sectors` — sector context aggregated across the groups
-    - `locations` — geographic context aggregated across the groups
+    - `cves` — CVEs in events explicitly attributed to a selected group
     - `defend` — D3FEND defensive techniques and countermeasures
     - `navigator` — ATT&CK Navigator layer JSON
     - `summary` — AI-generated narrative covering shared techniques and coverage gaps
@@ -228,9 +222,7 @@ async def asyncio(
     - `details` — resolved threat-actor group profiles (aliases, first/last seen, software)
     - `techniques` — deduplicated technique surface across the group set
     - `tie` — per-technique likelihood predictions
-    - `cves` — CVEs known to map to any technique in the combined set
-    - `sectors` — sector context aggregated across the groups
-    - `locations` — geographic context aggregated across the groups
+    - `cves` — CVEs in events explicitly attributed to a selected group
     - `defend` — D3FEND defensive techniques and countermeasures
     - `navigator` — ATT&CK Navigator layer JSON
     - `summary` — AI-generated narrative covering shared techniques and coverage gaps

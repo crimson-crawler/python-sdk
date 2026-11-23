@@ -78,34 +78,21 @@ def sync_detailed(
 ) -> Response[Any | EnrichLocationResponse]:
     """Enrich Location
 
-     Get the threat landscape for a geographic region.
+     Get the geographic profile for a country or region.
 
-    Returns active threat groups and ATT&CK techniques associated with a country or region. Provide
-    `location_id` for a direct lookup (e.g. L0001) or `search` by country or region name.
+    Returns the location's profile with optional knowledge-base context. Provide
+    `location_id` for a direct lookup (e.g. US) or `search` by country or region name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected location.
 
     **Include options**
 
-    - `details` — location metadata and associated object counts
-    - `groups` — resolved threat group objects active in this region
-    - `techniques` — resolved ATT&CK technique objects used by groups in this region
-    - `software` — malware and tools used by groups in this region
-    - `campaigns` — threat campaigns active in this region
-    - `tie` — technique likelihood predictions for regional techniques
-    - `navigator` — ATT&CK Navigator layer JSON for regional technique coverage
-    - `mitigations` — defensive courses of action per technique
-    - `detections` — detection data sources per technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the region's techniques
-    - `sectors` — industry sectors targeted in this region
+    - `details` — location metadata (region, country, coordinates, location type, aliases)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for regional cyber threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the region's threat landscape and active groups
+    - `summary` — AI-generated executive brief covering the location's profile
 
     Args:
-        body (EnrichLocationRequest): Get the threat landscape for a geographic region: active
-            groups, techniques, and sectors.
+        body (EnrichLocationRequest): Get the geographic profile for a country or region with
+            knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,34 +120,21 @@ def sync(
 ) -> Any | EnrichLocationResponse | None:
     """Enrich Location
 
-     Get the threat landscape for a geographic region.
+     Get the geographic profile for a country or region.
 
-    Returns active threat groups and ATT&CK techniques associated with a country or region. Provide
-    `location_id` for a direct lookup (e.g. L0001) or `search` by country or region name.
+    Returns the location's profile with optional knowledge-base context. Provide
+    `location_id` for a direct lookup (e.g. US) or `search` by country or region name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected location.
 
     **Include options**
 
-    - `details` — location metadata and associated object counts
-    - `groups` — resolved threat group objects active in this region
-    - `techniques` — resolved ATT&CK technique objects used by groups in this region
-    - `software` — malware and tools used by groups in this region
-    - `campaigns` — threat campaigns active in this region
-    - `tie` — technique likelihood predictions for regional techniques
-    - `navigator` — ATT&CK Navigator layer JSON for regional technique coverage
-    - `mitigations` — defensive courses of action per technique
-    - `detections` — detection data sources per technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the region's techniques
-    - `sectors` — industry sectors targeted in this region
+    - `details` — location metadata (region, country, coordinates, location type, aliases)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for regional cyber threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the region's threat landscape and active groups
+    - `summary` — AI-generated executive brief covering the location's profile
 
     Args:
-        body (EnrichLocationRequest): Get the threat landscape for a geographic region: active
-            groups, techniques, and sectors.
+        body (EnrichLocationRequest): Get the geographic profile for a country or region with
+            knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,34 +157,21 @@ async def asyncio_detailed(
 ) -> Response[Any | EnrichLocationResponse]:
     """Enrich Location
 
-     Get the threat landscape for a geographic region.
+     Get the geographic profile for a country or region.
 
-    Returns active threat groups and ATT&CK techniques associated with a country or region. Provide
-    `location_id` for a direct lookup (e.g. L0001) or `search` by country or region name.
+    Returns the location's profile with optional knowledge-base context. Provide
+    `location_id` for a direct lookup (e.g. US) or `search` by country or region name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected location.
 
     **Include options**
 
-    - `details` — location metadata and associated object counts
-    - `groups` — resolved threat group objects active in this region
-    - `techniques` — resolved ATT&CK technique objects used by groups in this region
-    - `software` — malware and tools used by groups in this region
-    - `campaigns` — threat campaigns active in this region
-    - `tie` — technique likelihood predictions for regional techniques
-    - `navigator` — ATT&CK Navigator layer JSON for regional technique coverage
-    - `mitigations` — defensive courses of action per technique
-    - `detections` — detection data sources per technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the region's techniques
-    - `sectors` — industry sectors targeted in this region
+    - `details` — location metadata (region, country, coordinates, location type, aliases)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for regional cyber threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the region's threat landscape and active groups
+    - `summary` — AI-generated executive brief covering the location's profile
 
     Args:
-        body (EnrichLocationRequest): Get the threat landscape for a geographic region: active
-            groups, techniques, and sectors.
+        body (EnrichLocationRequest): Get the geographic profile for a country or region with
+            knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -236,34 +197,21 @@ async def asyncio(
 ) -> Any | EnrichLocationResponse | None:
     """Enrich Location
 
-     Get the threat landscape for a geographic region.
+     Get the geographic profile for a country or region.
 
-    Returns active threat groups and ATT&CK techniques associated with a country or region. Provide
-    `location_id` for a direct lookup (e.g. L0001) or `search` by country or region name.
+    Returns the location's profile with optional knowledge-base context. Provide
+    `location_id` for a direct lookup (e.g. US) or `search` by country or region name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected location.
 
     **Include options**
 
-    - `details` — location metadata and associated object counts
-    - `groups` — resolved threat group objects active in this region
-    - `techniques` — resolved ATT&CK technique objects used by groups in this region
-    - `software` — malware and tools used by groups in this region
-    - `campaigns` — threat campaigns active in this region
-    - `tie` — technique likelihood predictions for regional techniques
-    - `navigator` — ATT&CK Navigator layer JSON for regional technique coverage
-    - `mitigations` — defensive courses of action per technique
-    - `detections` — detection data sources per technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the region's techniques
-    - `sectors` — industry sectors targeted in this region
+    - `details` — location metadata (region, country, coordinates, location type, aliases)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for regional cyber threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the region's threat landscape and active groups
+    - `summary` — AI-generated executive brief covering the location's profile
 
     Args:
-        body (EnrichLocationRequest): Get the threat landscape for a geographic region: active
-            groups, techniques, and sectors.
+        body (EnrichLocationRequest): Get the geographic profile for a country or region with
+            knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

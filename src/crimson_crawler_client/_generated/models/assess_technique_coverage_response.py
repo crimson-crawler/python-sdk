@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from ..models.assess_technique_coverage_response_navigator_type_0 import (
         AssessTechniqueCoverageResponseNavigatorType0,
     )
+    from ..models.asset_class import AssetClass
+    from ..models.cisa_campaign_advisory import CISACampaignAdvisory
     from ..models.coverage_score import CoverageScore
     from ..models.cve_mini_detail import CVEMiniDetail
     from ..models.d3fend_detail import D3FENDDetail
@@ -32,12 +34,24 @@ class AssessTechniqueCoverageResponse:
     """Batch technique assessment - mitigations, detection methods, and threat predictions.
 
     Attributes:
+        asset_classes (list[AssetClass] | Unset): ICS asset classes targeted by the assessed techniques
+        asset_classes_total (int | Unset): Distinct asset classes before the 10-row cap. Default: 0.
+        asset_classes_truncated (bool | Unset): Whether asset classes exceeded the cap. Default: False.
+        cisa_campaigns (list[CISACampaignAdvisory] | Unset): CISA campaign advisories naming the assessed techniques,
+            deduplicated by advisory id
+        cisa_campaigns_total (int | Unset): Distinct CISA campaigns before the 10-row cap. Default: 0.
+        cisa_campaigns_truncated (bool | Unset): Whether CISA campaigns exceeded the cap. Default: False.
         coverage_score (CoverageScore | None | Unset): Mitigation and detection coverage analysis
         cves (list[CVEMiniDetail] | Unset): CVEs linked to the assessed techniques
         defend (list[D3FENDDetail] | Unset): D3FEND defensive techniques and countermeasures for the linked ATT&CK
-            techniques
+            techniques. The default form omits each row's `description`, `aliases`, STIX `pattern` and `stix_id`; request
+            include=['defend_full'] for them. The STIX licence marking (`object_marking_refs`) is kept in both forms.
         detections (list[DetectionDetail] | Unset): Aggregated detection methods across all assessed techniques
         errors (list[ErrorDetail] | Unset): Partial failure details
+        identifier_resolved (bool | None | Unset): Whether any of the requested technique ids resolved to a technique.
+            `false` means none of them were found, so the assessment below is empty for that reason rather than because the
+            techniques exist and carry no mitigation/detection surface — the two were previously indistinguishable. `true`
+            means at least one id resolved, NOT that all did. `null` when resolution was not evaluated.
         mitigations (list[MitigationDetail] | Unset): Aggregated mitigations across all assessed techniques
         navigator (AssessTechniqueCoverageResponseNavigatorType0 | None | Unset): ATT&CK Navigator layer JSON for
             visualization in MITRE's Navigator tool
@@ -50,11 +64,18 @@ class AssessTechniqueCoverageResponse:
         techniques (list[TechniqueDetail] | Unset): Full technique details for each assessed technique
     """
 
+    asset_classes: list[AssetClass] | Unset = UNSET
+    asset_classes_total: int | Unset = 0
+    asset_classes_truncated: bool | Unset = False
+    cisa_campaigns: list[CISACampaignAdvisory] | Unset = UNSET
+    cisa_campaigns_total: int | Unset = 0
+    cisa_campaigns_truncated: bool | Unset = False
     coverage_score: CoverageScore | None | Unset = UNSET
     cves: list[CVEMiniDetail] | Unset = UNSET
     defend: list[D3FENDDetail] | Unset = UNSET
     detections: list[DetectionDetail] | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     mitigations: list[MitigationDetail] | Unset = UNSET
     navigator: AssessTechniqueCoverageResponseNavigatorType0 | None | Unset = UNSET
     nist_controls: list[NistControlMapping] | Unset = UNSET
@@ -66,18 +87,42 @@ class AssessTechniqueCoverageResponse:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.assess_technique_coverage_response_navigator_type_0 import (
-            AssessTechniqueCoverageResponseNavigatorType0,
+            AssessTechniqueCoverageResponseNavigatorType0,  # noqa: PLC0415
         )
-        from ..models.coverage_score import CoverageScore
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.priority_gap import PriorityGap
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
+        from ..models.asset_class import AssetClass  # noqa: PLC0415
+        from ..models.cisa_campaign_advisory import CISACampaignAdvisory  # noqa: PLC0415
+        from ..models.coverage_score import CoverageScore  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.priority_gap import PriorityGap  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
+
+        asset_classes: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.asset_classes, Unset):
+            asset_classes = []
+            for asset_classes_item_data in self.asset_classes:
+                asset_classes_item = asset_classes_item_data.to_dict()
+                asset_classes.append(asset_classes_item)
+
+        asset_classes_total = self.asset_classes_total
+
+        asset_classes_truncated = self.asset_classes_truncated
+
+        cisa_campaigns: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.cisa_campaigns, Unset):
+            cisa_campaigns = []
+            for cisa_campaigns_item_data in self.cisa_campaigns:
+                cisa_campaigns_item = cisa_campaigns_item_data.to_dict()
+                cisa_campaigns.append(cisa_campaigns_item)
+
+        cisa_campaigns_total = self.cisa_campaigns_total
+
+        cisa_campaigns_truncated = self.cisa_campaigns_truncated
 
         coverage_score: dict[str, Any] | None | Unset
         if isinstance(self.coverage_score, Unset):
@@ -114,6 +159,12 @@ class AssessTechniqueCoverageResponse:
             for errors_item_data in self.errors:
                 errors_item = errors_item_data.to_dict()
                 errors.append(errors_item)
+
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
 
         mitigations: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.mitigations, Unset):
@@ -167,6 +218,18 @@ class AssessTechniqueCoverageResponse:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if asset_classes is not UNSET:
+            field_dict["asset_classes"] = asset_classes
+        if asset_classes_total is not UNSET:
+            field_dict["asset_classes_total"] = asset_classes_total
+        if asset_classes_truncated is not UNSET:
+            field_dict["asset_classes_truncated"] = asset_classes_truncated
+        if cisa_campaigns is not UNSET:
+            field_dict["cisa_campaigns"] = cisa_campaigns
+        if cisa_campaigns_total is not UNSET:
+            field_dict["cisa_campaigns_total"] = cisa_campaigns_total
+        if cisa_campaigns_truncated is not UNSET:
+            field_dict["cisa_campaigns_truncated"] = cisa_campaigns_truncated
         if coverage_score is not UNSET:
             field_dict["coverage_score"] = coverage_score
         if cves is not UNSET:
@@ -177,6 +240,8 @@ class AssessTechniqueCoverageResponse:
             field_dict["detections"] = detections
         if errors is not UNSET:
             field_dict["errors"] = errors
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
         if mitigations is not UNSET:
             field_dict["mitigations"] = mitigations
         if navigator is not UNSET:
@@ -197,20 +262,47 @@ class AssessTechniqueCoverageResponse:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.assess_technique_coverage_response_navigator_type_0 import (
-            AssessTechniqueCoverageResponseNavigatorType0,
+            AssessTechniqueCoverageResponseNavigatorType0,  # noqa: PLC0415
         )
-        from ..models.coverage_score import CoverageScore
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.priority_gap import PriorityGap
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
+        from ..models.asset_class import AssetClass  # noqa: PLC0415
+        from ..models.cisa_campaign_advisory import CISACampaignAdvisory  # noqa: PLC0415
+        from ..models.coverage_score import CoverageScore  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.priority_gap import PriorityGap  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         d = dict(src_dict)
+        _asset_classes = d.pop("asset_classes", UNSET)
+        asset_classes: list[AssetClass] | Unset = UNSET
+        if _asset_classes is not UNSET:
+            asset_classes = []
+            for asset_classes_item_data in _asset_classes:
+                asset_classes_item = AssetClass.from_dict(asset_classes_item_data)
+
+                asset_classes.append(asset_classes_item)
+
+        asset_classes_total = d.pop("asset_classes_total", UNSET)
+
+        asset_classes_truncated = d.pop("asset_classes_truncated", UNSET)
+
+        _cisa_campaigns = d.pop("cisa_campaigns", UNSET)
+        cisa_campaigns: list[CISACampaignAdvisory] | Unset = UNSET
+        if _cisa_campaigns is not UNSET:
+            cisa_campaigns = []
+            for cisa_campaigns_item_data in _cisa_campaigns:
+                cisa_campaigns_item = CISACampaignAdvisory.from_dict(cisa_campaigns_item_data)
+
+                cisa_campaigns.append(cisa_campaigns_item)
+
+        cisa_campaigns_total = d.pop("cisa_campaigns_total", UNSET)
+
+        cisa_campaigns_truncated = d.pop("cisa_campaigns_truncated", UNSET)
 
         def _parse_coverage_score(data: object) -> CoverageScore | None | Unset:
             if data is None:
@@ -264,6 +356,15 @@ class AssessTechniqueCoverageResponse:
                 errors_item = ErrorDetail.from_dict(errors_item_data)
 
                 errors.append(errors_item)
+
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
 
         _mitigations = d.pop("mitigations", UNSET)
         mitigations: list[MitigationDetail] | Unset = UNSET
@@ -337,11 +438,18 @@ class AssessTechniqueCoverageResponse:
                 techniques.append(techniques_item)
 
         assess_technique_coverage_response = cls(
+            asset_classes=asset_classes,
+            asset_classes_total=asset_classes_total,
+            asset_classes_truncated=asset_classes_truncated,
+            cisa_campaigns=cisa_campaigns,
+            cisa_campaigns_total=cisa_campaigns_total,
+            cisa_campaigns_truncated=cisa_campaigns_truncated,
             coverage_score=coverage_score,
             cves=cves,
             defend=defend,
             detections=detections,
             errors=errors,
+            identifier_resolved=identifier_resolved,
             mitigations=mitigations,
             navigator=navigator,
             nist_controls=nist_controls,

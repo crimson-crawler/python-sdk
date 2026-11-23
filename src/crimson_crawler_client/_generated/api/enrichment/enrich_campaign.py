@@ -98,8 +98,6 @@ def sync_detailed(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `cves` — CVEs mapped to the campaign's techniques
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for campaign analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the campaign's scope and attributed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the campaign's
     techniques,
@@ -155,8 +153,6 @@ def sync(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `cves` — CVEs mapped to the campaign's techniques
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for campaign analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the campaign's scope and attributed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the campaign's
     techniques,
@@ -207,8 +203,6 @@ async def asyncio_detailed(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `cves` — CVEs mapped to the campaign's techniques
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for campaign analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the campaign's scope and attributed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the campaign's
     techniques,
@@ -262,8 +256,6 @@ async def asyncio(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `cves` — CVEs mapped to the campaign's techniques
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for campaign analysis and reports
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the campaign's scope and attributed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the campaign's
     techniques,

@@ -19,10 +19,15 @@ class PoCEntry:
         created_at (str | Unset): Repository creation date (ISO 8601) Default: ''.
         description (None | str | Unset): Repository description
         forks_count (int | Unset): GitHub forks Default: 0.
+        id (int | None | Unset): Repository's numeric GitHub id — stable across renames and transfers, the same argument
+            `owner_id` is kept for
         owner (str | Unset): Repository owner login Default: ''.
+        owner_id (int | None | Unset): Repository owner's numeric GitHub id — stable across renames and transfers
+        pushed_at (str | Unset): Date of the most recent push to the repository (ISO 8601) Default: ''.
         repo_name (str | Unset): Repository full name (owner/repo) Default: ''.
         repo_url (str | Unset): GitHub repository URL Default: ''.
         stargazers_count (int | Unset): GitHub stars Default: 0.
+        subscribers_count (int | Unset): Repository watchers/subscribers (a secondary popularity signal) Default: 0.
         topics (list[str] | Unset): Repository topics/tags
         updated_at (str | Unset): Last update date (ISO 8601) Default: ''.
     """
@@ -30,10 +35,14 @@ class PoCEntry:
     created_at: str | Unset = ""
     description: None | str | Unset = UNSET
     forks_count: int | Unset = 0
+    id: int | None | Unset = UNSET
     owner: str | Unset = ""
+    owner_id: int | None | Unset = UNSET
+    pushed_at: str | Unset = ""
     repo_name: str | Unset = ""
     repo_url: str | Unset = ""
     stargazers_count: int | Unset = 0
+    subscribers_count: int | Unset = 0
     topics: list[str] | Unset = UNSET
     updated_at: str | Unset = ""
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
@@ -49,13 +58,29 @@ class PoCEntry:
 
         forks_count = self.forks_count
 
+        id: int | None | Unset
+        if isinstance(self.id, Unset):
+            id = UNSET
+        else:
+            id = self.id
+
         owner = self.owner
+
+        owner_id: int | None | Unset
+        if isinstance(self.owner_id, Unset):
+            owner_id = UNSET
+        else:
+            owner_id = self.owner_id
+
+        pushed_at = self.pushed_at
 
         repo_name = self.repo_name
 
         repo_url = self.repo_url
 
         stargazers_count = self.stargazers_count
+
+        subscribers_count = self.subscribers_count
 
         topics: list[str] | Unset = UNSET
         if not isinstance(self.topics, Unset):
@@ -72,14 +97,22 @@ class PoCEntry:
             field_dict["description"] = description
         if forks_count is not UNSET:
             field_dict["forks_count"] = forks_count
+        if id is not UNSET:
+            field_dict["id"] = id
         if owner is not UNSET:
             field_dict["owner"] = owner
+        if owner_id is not UNSET:
+            field_dict["owner_id"] = owner_id
+        if pushed_at is not UNSET:
+            field_dict["pushed_at"] = pushed_at
         if repo_name is not UNSET:
             field_dict["repo_name"] = repo_name
         if repo_url is not UNSET:
             field_dict["repo_url"] = repo_url
         if stargazers_count is not UNSET:
             field_dict["stargazers_count"] = stargazers_count
+        if subscribers_count is not UNSET:
+            field_dict["subscribers_count"] = subscribers_count
         if topics is not UNSET:
             field_dict["topics"] = topics
         if updated_at is not UNSET:
@@ -103,13 +136,35 @@ class PoCEntry:
 
         forks_count = d.pop("forks_count", UNSET)
 
+        def _parse_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        id = _parse_id(d.pop("id", UNSET))
+
         owner = d.pop("owner", UNSET)
+
+        def _parse_owner_id(data: object) -> int | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(int | None | Unset, data)
+
+        owner_id = _parse_owner_id(d.pop("owner_id", UNSET))
+
+        pushed_at = d.pop("pushed_at", UNSET)
 
         repo_name = d.pop("repo_name", UNSET)
 
         repo_url = d.pop("repo_url", UNSET)
 
         stargazers_count = d.pop("stargazers_count", UNSET)
+
+        subscribers_count = d.pop("subscribers_count", UNSET)
 
         topics = cast(list[str], d.pop("topics", UNSET))
 
@@ -119,10 +174,14 @@ class PoCEntry:
             created_at=created_at,
             description=description,
             forks_count=forks_count,
+            id=id,
             owner=owner,
+            owner_id=owner_id,
+            pushed_at=pushed_at,
             repo_name=repo_name,
             repo_url=repo_url,
             stargazers_count=stargazers_count,
+            subscribers_count=subscribers_count,
             topics=topics,
             updated_at=updated_at,
         )

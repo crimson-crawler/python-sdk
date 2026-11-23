@@ -10,6 +10,7 @@ from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.misp_feed_hit import MISPFeedHit
+    from ..models.misp_notice import MISPNotice
     from ..models.misp_related_attribute import MISPRelatedAttribute
     from ..models.misp_sighting import MISPSighting
     from ..models.misp_warninglist_hit import MISPWarninglistHit
@@ -28,15 +29,30 @@ class MISPAttribute:
         actors (list[str] | Unset): Threat actor names associated with this indicator
         category (None | str | Unset): Indicator category (e.g. 'Network activity', 'Payload delivery')
         comment (str | Unset): Analyst comment on this indicator Default: ''.
+        correlated_event_ids (list[str] | Unset): Distinct other events this attribute correlates with
+        correlation_count (int | Unset): How many cross-event correlations this attribute carries (rollup of
+            `related_attributes`) Default: 0.
+        disable_correlation (bool | Unset): Whether correlation is disabled for this attribute Default: False.
+        distribution (str | Unset): This indicator's own MISP sharing level, which overrides the event's (0 your
+            organisation only, 1 community, 2 connected, 3 all, 4 sharing group, 5 inherit) Default: ''.
         event_date (None | str | Unset): Parent threat event publish date (ISO yyyy-mm-dd)
         event_id (None | str | Unset): Parent threat event ID
         event_info (None | str | Unset): Parent threat event description
-        feed_hits (list[MISPFeedHit] | Unset): Supplemental-feed correlations for this attribute. Populated on event
-            views; attribute-only results do not include feed correlations.
+        feed_hits (list[MISPFeedHit] | Unset): Supplemental-feed correlations for this attribute — which MISP feeds also
+            carry the indicator. Populated on event views and on flat attribute results alike: outside an event view the
+            attribute-scope path backfills them from MISP's cached feed data (`/feeds/searchCaches`).
         first_seen (None | str | Unset): First time this indicator was observed
         id (str | Unset): MISP attribute ID Default: ''.
         last_seen (None | str | Unset): Most recent observation of this indicator
         malware (list[str] | Unset): Malware families associated with this indicator
+        notices (list[MISPNotice] | Unset): Informational noticelist notices (context, not a false-positive signal) —
+            e.g. the GDPR list flagging attributes whose category is personal-data related. Three-state, and the state is
+            readable from `SearchMISPResponse.errors`: `[]` with no `fetch_noticelist*` entry means the lookup ran and
+            nothing matched; `[]` WITH such an entry means the lookup did not run; a populated list carries the matches.
+            Never a boolean.
+        object_id (str | Unset): Composite object this attribute belongs to ('0' when it stands alone) Default: ''.
+        object_relation (None | str | Unset): The template slot this attribute fills inside its composite object (MISP
+            `object_relation`, e.g. `md5`, or a future `src-port`/`dst-port` pair). Null on standalone attributes.
         related_attributes (list[MISPRelatedAttribute] | Unset): Cross-event correlations — same IOC value appearing in
             other threat events
         sighting_count (int | Unset): Total sightings on this attribute (when sightings are requested) Default: 0.
@@ -46,6 +62,7 @@ class MISPAttribute:
         threat_level (None | str | Unset): Threat level: low, medium, high, undefined
         timestamp (str | Unset): Attribute creation timestamp Default: ''.
         to_ids (bool | Unset): Whether this indicator should be used for detection Default: False.
+        uuid (str | Unset): MISP attribute UUID Default: ''.
         warninglist_hits (list[MISPWarninglistHit] | Unset): Warninglist matches identifying likely false positives or
             known-benign values
     """
@@ -55,6 +72,10 @@ class MISPAttribute:
     actors: list[str] | Unset = UNSET
     category: None | str | Unset = UNSET
     comment: str | Unset = ""
+    correlated_event_ids: list[str] | Unset = UNSET
+    correlation_count: int | Unset = 0
+    disable_correlation: bool | Unset = False
+    distribution: str | Unset = ""
     event_date: None | str | Unset = UNSET
     event_id: None | str | Unset = UNSET
     event_info: None | str | Unset = UNSET
@@ -63,6 +84,9 @@ class MISPAttribute:
     id: str | Unset = ""
     last_seen: None | str | Unset = UNSET
     malware: list[str] | Unset = UNSET
+    notices: list[MISPNotice] | Unset = UNSET
+    object_id: str | Unset = ""
+    object_relation: None | str | Unset = UNSET
     related_attributes: list[MISPRelatedAttribute] | Unset = UNSET
     sighting_count: int | Unset = 0
     sightings: list[MISPSighting] | Unset = UNSET
@@ -71,14 +95,16 @@ class MISPAttribute:
     threat_level: None | str | Unset = UNSET
     timestamp: str | Unset = ""
     to_ids: bool | Unset = False
+    uuid: str | Unset = ""
     warninglist_hits: list[MISPWarninglistHit] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.misp_feed_hit import MISPFeedHit
-        from ..models.misp_related_attribute import MISPRelatedAttribute
-        from ..models.misp_sighting import MISPSighting
-        from ..models.misp_warninglist_hit import MISPWarninglistHit
+        from ..models.misp_feed_hit import MISPFeedHit  # noqa: PLC0415
+        from ..models.misp_notice import MISPNotice  # noqa: PLC0415
+        from ..models.misp_related_attribute import MISPRelatedAttribute  # noqa: PLC0415
+        from ..models.misp_sighting import MISPSighting  # noqa: PLC0415
+        from ..models.misp_warninglist_hit import MISPWarninglistHit  # noqa: PLC0415
 
         type_ = self.type_
 
@@ -95,6 +121,16 @@ class MISPAttribute:
             category = self.category
 
         comment = self.comment
+
+        correlated_event_ids: list[str] | Unset = UNSET
+        if not isinstance(self.correlated_event_ids, Unset):
+            correlated_event_ids = self.correlated_event_ids
+
+        correlation_count = self.correlation_count
+
+        disable_correlation = self.disable_correlation
+
+        distribution = self.distribution
 
         event_date: None | str | Unset
         if isinstance(self.event_date, Unset):
@@ -139,6 +175,21 @@ class MISPAttribute:
         if not isinstance(self.malware, Unset):
             malware = self.malware
 
+        notices: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.notices, Unset):
+            notices = []
+            for notices_item_data in self.notices:
+                notices_item = notices_item_data.to_dict()
+                notices.append(notices_item)
+
+        object_id = self.object_id
+
+        object_relation: None | str | Unset
+        if isinstance(self.object_relation, Unset):
+            object_relation = UNSET
+        else:
+            object_relation = self.object_relation
+
         related_attributes: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.related_attributes, Unset):
             related_attributes = []
@@ -173,6 +224,8 @@ class MISPAttribute:
 
         to_ids = self.to_ids
 
+        uuid = self.uuid
+
         warninglist_hits: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.warninglist_hits, Unset):
             warninglist_hits = []
@@ -194,6 +247,14 @@ class MISPAttribute:
             field_dict["category"] = category
         if comment is not UNSET:
             field_dict["comment"] = comment
+        if correlated_event_ids is not UNSET:
+            field_dict["correlated_event_ids"] = correlated_event_ids
+        if correlation_count is not UNSET:
+            field_dict["correlation_count"] = correlation_count
+        if disable_correlation is not UNSET:
+            field_dict["disable_correlation"] = disable_correlation
+        if distribution is not UNSET:
+            field_dict["distribution"] = distribution
         if event_date is not UNSET:
             field_dict["event_date"] = event_date
         if event_id is not UNSET:
@@ -210,6 +271,12 @@ class MISPAttribute:
             field_dict["last_seen"] = last_seen
         if malware is not UNSET:
             field_dict["malware"] = malware
+        if notices is not UNSET:
+            field_dict["notices"] = notices
+        if object_id is not UNSET:
+            field_dict["object_id"] = object_id
+        if object_relation is not UNSET:
+            field_dict["object_relation"] = object_relation
         if related_attributes is not UNSET:
             field_dict["related_attributes"] = related_attributes
         if sighting_count is not UNSET:
@@ -226,6 +293,8 @@ class MISPAttribute:
             field_dict["timestamp"] = timestamp
         if to_ids is not UNSET:
             field_dict["to_ids"] = to_ids
+        if uuid is not UNSET:
+            field_dict["uuid"] = uuid
         if warninglist_hits is not UNSET:
             field_dict["warninglist_hits"] = warninglist_hits
 
@@ -233,10 +302,11 @@ class MISPAttribute:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.misp_feed_hit import MISPFeedHit
-        from ..models.misp_related_attribute import MISPRelatedAttribute
-        from ..models.misp_sighting import MISPSighting
-        from ..models.misp_warninglist_hit import MISPWarninglistHit
+        from ..models.misp_feed_hit import MISPFeedHit  # noqa: PLC0415
+        from ..models.misp_notice import MISPNotice  # noqa: PLC0415
+        from ..models.misp_related_attribute import MISPRelatedAttribute  # noqa: PLC0415
+        from ..models.misp_sighting import MISPSighting  # noqa: PLC0415
+        from ..models.misp_warninglist_hit import MISPWarninglistHit  # noqa: PLC0415
 
         d = dict(src_dict)
         type_ = d.pop("type")
@@ -255,6 +325,14 @@ class MISPAttribute:
         category = _parse_category(d.pop("category", UNSET))
 
         comment = d.pop("comment", UNSET)
+
+        correlated_event_ids = cast(list[str], d.pop("correlated_event_ids", UNSET))
+
+        correlation_count = d.pop("correlation_count", UNSET)
+
+        disable_correlation = d.pop("disable_correlation", UNSET)
+
+        distribution = d.pop("distribution", UNSET)
 
         def _parse_event_date(data: object) -> None | str | Unset:
             if data is None:
@@ -314,6 +392,26 @@ class MISPAttribute:
 
         malware = cast(list[str], d.pop("malware", UNSET))
 
+        _notices = d.pop("notices", UNSET)
+        notices: list[MISPNotice] | Unset = UNSET
+        if _notices is not UNSET:
+            notices = []
+            for notices_item_data in _notices:
+                notices_item = MISPNotice.from_dict(notices_item_data)
+
+                notices.append(notices_item)
+
+        object_id = d.pop("object_id", UNSET)
+
+        def _parse_object_relation(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        object_relation = _parse_object_relation(d.pop("object_relation", UNSET))
+
         _related_attributes = d.pop("related_attributes", UNSET)
         related_attributes: list[MISPRelatedAttribute] | Unset = UNSET
         if _related_attributes is not UNSET:
@@ -351,6 +449,8 @@ class MISPAttribute:
 
         to_ids = d.pop("to_ids", UNSET)
 
+        uuid = d.pop("uuid", UNSET)
+
         _warninglist_hits = d.pop("warninglist_hits", UNSET)
         warninglist_hits: list[MISPWarninglistHit] | Unset = UNSET
         if _warninglist_hits is not UNSET:
@@ -366,6 +466,10 @@ class MISPAttribute:
             actors=actors,
             category=category,
             comment=comment,
+            correlated_event_ids=correlated_event_ids,
+            correlation_count=correlation_count,
+            disable_correlation=disable_correlation,
+            distribution=distribution,
             event_date=event_date,
             event_id=event_id,
             event_info=event_info,
@@ -374,6 +478,9 @@ class MISPAttribute:
             id=id,
             last_seen=last_seen,
             malware=malware,
+            notices=notices,
+            object_id=object_id,
+            object_relation=object_relation,
             related_attributes=related_attributes,
             sighting_count=sighting_count,
             sightings=sightings,
@@ -382,6 +489,7 @@ class MISPAttribute:
             threat_level=threat_level,
             timestamp=timestamp,
             to_ids=to_ids,
+            uuid=uuid,
             warninglist_hits=warninglist_hits,
         )
 

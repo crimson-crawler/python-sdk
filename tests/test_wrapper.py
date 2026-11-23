@@ -38,13 +38,17 @@ from crimson_crawler_client._generated.models import (
     AssessTechniqueCoverageRequestFramework,
     AssessTechniqueCoverageResponse,
     AssessVulnerabilityExposureResponse,
+    BatchItemResultStatus,
     EnrichATLASResponse,
     EnrichBatchResponse,
     EnrichCampaignRequestFramework,
     EnrichCampaignResponse,
     EnrichCAPECResponse,
+    EnrichCloakResponse,
+    EnrichCVEResponse,
     EnrichD3FENDResponse,
     EnrichDISARMResponse,
+    EnrichF3Response,
     EnrichGroupRequestFramework,
     EnrichGroupResponse,
     EnrichLocationResponse,
@@ -52,9 +56,12 @@ from crimson_crawler_client._generated.models import (
     EnrichSectorResponse,
     EnrichSoftwareRequestFramework,
     EnrichSoftwareResponse,
+    EventEnrichmentJobResponse,
+    EventEnrichmentJobResponseStatus,
     FetchPoCSourceResponse,
     InventoryEnrichmentJobResponse,
     InventoryEnrichmentJobResponseStatus,
+    SearchCSAFResponse,
     SearchCTIRequestTypesType0Item,
     SearchCTIResponse,
     SearchCVEResponse,
@@ -106,6 +113,10 @@ class TestModuleSurface:
         for name in presets.__all__:
             value = getattr(presets, name)
             assert len(value) == len(set(value)), f"preset {name} repeats a layer"
+
+    def test_cve_preset_includes_only_permissive_osv_sources_by_default(self) -> None:
+        assert {"osv", "android_bulletin"} <= set(presets.CVE_FULL_WALK)
+        assert "osv_restricted" not in presets.CVE_FULL_WALK
 
 
 # --------------------------------------------------------------------------- #
@@ -409,6 +420,7 @@ class TestEnrichCveFull:
         body = mock_call.call_args.kwargs["body"]
         assert body.cve_id == "CVE-2024-3400"
         assert list(body.include) == presets.CVE_FULL_WALK
+        assert "cisa_kev" in body.include
 
     @patch("crimson_crawler_client.client.enrich_cve.asyncio_detailed", new_callable=AsyncMock)
     async def test_custom_include_overrides_preset(self, mock_call: AsyncMock) -> None:
@@ -477,6 +489,21 @@ class TestOtherConvenienceMethods:
         # And the request's own serialiser must succeed end-to-end.
         body.to_dict()
 
+    @patch("crimson_crawler_client.client.enrich_technique.asyncio_detailed", new_callable=AsyncMock)
+    async def test_enrich_technique_full_by_ics_asset(self, mock_call: AsyncMock) -> None:
+        """An ICS asset lookup is a selector in its own right: technique_ids is left unset, and the
+        asset id reaches the serialised request instead of being dropped."""
+        from crimson_crawler_client._generated.models import EnrichTechniqueResponse
+
+        mock_call.return_value = _ok_response(EnrichTechniqueResponse())
+        client = CrawlerClient(api_key="k")
+        await client.enrich_technique_full(asset_id="A0002", framework="ics")
+        body = mock_call.call_args.kwargs["body"]
+        assert body.asset_id == "A0002"
+        assert body.technique_ids is UNSET
+        assert body.to_dict()["asset_id"] == "A0002"
+        assert "technique_ids" not in body.to_dict()
+
     @patch("crimson_crawler_client.client.enrich_product.asyncio_detailed", new_callable=AsyncMock)
     async def test_enrich_product_full_optional_fields_unset_by_default(self, mock_call: AsyncMock) -> None:
         from crimson_crawler_client._generated.models import EnrichProductResponse
@@ -500,6 +527,79 @@ class TestOtherConvenienceMethods:
         body = mock_call.call_args.kwargs["body"]
         assert body.version == "1.25"
         assert body.vendor == "nginx"
+
+    @patch("crimson_crawler_client.client.enrich_product.asyncio_detailed", new_callable=AsyncMock)
+    async def test_product_catalogue_reconstructs_each_cve(self, mock_call: AsyncMock) -> None:
+        from crimson_crawler_client._generated.models import EnrichProductResponse
+
+        fields = {
+            "attack_patterns": {"capec_id": "CAPEC-1", "name": "pattern"},
+            "techniques": {"technique_id": "T1000", "name": "technique"},
+            "mitigations": {"mitigation_id": "M1000", "name": "mitigation"},
+            "weaknesses": {"cwe_id": "CWE-1", "name": "weakness"},
+        }
+        keys = {"attack_patterns": "CAPEC-1", "techniques": "T1000", "mitigations": "M1000", "weaknesses": "CWE-1"}
+        data = {
+            "product": "nginx",
+            "cves": [
+                {"cve": {"cve_id": cve}, "catalog_refs": {field: [key] for field, key in keys.items()}}
+                for cve in ("CVE-2024-0001", "CVE-2024-0002")
+            ],
+            "cve_context_catalog": {field: {keys[field]: value} for field, value in fields.items()},
+        }
+        mock_call.return_value = _ok_response(EnrichProductResponse.from_dict(data))
+        response = await CrawlerClient(api_key="k").enrich_product_full("nginx")
+        for row in response.to_dict()["cves"]:
+            assert {field: row[field] for field in fields} == {field: [value] for field, value in fields.items()}
+
+    @patch("crimson_crawler_client.client.enrich_batch.asyncio_detailed", new_callable=AsyncMock)
+    async def test_batch_product_catalogue_reconstructs_cve_context(self, mock_call: AsyncMock) -> None:
+        data = {
+            "results": [
+                {
+                    "index": 0,
+                    "type": "product",
+                    "identifier": "nginx",
+                    "status": "ok",
+                    "data": {
+                        "product": "nginx",
+                        "cves": [{"cve": {"cve_id": "CVE-2024-0001"}, "catalog_refs": {"techniques": ["T1000"]}}],
+                        "cve_context_catalog": {
+                            "techniques": {"T1000": {"technique_id": "T1000", "name": "technique"}}
+                        },
+                    },
+                }
+            ]
+        }
+        mock_call.return_value = _ok_response(EnrichBatchResponse.from_dict(data))
+        response = await CrawlerClient(api_key="k").enrich_batch([{"type": "product", "product": "nginx"}])
+        assert response.to_dict()["results"][0]["data"]["cves"][0]["techniques"][0]["technique_id"] == "T1000"
+
+    @patch("crimson_crawler_client.client.enrich_batch.asyncio_detailed", new_callable=AsyncMock)
+    async def test_batch_group_catalogue_restores_log_sources(self, mock_call: AsyncMock) -> None:
+        source = {"name": "Process Creation", "channel": "Sysmon:1"}
+        data = {
+            "results": [
+                {
+                    "index": 0,
+                    "type": "group",
+                    "identifier": "G0001",
+                    "status": "ok",
+                    "data": {
+                        "group": {"group_id": "G0001", "techniques": [{"technique_id": "T1059", "log_sources": []}]},
+                        "log_source_catalog": [source],
+                        "log_source_refs": {"T1059": [0]},
+                        "techniques_next_offset": 10,
+                        "snapshot_id": "a" * 32,
+                    },
+                }
+            ]
+        }
+        mock_call.return_value = _ok_response(EnrichBatchResponse.from_dict(data))
+        response = await CrawlerClient(api_key="k").enrich_batch([{"type": "group", "group_id": "G0001"}])
+        group = response.to_dict()["results"][0]["data"]
+        assert group["group"]["techniques"][0]["log_sources"] == [source]
+        assert group["techniques_next_offset"] == 10
 
     @patch("crimson_crawler_client.client.enrich_package.asyncio_detailed", new_callable=AsyncMock)
     async def test_enrich_package_full_defaults_and_preset(self, mock_call: AsyncMock) -> None:
@@ -525,6 +625,85 @@ class TestOtherConvenienceMethods:
         body = mock_call.call_args.kwargs["body"]
         assert body.version == "4.17.20"
         assert body.include == ["epss"]  # explicit include overrides the preset
+
+    def test_package_advisory_warning_survives_generated_model(self) -> None:
+        from crimson_crawler_client._generated.models import EnrichPackageResponse
+
+        response = EnrichPackageResponse.from_dict(
+            {
+                "ecosystem": "PyPI",
+                "package": "django",
+                "advisories": [
+                    {
+                        "id": "GHSA-1",
+                        "warnings": [{"field": "references[0].url", "rule": "malformed_field"}],
+                        "warnings_total": 70,
+                        "warnings_truncated": True,
+                    }
+                ],
+            }
+        )
+        row = response.to_dict()["advisories"][0]
+        assert row["warnings"] == [{"field": "references[0].url", "rule": "malformed_field"}]
+        assert row["warnings_total"] == 70 and row["warnings_truncated"] is True
+
+    async def test_package_iterator_streams_then_reports_unavailable(self) -> None:
+        from crimson_crawler_client._generated.models import EnrichPackageResponse
+
+        first = EnrichPackageResponse.from_dict(
+            {
+                "ecosystem": "PyPI",
+                "package": "p",
+                "snapshot_id": "a" * 32,
+                "next_offset": 1,
+                "advisories": [{"id": "GHSA-first"}],
+                "errors": [],
+            }
+        )
+        unavailable = EnrichPackageResponse.from_dict(
+            {
+                "ecosystem": "PyPI",
+                "package": "p",
+                "snapshot_id": "a" * 32,
+                "next_offset": None,
+                "advisories": [],
+                "errors": [
+                    {"step": "get_vuln", "service": "osv", "error": "stored_copy_unavailable", "detail": "unavailable"}
+                ],
+            }
+        )
+        client = CrawlerClient(api_key="k")
+        with patch.object(client, "enrich_package_full", new=AsyncMock(side_effect=[first, unavailable])) as fetch:
+            pages = client.iter_package_advisories("PyPI", "p")
+            assert (await anext(pages)).to_dict()["advisories"][0]["id"] == "GHSA-first"
+            assert fetch.await_count == 1
+            with pytest.raises(RuntimeError, match="stored_copy_unavailable"):
+                await anext(pages)
+
+    async def test_package_iterator_does_not_restart_after_expiry(self) -> None:
+        from crimson_crawler_client._generated.models import EnrichPackageResponse
+
+        first = EnrichPackageResponse.from_dict(
+            {
+                "ecosystem": "PyPI",
+                "package": "p",
+                "snapshot_id": "a" * 32,
+                "next_offset": 1,
+                "advisories": [{"id": "GHSA-first"}],
+                "errors": [],
+            }
+        )
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client,
+            "enrich_package_full",
+            new=AsyncMock(side_effect=[first, UnexpectedStatus(409, b'{"detail":{"error":"snapshot_expired"}}', None)]),
+        ):
+            pages = client.iter_package_advisories("PyPI", "p")
+            assert (await anext(pages)).to_dict()["advisories"][0]["id"] == "GHSA-first"
+            with pytest.raises(UnexpectedStatus) as exc:
+                await anext(pages)
+            assert exc.value.status == 409
 
     @patch("crimson_crawler_client.client.enrich_ioc.asyncio_detailed", new_callable=AsyncMock)
     async def test_unexpected_payload_raises(self, mock_call: AsyncMock) -> None:
@@ -581,7 +760,7 @@ class TestOtherConvenienceMethods:
 
 
 # --------------------------------------------------------------------------- #
-# Full-33 parity surface — the 27 operations wrapped for CLI/SDK parity
+# Full-37 parity surface — the 28 operations wrapped for CLI/SDK parity
 # --------------------------------------------------------------------------- #
 
 
@@ -604,6 +783,17 @@ def _inventory_job() -> InventoryEnrichmentJobResponse:
     return InventoryEnrichmentJobResponse(
         enrichment_id="b" * 32,
         status=InventoryEnrichmentJobResponseStatus.DONE,
+        created_at="2026-01-01T00:00:00Z",
+        updated_at="2026-01-01T00:00:01Z",
+        stages=[],
+        progress=1.0,
+    )
+
+
+def _event_job() -> EventEnrichmentJobResponse:
+    return EventEnrichmentJobResponse(
+        enrichment_id="c" * 32,
+        status=EventEnrichmentJobResponseStatus.DONE,
         created_at="2026-01-01T00:00:00Z",
         updated_at="2026-01-01T00:00:01Z",
         stages=[],
@@ -649,6 +839,24 @@ _PARITY_CASES = [
         {},
         {"d3fend_id": "D3-AL", "search": UNSET, "include": presets.DEFEND_FULL},
         id="enrich_defend_full",
+    ),
+    pytest.param(
+        "enrich_f3_full",
+        "enrich_f3",
+        EnrichF3Response(),
+        ("F1031",),
+        {},
+        {"f3_id": "F1031", "search": UNSET, "include": presets.F3_FULL},
+        id="enrich_f3_full",
+    ),
+    pytest.param(
+        "enrich_cloak_full",
+        "enrich_cloak",
+        EnrichCloakResponse(),
+        (),
+        {"search": "tor"},
+        {"cloak_id": UNSET, "search": "tor", "include": presets.CLOAK_FULL},
+        id="enrich_cloak_full",
     ),
     pytest.param(
         "enrich_group_full",
@@ -728,8 +936,28 @@ _PARITY_CASES = [
         SearchKEVResponse(),
         (),
         {"cve_id": "CVE-2000-0001"},
-        {"cve_id": "CVE-2000-0001", "ransomware_status": UNSET, "limit": 50, "page": 1},
+        {"cve_id": "CVE-2000-0001", "ransomware_status": UNSET, "limit": 50, "page": 1, "include": UNSET},
         id="search_kev",
+    ),
+    pytest.param(
+        "search_csaf",
+        "search_csaf",
+        SearchCSAFResponse(),
+        (),
+        {"publisher": "Siemens", "sector": "Water and Wastewater"},
+        {
+            "publisher": "Siemens",
+            "sector": "Water and Wastewater",
+            "cve_id": UNSET,
+            "advisory_id": UNSET,
+            "product": UNSET,
+            "cpe": UNSET,
+            "tlp": UNSET,
+            "sort": "newest",
+            "limit": 20,
+            "page": 1,
+        },
+        id="search_csaf",
     ),
     pytest.param(
         "search_d3fend",
@@ -755,7 +983,7 @@ _PARITY_CASES = [
         SearchMISPResponse(),
         (),
         {"value": "8.8.8.8", "tags": ["tlp:white"], "to_ids": True},
-        {"value": "8.8.8.8", "tags": ["tlp:white"], "to_ids": True, "event_id": UNSET, "limit": 50},
+        {"value": "8.8.8.8", "tags": ["tlp:white"], "to_ids": True, "event_id": UNSET, "include": UNSET, "limit": 50},
         id="search_misp",
     ),
     pytest.param(
@@ -830,6 +1058,24 @@ _PARITY_CASES = [
         None,
         id="inventory_enrich_status",
     ),
+    pytest.param(
+        "event_enrich",
+        "event_enrich",
+        _submit_response(),
+        (),
+        {"event": '{"alertId":"a1","cve":"CVE-2000-0001"}', "event_id": "ev-1"},
+        {"event": '{"alertId":"a1","cve":"CVE-2000-0001"}', "event_id": "ev-1"},
+        id="event_enrich",
+    ),
+    pytest.param(
+        "event_enrich_status",
+        "event_enrich_status",
+        _event_job(),
+        ("c" * 32,),
+        {},
+        None,
+        id="event_enrich_status",
+    ),
 ]
 
 
@@ -889,6 +1135,8 @@ class TestParitySurface:
             pytest.param("enrich_atlas_full", "enrich_atlas", EnrichATLASResponse(), ("AML.T0043",), id="atlas"),
             pytest.param("enrich_disarm_full", "enrich_disarm", EnrichDISARMResponse(), ("T0001",), id="disarm"),
             pytest.param("enrich_defend_full", "enrich_defend", EnrichD3FENDResponse(), ("D3-AL",), id="defend"),
+            pytest.param("enrich_f3_full", "enrich_f3", EnrichF3Response(), ("F1031",), id="f3"),
+            pytest.param("enrich_cloak_full", "enrich_cloak", EnrichCloakResponse(), ("TTP-496",), id="cloak"),
             pytest.param("enrich_group_full", "enrich_group", EnrichGroupResponse(), ("G0016",), id="group"),
             pytest.param(
                 "enrich_software_full", "enrich_software", EnrichSoftwareResponse(), ("S0154",), id="software"
@@ -910,14 +1158,17 @@ class TestParitySurface:
         assert mock_call.call_args.kwargs["body"].include == ["details"]
 
     @pytest.mark.parametrize(
-        ("method", "module", "parsed", "args"),
+        ("method", "module", "parsed", "args", "layer"),
         [
-            pytest.param("search_cve", "search_cve", SearchCVEResponse(), (), id="search_cve"),
+            pytest.param("search_cve", "search_cve", SearchCVEResponse(), (), "details", id="search_cve"),
+            pytest.param("search_kev", "search_kev", SearchKEVResponse(), (), "statistics", id="search_kev"),
+            pytest.param("search_misp", "search_misp", SearchMISPResponse(), (), "sightings", id="search_misp"),
             pytest.param(
                 "assess_vulnerability_exposure",
                 "assess_vulnerability_exposure",
                 AssessVulnerabilityExposureResponse(),
                 (["CVE-2000-0001"],),
+                "tie",
                 id="assess_vulnerability_exposure",
             ),
             pytest.param(
@@ -925,6 +1176,7 @@ class TestParitySurface:
                 "assess_technique_coverage",
                 AssessTechniqueCoverageResponse(),
                 (["T1190"],),
+                "tie",
                 id="assess_technique_coverage",
             ),
             pytest.param(
@@ -932,12 +1184,13 @@ class TestParitySurface:
                 "assess_group_exposure",
                 AssessGroupExposureResponse(),
                 (),
+                "tie",
                 id="assess_group_exposure",
             ),
         ],
     )
     async def test_include_passthrough_has_no_preset(
-        self, method: str, module: str, parsed: object, args: tuple[object, ...]
+        self, method: str, module: str, parsed: object, args: tuple[object, ...], layer: str
     ) -> None:
         """search/assess carry no preset: ``include`` is dropped from the body entirely
         when unset, so the server's own default applies rather than a client-side guess."""
@@ -947,8 +1200,8 @@ class TestParitySurface:
             await getattr(client, method)(*args)
             assert "include" not in mock_call.call_args.kwargs["body"].to_dict()
 
-            await getattr(client, method)(*args, include=["tie"])
-            assert mock_call.call_args.kwargs["body"].to_dict()["include"] == ["tie"]
+            await getattr(client, method)(*args, include=[layer])
+            assert mock_call.call_args.kwargs["body"].to_dict()["include"] == [layer]
 
 
 class TestParityEnumCoercion:
@@ -1046,6 +1299,15 @@ class TestParityEnumCoercion:
         client = CrawlerClient(api_key="k")
         await client.search_d3fend("isolation", d3fend_form="sub-mitigation")
         assert mock_call.call_args.kwargs["body"].to_dict()["d3fend_form"] == "sub-mitigation"
+
+    @patch("crimson_crawler_client.client.search_d3fend.asyncio_detailed", new_callable=AsyncMock)
+    async def test_search_d3fend_versions_include_is_forwarded(self, mock_call: AsyncMock) -> None:
+        """`versions` (the KB revision history) is the one allowed layer — it must reach the request
+        rather than being dropped as an unknown field."""
+        mock_call.return_value = _ok_response(SearchD3FENDResponse())
+        client = CrawlerClient(api_key="k")
+        await client.search_d3fend("isolation", include=["versions"])
+        assert mock_call.call_args.kwargs["body"].to_dict()["include"] == ["versions"]
 
     @patch("crimson_crawler_client.client.search_knowledgebase.asyncio_detailed", new_callable=AsyncMock)
     async def test_search_knowledgebase_collections_become_enums(self, mock_call: AsyncMock) -> None:
@@ -1158,11 +1420,77 @@ class TestEnrichBatch:
         ]
 
     @patch("crimson_crawler_client.client.enrich_batch.asyncio_detailed", new_callable=AsyncMock)
-    async def test_unknown_discriminator_fails_before_the_request(self, mock_call: AsyncMock) -> None:
+    async def test_unknown_discriminator_is_answered_per_item(self, mock_call: AsyncMock) -> None:
+        """An unknown ``type`` is the SERVER's per-item error, not a client-side refusal.
+
+        The batch union carries an ``InvalidBatchItem`` member so one malformed item comes back as its
+        own ``status="error"`` result — the validator's message included — while the batch's other items
+        still run. A consumer depends on both halves: the request IS made with the offending item
+        verbatim, and a valid sibling still returns data.
+        """
+        mock_call.return_value = _ok_response(
+            EnrichBatchResponse.from_dict(
+                {
+                    "results": [
+                        {
+                            "index": 0,
+                            "type": "d3fend",
+                            "identifier": "",
+                            "status": "error",
+                            "data": None,
+                            "errors": [
+                                {
+                                    "step": "enrich_batch_item",
+                                    "service": "batch",
+                                    "error": "validation_error",
+                                    "detail": (
+                                        "items.0.type: Input tag 'd3fend' found using 'type' does not match "
+                                        "any of the expected tags: 'cve', 'product', 'defend', 'poc_source'"
+                                    ),
+                                }
+                            ],
+                        },
+                        {
+                            "index": 1,
+                            "type": "cve",
+                            "identifier": "CVE-2000-0001",
+                            "status": "ok",
+                            "data": {"cve": {"cve_id": "CVE-2000-0001"}},
+                            "errors": [],
+                        },
+                    ]
+                }
+            )
+        )
         client = CrawlerClient(api_key="k")
-        with pytest.raises((KeyError, ValueError, TypeError)):
-            await client.enrich_batch([{"type": "d3fend", "d3fend_id": "D3-AL"}])
-        mock_call.assert_not_awaited()
+
+        response = await client.enrich_batch(
+            [{"type": "d3fend", "d3fend_id": "D3-AL"}, {"type": "cve", "cve_id": "CVE-2000-0001"}]
+        )
+
+        # The request goes out: a bad item must not be refused client-side, or the batch's other
+        # items would never run. The offending item reaches the server verbatim, so the server — the
+        # only layer holding the type vocabulary — is what reports it.
+        assert mock_call.await_count == 1
+        assert mock_call.call_args.kwargs["body"].to_dict()["items"] == [
+            {"type": "d3fend", "d3fend_id": "D3-AL"},
+            {"type": "cve", "cve_id": "CVE-2000-0001"},
+        ]
+
+        rejected, accepted = response.results
+        assert rejected.index == 0 and rejected.type_ == "d3fend"
+        assert rejected.status is BatchItemResultStatus.ERROR
+        assert rejected.data is None
+        assert rejected.errors[0].step == "enrich_batch_item"
+        assert rejected.errors[0].error == "validation_error"
+        detail = rejected.errors[0].detail
+        # The detail is the validator's own message: it names the tag that matched nothing and the
+        # vocabulary that would have been accepted.
+        assert "'d3fend'" in detail and "'defend'" in detail
+
+        assert accepted.index == 1 and accepted.type_ == "cve"
+        assert accepted.status is BatchItemResultStatus.OK
+        assert accepted.data["cve"] == {"cve_id": "CVE-2000-0001"}
 
     @patch("crimson_crawler_client.client.enrich_batch.asyncio_detailed", new_callable=AsyncMock)
     async def test_non_2xx_raises(self, mock_call: AsyncMock) -> None:
@@ -1187,3 +1515,247 @@ class TestLifecycle:
         client = CrawlerClient(api_key="k")
         await client.aclose()
         await client.aclose()  # second call should not raise
+
+
+class TestSearchCSAF:
+    @patch("crimson_crawler_client.client.search_csaf.asyncio_detailed", new_callable=AsyncMock)
+    async def test_search_csaf_forwards_filters(self, mock_call: AsyncMock) -> None:
+        mock_call.return_value = _ok_response(SearchCSAFResponse())
+        client = CrawlerClient(api_key="k")
+        await client.search_csaf(cve_id="CVE-2024-3400", publisher="CISA", sort="oldest", limit=5, page=2)
+        body = mock_call.call_args.kwargs["body"].to_dict()
+        assert body["cve_id"] == "CVE-2024-3400"
+        assert body["publisher"] == "CISA"
+        assert body["sort"] == "oldest"
+        assert body["limit"] == 5 and body["page"] == 2
+
+
+@pytest.mark.parametrize("kind", ["group", "exposure"])
+def test_group_catalogue_expands_to_technique_log_sources(kind: str) -> None:
+    from crimson_crawler_client.client import _expand_group_catalogue
+
+    technique = {"technique_id": "T0001", "log_sources": []}
+    data = {
+        "log_source_catalog": [{"name": "eventlog", "channel": "security"}],
+        "log_source_refs": {"T0001": [0, 0]},
+    }
+    if kind == "group":
+        response = EnrichGroupResponse.from_dict({**data, "group": {"group_id": "G0001", "techniques": [technique]}})
+        _expand_group_catalogue(response)
+        rows = response.to_dict()["group"]["techniques"]
+    else:
+        response = AssessGroupExposureResponse.from_dict({**data, "techniques": [technique]})
+        _expand_group_catalogue(response)
+        rows = response.to_dict()["techniques"]
+    assert rows[0]["log_sources"] == [
+        {"name": "eventlog", "channel": "security"},
+        {"name": "eventlog", "channel": "security"},
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method", "endpoint", "model"),
+    [
+        ("iter_group_pages", "enrich_group", EnrichGroupResponse),
+        ("iter_group_exposure_pages", "assess_group_exposure", AssessGroupExposureResponse),
+    ],
+)
+async def test_group_page_iterators_reach_last_page(method: str, endpoint: str, model: type) -> None:
+    first = model.from_dict({"snapshot_id": "a" * 32, "techniques_next_offset": 10})
+    last = model.from_dict({"snapshot_id": "a" * 32, "techniques_next_offset": None})
+    with patch(
+        f"crimson_crawler_client.client.{endpoint}.asyncio_detailed",
+        new=AsyncMock(side_effect=[_ok_response(first), _ok_response(last)]),
+    ):
+        client = CrawlerClient(api_key="k")
+        kwargs = {"group_id": "G0001"} if method == "iter_group_pages" else {"group_ids": ["G0001"]}
+        pages = [page async for page in getattr(client, method)(**kwargs)]
+    assert [page.techniques_next_offset for page in pages] == [10, None]
+
+
+# -- OSV advisory continuation (enrich/cve + assess/vulnerability-exposure) ---------------------- #
+
+_OSV_SNAPSHOT = "d" * 32
+_OSV_WALKS = [
+    pytest.param(
+        "enrich_cve", "enrich_cve_full", "iter_cve_osv_pages", "CVE-2024-3400", EnrichCVEResponse, id="enrich_cve"
+    ),
+    pytest.param(
+        "assess_vulnerability_exposure",
+        "assess_vulnerability_exposure",
+        "iter_vulnerability_exposure_osv_pages",
+        ["CVE-2024-3400"],
+        AssessVulnerabilityExposureResponse,
+        id="assess_vulnerability_exposure",
+    ),
+]
+
+
+def _osv_page(model: type, ids: list[str], *, next_offset: int | None, total: int = 4):
+    return model.from_dict(
+        {
+            "osv_advisories": [{"id": identifier} for identifier in ids],
+            "osv_advisories_total": total,
+            "osv_advisories_truncated": next_offset is not None,
+            **({"osv_next_offset": next_offset, "osv_snapshot_id": _OSV_SNAPSHOT} if next_offset is not None else {}),
+            "errors": [],
+        }
+    )
+
+
+@pytest.mark.parametrize(("endpoint", "single", "iterator", "subject", "model"), _OSV_WALKS)
+class TestOsvContinuation:
+    async def test_single_page_sends_cursor_fields_and_licence_include(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        with patch(f"crimson_crawler_client.client.{endpoint}.asyncio_detailed", new_callable=AsyncMock) as call:
+            call.return_value = _ok_response(model())
+            client = CrawlerClient(api_key="k")
+            await getattr(client, single)(
+                subject, include=["osv_restricted"], osv_offset=7, osv_snapshot_id=_OSV_SNAPSHOT
+            )
+        body = call.call_args.kwargs["body"].to_dict()
+        assert body["osv_offset"] == 7
+        assert body["osv_snapshot_id"] == _OSV_SNAPSHOT
+        assert body["include"] == ["osv_restricted"]
+
+    async def test_first_request_omits_snapshot_id(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        with patch(f"crimson_crawler_client.client.{endpoint}.asyncio_detailed", new_callable=AsyncMock) as call:
+            call.return_value = _ok_response(model())
+            await getattr(CrawlerClient(api_key="k"), single)(subject)
+        assert "osv_snapshot_id" not in call.call_args.kwargs["body"].to_dict()
+
+    async def test_iterator_streams_pages_and_follows_cursor_including_zero(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        pages = [
+            _osv_page(model, ["GHSA-1"], next_offset=0),
+            _osv_page(model, ["GHSA-2"], next_offset=3),
+            _osv_page(model, ["GHSA-3", "GHSA-4"], next_offset=None),
+        ]
+        client = CrawlerClient(api_key="k")
+        with patch.object(client, single, new=AsyncMock(side_effect=pages)) as fetch:
+            stream = getattr(client, iterator)(subject, include=["osv_restricted"])
+            assert (await anext(stream)).to_dict()["osv_advisories"][0]["id"] == "GHSA-1"
+            assert fetch.await_count == 1  # lazy: nothing is buffered ahead of the consumer
+            rest = [page async for page in stream]
+        assert len(rest) == 2
+        assert [(c.kwargs["osv_offset"], c.kwargs["osv_snapshot_id"]) for c in fetch.await_args_list] == [
+            (0, None),
+            (0, _OSV_SNAPSHOT),
+            (3, _OSV_SNAPSHOT),
+        ]
+        assert {tuple(c.kwargs["include"]) for c in fetch.await_args_list} == {("osv_restricted",)}
+
+    async def test_iterator_does_not_restart_after_expiry(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        expired = UnexpectedStatus(409, b'{"detail":{"error":"snapshot_expired"}}', None)
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1), expired])
+        ) as fetch:
+            stream = getattr(client, iterator)(subject)
+            await anext(stream)
+            with pytest.raises(UnexpectedStatus) as exc:
+                await anext(stream)
+        assert exc.value.status == 409
+        assert fetch.await_count == 2
+
+    async def test_iterator_surfaces_unavailable_store(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        unavailable = UnexpectedStatus(503, b'{"detail":{"error":"snapshot_unavailable"}}', None)
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1), unavailable])
+        ):
+            stream = getattr(client, iterator)(subject)
+            await anext(stream)
+            with pytest.raises(UnexpectedStatus) as exc:
+                await anext(stream)
+        assert exc.value.status == 503
+
+    @pytest.mark.parametrize(
+        "continuation",
+        [
+            {"osv_next_offset": 1, "osv_snapshot_id": _OSV_SNAPSHOT},  # no progress past offset 1
+            {"osv_next_offset": 5, "osv_snapshot_id": "e" * 32},  # snapshot changed mid-walk
+        ],
+    )
+    async def test_iterator_rejects_bad_continuations(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type, continuation: dict
+    ) -> None:
+        bad = model.from_dict({"osv_advisories": [], "osv_advisories_total": 9, "errors": [], **continuation})
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1), bad])
+        ):
+            stream = getattr(client, iterator)(subject)
+            await anext(stream)
+            with pytest.raises(ValueError, match="OSV"):
+                await anext(stream)
+
+    async def test_iterator_rejects_cursor_without_snapshot(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        orphan = model.from_dict({"osv_advisories": [], "osv_next_offset": 2, "errors": []})
+        client = CrawlerClient(api_key="k")
+        with patch.object(client, single, new=AsyncMock(side_effect=[orphan])):
+            with pytest.raises(ValueError, match="OSV"):
+                await anext(getattr(client, iterator)(subject))
+
+    async def test_iterator_reports_store_loss_on_a_continuation(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        lost = model.from_dict(
+            {
+                "osv_advisories": [],
+                "errors": [{"step": "get_vuln", "service": "osv", "error": "stored_copy_unavailable", "detail": "x"}],
+            }
+        )
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1), lost])
+        ):
+            stream = getattr(client, iterator)(subject)
+            await anext(stream)
+            with pytest.raises(RuntimeError, match="stored_copy_unavailable"):
+                await anext(stream)
+
+    async def test_page_zero_without_osv_cursor_is_one_page(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        client = CrawlerClient(api_key="k")
+        with patch.object(client, single, new=AsyncMock(return_value=model())) as fetch:
+            pages = [page async for page in getattr(client, iterator)(subject)]
+        assert len(pages) == 1 and fetch.await_count == 1
+
+    async def test_terminal_page_may_omit_both_cursor_fields(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        """The API omits osv_next_offset and osv_snapshot_id together on the last page; that ends the walk."""
+        terminal = model.from_dict({"osv_advisories": [{"id": "GHSA-2"}], "osv_advisories_total": 2, "errors": []})
+        assert "osv_snapshot_id" not in terminal.to_dict() and "osv_next_offset" not in terminal.to_dict()
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1, total=2), terminal])
+        ) as fetch:
+            pages = [page async for page in getattr(client, iterator)(subject)]
+        assert len(pages) == 2 and fetch.await_count == 2
+
+    async def test_terminal_page_with_a_different_snapshot_id_is_still_rejected(
+        self, endpoint: str, single: str, iterator: str, subject: object, model: type
+    ) -> None:
+        other = model.from_dict({"osv_advisories": [], "osv_snapshot_id": "e" * 32, "errors": []})
+        client = CrawlerClient(api_key="k")
+        with patch.object(
+            client, single, new=AsyncMock(side_effect=[_osv_page(model, ["GHSA-1"], next_offset=1), other])
+        ):
+            stream = getattr(client, iterator)(subject)
+            await anext(stream)
+            with pytest.raises(ValueError, match="OSV"):
+                await anext(stream)

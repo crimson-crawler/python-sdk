@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionHumanImpactType0(str, Enum):
+class SSVCDecisionHumanImpactType0(StrEnum):
     HIGH = "high"
     LOW = "low"
     MEDIUM = "medium"

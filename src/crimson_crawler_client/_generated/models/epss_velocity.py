@@ -19,8 +19,6 @@ class EPSSVelocity:
         acceleration (float | None | Unset): Rate of velocity change (positive = speeding up)
         change_30d (float | None | Unset): Score change over last 30 days
         change_7d (float | None | Unset): Score change over last 7 days
-        cohort_percentile (float | None | Unset): Optional cohort baseline percentile when the caller provides EPSS
-            cohort context; None when no cohort data is available
         current_score (float | Unset): Current EPSS score Default: 0.0.
         inflection (bool | Unset): True when 30d delta ≥0.2 is concentrated (≥80%) in the last 7d — signals a new
             exploit detail dropped Default: False.
@@ -30,7 +28,6 @@ class EPSSVelocity:
     acceleration: float | None | Unset = UNSET
     change_30d: float | None | Unset = UNSET
     change_7d: float | None | Unset = UNSET
-    cohort_percentile: float | None | Unset = UNSET
     current_score: float | Unset = 0.0
     inflection: bool | Unset = False
     trend: str | Unset = "stable"
@@ -55,12 +52,6 @@ class EPSSVelocity:
         else:
             change_7d = self.change_7d
 
-        cohort_percentile: float | None | Unset
-        if isinstance(self.cohort_percentile, Unset):
-            cohort_percentile = UNSET
-        else:
-            cohort_percentile = self.cohort_percentile
-
         current_score = self.current_score
 
         inflection = self.inflection
@@ -76,8 +67,6 @@ class EPSSVelocity:
             field_dict["change_30d"] = change_30d
         if change_7d is not UNSET:
             field_dict["change_7d"] = change_7d
-        if cohort_percentile is not UNSET:
-            field_dict["cohort_percentile"] = cohort_percentile
         if current_score is not UNSET:
             field_dict["current_score"] = current_score
         if inflection is not UNSET:
@@ -118,15 +107,6 @@ class EPSSVelocity:
 
         change_7d = _parse_change_7d(d.pop("change_7d", UNSET))
 
-        def _parse_cohort_percentile(data: object) -> float | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(float | None | Unset, data)
-
-        cohort_percentile = _parse_cohort_percentile(d.pop("cohort_percentile", UNSET))
-
         current_score = d.pop("current_score", UNSET)
 
         inflection = d.pop("inflection", UNSET)
@@ -137,7 +117,6 @@ class EPSSVelocity:
             acceleration=acceleration,
             change_30d=change_30d,
             change_7d=change_7d,
-            cohort_percentile=cohort_percentile,
             current_score=current_score,
             inflection=inflection,
             trend=trend,

@@ -24,8 +24,6 @@ class PriorityGap:
         group_prevalence (int | Unset): Corpus-wide distinct groups using this technique (applies +0.1×min(count/5, 1)
             boost) Default: 0.
         has_kev_cves (bool | Unset): Linked CVEs include actively exploited entries Default: False.
-        in_active_campaign (bool | Unset): True when the technique appears in recent MISP campaign tags (applies ×1.3
-            boost) Default: False.
         kev_linked_count (int | Unset): Count of KEV-listed CVEs linked to this technique (log-scaled boost to
             gap_score) Default: 0.
         name (str | Unset): Technique name Default: ''.
@@ -40,7 +38,6 @@ class PriorityGap:
     group_count: int | Unset = 0
     group_prevalence: int | Unset = 0
     has_kev_cves: bool | Unset = False
-    in_active_campaign: bool | Unset = False
     kev_linked_count: int | Unset = 0
     name: str | Unset = ""
     reason: str | Unset = ""
@@ -60,8 +57,6 @@ class PriorityGap:
         group_prevalence = self.group_prevalence
 
         has_kev_cves = self.has_kev_cves
-
-        in_active_campaign = self.in_active_campaign
 
         kev_linked_count = self.kev_linked_count
 
@@ -88,8 +83,6 @@ class PriorityGap:
             field_dict["group_prevalence"] = group_prevalence
         if has_kev_cves is not UNSET:
             field_dict["has_kev_cves"] = has_kev_cves
-        if in_active_campaign is not UNSET:
-            field_dict["in_active_campaign"] = in_active_campaign
         if kev_linked_count is not UNSET:
             field_dict["kev_linked_count"] = kev_linked_count
         if name is not UNSET:
@@ -118,8 +111,6 @@ class PriorityGap:
 
         has_kev_cves = d.pop("has_kev_cves", UNSET)
 
-        in_active_campaign = d.pop("in_active_campaign", UNSET)
-
         kev_linked_count = d.pop("kev_linked_count", UNSET)
 
         name = d.pop("name", UNSET)
@@ -137,7 +128,6 @@ class PriorityGap:
             group_count=group_count,
             group_prevalence=group_prevalence,
             has_kev_cves=has_kev_cves,
-            in_active_campaign=in_active_campaign,
             kev_linked_count=kev_linked_count,
             name=name,
             reason=reason,

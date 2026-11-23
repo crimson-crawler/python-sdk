@@ -89,6 +89,21 @@ def sync_detailed(
     - `cve_id` — check one CVE against the KEV catalog
     - `ransomware_status` — `Known` (confirmed ransomware campaign use) or `Unknown` (unconfirmed)
 
+    **Include options**
+
+    - `statistics` — deployment-wide corpus coverage (CVE/KEV totals, per-year counts, and the
+      d1/d7/d30/d365 creation deltas), the same block `/v1/search/cve` returns. The KEV half
+      (`kev_by_year`, `kev_created_since`) is the part this surface answers for directly.
+
+    Each result is the catalog entry as this endpoint's sources publish it. `vendor_project` and
+    `product` ride the catalog mirror's own KEV report — `external_references` rows the Vulmatch KEV
+    ingest now publishes from CISA's `vendorProject`/`product` columns — so they populate here once
+    that deployment has run the one-time KEV backfill and read null before it (`POST
+    /api/v1/arango-cve-processor/cve-kev/`; see `.claude/rules/vulmatch.md`, "KEV backfill").
+    `forensic_triage` (plus the `supplemented_from` mark) is the one that comes from CISA's own KEV
+    record alone and is therefore always null here: CVE enrichment's `cisa_kev` reads it
+    (`/v1/enrich/cve`, plus product, package and batch paths that delegate to it).
+
     Omitted filters are ignored. The `errors` array reports any partial failures.
 
     Args:
@@ -132,6 +147,21 @@ def sync(
     - `cve_id` — check one CVE against the KEV catalog
     - `ransomware_status` — `Known` (confirmed ransomware campaign use) or `Unknown` (unconfirmed)
 
+    **Include options**
+
+    - `statistics` — deployment-wide corpus coverage (CVE/KEV totals, per-year counts, and the
+      d1/d7/d30/d365 creation deltas), the same block `/v1/search/cve` returns. The KEV half
+      (`kev_by_year`, `kev_created_since`) is the part this surface answers for directly.
+
+    Each result is the catalog entry as this endpoint's sources publish it. `vendor_project` and
+    `product` ride the catalog mirror's own KEV report — `external_references` rows the Vulmatch KEV
+    ingest now publishes from CISA's `vendorProject`/`product` columns — so they populate here once
+    that deployment has run the one-time KEV backfill and read null before it (`POST
+    /api/v1/arango-cve-processor/cve-kev/`; see `.claude/rules/vulmatch.md`, "KEV backfill").
+    `forensic_triage` (plus the `supplemented_from` mark) is the one that comes from CISA's own KEV
+    record alone and is therefore always null here: CVE enrichment's `cisa_kev` reads it
+    (`/v1/enrich/cve`, plus product, package and batch paths that delegate to it).
+
     Omitted filters are ignored. The `errors` array reports any partial failures.
 
     Args:
@@ -169,6 +199,21 @@ async def asyncio_detailed(
 
     - `cve_id` — check one CVE against the KEV catalog
     - `ransomware_status` — `Known` (confirmed ransomware campaign use) or `Unknown` (unconfirmed)
+
+    **Include options**
+
+    - `statistics` — deployment-wide corpus coverage (CVE/KEV totals, per-year counts, and the
+      d1/d7/d30/d365 creation deltas), the same block `/v1/search/cve` returns. The KEV half
+      (`kev_by_year`, `kev_created_since`) is the part this surface answers for directly.
+
+    Each result is the catalog entry as this endpoint's sources publish it. `vendor_project` and
+    `product` ride the catalog mirror's own KEV report — `external_references` rows the Vulmatch KEV
+    ingest now publishes from CISA's `vendorProject`/`product` columns — so they populate here once
+    that deployment has run the one-time KEV backfill and read null before it (`POST
+    /api/v1/arango-cve-processor/cve-kev/`; see `.claude/rules/vulmatch.md`, "KEV backfill").
+    `forensic_triage` (plus the `supplemented_from` mark) is the one that comes from CISA's own KEV
+    record alone and is therefore always null here: CVE enrichment's `cisa_kev` reads it
+    (`/v1/enrich/cve`, plus product, package and batch paths that delegate to it).
 
     Omitted filters are ignored. The `errors` array reports any partial failures.
 
@@ -210,6 +255,21 @@ async def asyncio(
 
     - `cve_id` — check one CVE against the KEV catalog
     - `ransomware_status` — `Known` (confirmed ransomware campaign use) or `Unknown` (unconfirmed)
+
+    **Include options**
+
+    - `statistics` — deployment-wide corpus coverage (CVE/KEV totals, per-year counts, and the
+      d1/d7/d30/d365 creation deltas), the same block `/v1/search/cve` returns. The KEV half
+      (`kev_by_year`, `kev_created_since`) is the part this surface answers for directly.
+
+    Each result is the catalog entry as this endpoint's sources publish it. `vendor_project` and
+    `product` ride the catalog mirror's own KEV report — `external_references` rows the Vulmatch KEV
+    ingest now publishes from CISA's `vendorProject`/`product` columns — so they populate here once
+    that deployment has run the one-time KEV backfill and read null before it (`POST
+    /api/v1/arango-cve-processor/cve-kev/`; see `.claude/rules/vulmatch.md`, "KEV backfill").
+    `forensic_triage` (plus the `supplemented_from` mark) is the one that comes from CISA's own KEV
+    record alone and is therefore always null here: CVE enrichment's `cisa_kev` reads it
+    (`/v1/enrich/cve`, plus product, package and batch paths that delegate to it).
 
     Omitted filters are ignored. The `errors` array reports any partial failures.
 

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class KeyJudgmentConfidenceType0(str, Enum):
+class KeyJudgmentConfidenceType0(StrEnum):
     HIGH = "high"
     LOW = "low"
     MODERATE = "moderate"

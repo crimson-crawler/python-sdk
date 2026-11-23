@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class InventoryEnrichmentJobResponseStatus(str, Enum):
+class InventoryEnrichmentJobResponseStatus(StrEnum):
     DONE = "done"
     ERROR = "error"
     QUEUED = "queued"

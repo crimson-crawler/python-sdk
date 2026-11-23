@@ -97,8 +97,7 @@ def sync_detailed(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `galaxies` — resolve referenced MISP Galaxy clusters into full actor / malware / tool profiles
       (synonyms, source, relations); the multi-IOC sibling of enrich/ioc's galaxies include
-    - `warninglist` — flag portfolio IOCs that match a MISP warninglist (likely false positives or
-      known-benign values)
+    - `warninglist` — flag portfolio IOCs that match MISP warninglists, including shared infrastructure
     - `sightings` — aggregate MISP sighting counts (`total_sightings`) across the matched attributes
     - `summary` — AI-generated portfolio threat narrative
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the surfaced
@@ -156,8 +155,7 @@ def sync(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `galaxies` — resolve referenced MISP Galaxy clusters into full actor / malware / tool profiles
       (synonyms, source, relations); the multi-IOC sibling of enrich/ioc's galaxies include
-    - `warninglist` — flag portfolio IOCs that match a MISP warninglist (likely false positives or
-      known-benign values)
+    - `warninglist` — flag portfolio IOCs that match MISP warninglists, including shared infrastructure
     - `sightings` — aggregate MISP sighting counts (`total_sightings`) across the matched attributes
     - `summary` — AI-generated portfolio threat narrative
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the surfaced
@@ -210,8 +208,7 @@ async def asyncio_detailed(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `galaxies` — resolve referenced MISP Galaxy clusters into full actor / malware / tool profiles
       (synonyms, source, relations); the multi-IOC sibling of enrich/ioc's galaxies include
-    - `warninglist` — flag portfolio IOCs that match a MISP warninglist (likely false positives or
-      known-benign values)
+    - `warninglist` — flag portfolio IOCs that match MISP warninglists, including shared infrastructure
     - `sightings` — aggregate MISP sighting counts (`total_sightings`) across the matched attributes
     - `summary` — AI-generated portfolio threat narrative
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the surfaced
@@ -267,8 +264,7 @@ async def asyncio(
     - `defend` — D3FEND defensive techniques and countermeasures
     - `galaxies` — resolve referenced MISP Galaxy clusters into full actor / malware / tool profiles
       (synonyms, source, relations); the multi-IOC sibling of enrich/ioc's galaxies include
-    - `warninglist` — flag portfolio IOCs that match a MISP warninglist (likely false positives or
-      known-benign values)
+    - `warninglist` — flag portfolio IOCs that match MISP warninglists, including shared infrastructure
     - `sightings` — aggregate MISP sighting counts (`total_sightings`) across the matched attributes
     - `summary` — AI-generated portfolio threat narrative
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the surfaced

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentStakeholderHumanImpact(str, Enum):
+class ArtifactEnrichmentStakeholderHumanImpact(StrEnum):
     HIGH = "high"
     LOW = "low"
     MEDIUM = "medium"

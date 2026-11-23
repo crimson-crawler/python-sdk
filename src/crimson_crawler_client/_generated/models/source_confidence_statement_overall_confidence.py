@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SourceConfidenceStatementOverallConfidence(str, Enum):
+class SourceConfidenceStatementOverallConfidence(StrEnum):
     HIGH = "high"
     LOW = "low"
     MODERATE = "moderate"

@@ -18,11 +18,15 @@ class SearchCVERequest:
     """Search vulnerabilities by severity, exploit status, technique, weakness, date range, and more.
 
     Attributes:
-        attack_id (None | str | Unset): Filter CVEs linked to an ATT&CK technique (e.g. T1190)
+        attack_id (None | str | Unset): Filter CVEs linked to an ATT&CK technique (e.g. T1078). Links come from the CVE
+            to CWE to CAPEC to ATT&CK chain, so only techniques MITRE's CAPEC taxonomy maps can match — several common
+            techniques (T1190, T1059, T1068) have no link in it and always return 0 rows
         capec_id (None | str | Unset): Filter CVEs linked to a CAPEC attack pattern (e.g. CAPEC-665)
         cpe (None | str | Unset): Filter CVEs by affected product (CPE string)
-        cpes_not_vulnerable (None | str | Unset): Exclude CVEs whose configuration requires (but is not vulnerable in)
-            this CPE 2.3 string
+        cpes_not_vulnerable (None | str | Unset): Only return CVEs whose published not-vulnerable CPE criteria include
+            this CPE 2.3 string. This is a positive match against that criteria set, **not an exclusion** — a CPE no CVE
+            lists there returns an empty result, not the unfiltered list, and a CPE listed there returns a different set
+            from the same CPE passed to `cpe`, not a subset of it.
         created_by_ref (None | str | Unset): Filter by CNA / numbering-authority identity STIX ID
         created_max (None | str | Unset): Latest creation date (YYYY-MM-DDThh:mm:ss.sssZ)
         created_min (None | str | Unset): Earliest creation date (YYYY-MM-DDThh:mm:ss.sssZ)
@@ -34,8 +38,12 @@ class SearchCVERequest:
         epss_min (float | None | Unset): Minimum EPSS score (0.0-1.0)
         epss_percentile_min (float | None | Unset): Minimum EPSS percentile (0.0-1.0) — rank vs all CVEs, not the raw
             score
-        include (list[str] | Unset): Result layers to include. The only allowed value is `details`; an empty list
-            returns summaries.
+        include (list[str] | Unset): Result layers to include. `details` returns the full per-CVE detail block;
+            `statistics` adds the corpus coverage/freshness block (total counts, per-window deltas, by-year histograms) onto
+            the response; `cna` adds the CVE Numbering Authority directory; `epss_reports` adds the EPSS score history for
+            exactly the CVEs this search returned; `kb_rankings` adds the top 100 objects per knowledge base without their
+            per-year trends. Request `kb_rankings_full` for all fetched rows and trends. An empty list returns summaries.
+            Allowed values: cna, details, epss_reports, kb_rankings, kb_rankings_full, statistics.
         kev_only (bool | Unset): Only return CVEs in the Known Exploited Vulnerabilities catalog Default: False.
         limit (int | Unset): Maximum number of results to return (1-100) Default: 50.
         modified_max (None | str | Unset): Latest modification date (YYYY-MM-DDThh:mm:ss.sssZ)
@@ -46,8 +54,9 @@ class SearchCVERequest:
         sort (None | SearchCVERequestSortType0 | Unset): Sort order: created_ascending, created_descending,
             modified_ascending, modified_descending, epss_score_descending, x_opencti_cvss_base_score_descending
         stix_id (None | str | Unset): Filter by exact vulnerability STIX ID
-        vuln_status (None | SearchCVERequestVulnStatusType0 | Unset): Filter by vulnerability status: Analyzed, Awaiting
-            Analysis, Modified, Received, Rejected
+        vuln_status (None | SearchCVERequestVulnStatusType0 | Unset): Filter by vulnerability status: Received, Awaiting
+            Analysis, Undergoing Analysis, Analyzed, Modified, Deferred, Rejected — the full NVD lifecycle. `Deferred` and
+            `Undergoing Analysis` were previously missing, which left 108,939 of 374,532 CVEs un-filterable
     """
 
     attack_id: None | str | Unset = UNSET

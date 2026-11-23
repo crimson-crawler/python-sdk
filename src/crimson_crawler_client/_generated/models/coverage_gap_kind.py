@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CoverageGapKind(str, Enum):
+class CoverageGapKind(StrEnum):
     CHAIN_WALK_EMPTY = "chain_walk_empty"
     LOW_CORROBORATION = "low_corroboration"
     NO_EPSS_DATA = "no_epss_data"

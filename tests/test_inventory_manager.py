@@ -100,6 +100,71 @@ class TestInventories:
         assert http.request.call_args.kwargs["params"] == {"ids": "a,b"}
 
 
+class TestHistory:
+    async def test_get_history_sends_filters_and_omits_unset(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"items": [], "next_cursor": None})
+        out = await api.get_history(
+            "p1",
+            types=["assets_changed", "renamed"],
+            q="log4j",
+            since="2026-01-01",
+            until="2026-02-01",
+            actor="api",
+            limit=25,
+            cursor="c1",
+        )
+        assert out == {"items": [], "next_cursor": None}
+        assert http.request.call_args.args == ("GET", "/inventory-manager/inventories/p1/history")
+        assert http.request.call_args.kwargs["params"] == {
+            "type": "assets_changed,renamed",
+            "q": "log4j",
+            "since": "2026-01-01",
+            "until": "2026-02-01",
+            "actor": "api",
+            "limit": 25,
+            "cursor": "c1",
+        }
+
+    async def test_get_history_no_filters_sends_empty_params(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"items": [{"id": "x"}], "next_cursor": None})
+        out = await api.get_history("p1")
+        assert out["items"] == [{"id": "x"}]
+        assert http.request.call_args.kwargs["params"] == {}
+
+    async def test_get_history_passes_comma_string_types_through(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"items": [], "next_cursor": None})
+        await api.get_history("p1", types="tlp_changed,vex_changed")
+        assert http.request.call_args.kwargs["params"] == {"type": "tlp_changed,vex_changed"}
+
+    async def test_get_history_bad_param_raises(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(400, {"error": "limit must be 1-200"})
+        with pytest.raises(UnexpectedStatus) as exc:
+            await api.get_history("p1", limit=500)
+        assert exc.value.status == 400
+
+    async def test_iter_history_follows_cursor_until_exhausted(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(200, {"items": [{"id": "a"}, {"id": "b"}], "next_cursor": "c2"}),
+            _resp(200, {"items": [{"id": "c"}], "next_cursor": None}),
+        ]
+        seen = [item async for item in api.iter_history("p1", actor="you", limit=2)]
+        assert [i["id"] for i in seen] == ["a", "b", "c"]
+        first, second = http.request.call_args_list
+        assert first.kwargs["params"] == {"actor": "you", "limit": 2}
+        assert second.kwargs["params"] == {"actor": "you", "limit": 2, "cursor": "c2"}
+
+    async def test_iter_history_empty_inventory_yields_nothing(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(200, {"items": [], "next_cursor": None})
+        assert [i async for i in api.iter_history("p1")] == []
+        assert http.request.call_count == 1
+
+
 class TestInventoryWrite:
     async def test_create_inventory_full_body(self, ws):
         api, http = ws
@@ -488,7 +553,7 @@ class TestImportExport:
 
 
 # Every advertised import + export FORMAT must flow through the thin SDK without the client rejecting it.
-_IMPORT_FORMATS = ["json", "sbom", "csv", "nmap", "list", "grype", "trivy", "depcheck", "nessus", "gvm"]
+_IMPORT_FORMATS = ["json", "sbom", "csv", "nmap", "list", "grype", "trivy", "depcheck", "nessus", "gvm", "vex"]
 _EXPORT_FORMATS = ["json", "csv", "list", "cyclonedx", "spdx", "spdx2", "workbook"]
 
 
@@ -519,6 +584,52 @@ class TestFormatParity:
         await api.export_inventory("p1", fmt=fmt)
         method, path = http.request.call_args.args
         assert method == "GET" and path == f"/inventory-manager/inventories/p1/export/{fmt}"
+
+
+class TestExportTlp:
+    """The #374 TLP 2.0 marking on the inventory export: every accepted value rides the query param, an
+    absent value sends none, and an invalid value is refused before any request."""
+
+    @pytest.mark.parametrize("fmt", ["cyclonedx", "spdx", "spdx2", "workbook"])
+    @pytest.mark.parametrize("tlp", ["CLEAR", "GREEN", "AMBER", "AMBER+STRICT", "RED"])
+    async def test_export_sends_every_value_on_a_slot_carrying_format(self, ws, fmt, tlp):
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"data")
+        await api.export_inventory("p1", fmt=fmt, tlp=tlp)
+        assert http.request.call_args.kwargs["params"] == {"tlp": tlp}
+
+    async def test_export_all_forwards_tlp(self, ws):
+        # The bulk .zip honours `?tlp=` too, so the param must ride the `all` export as well.
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"PK")
+        await api.export_inventory("p1", fmt="all", tlp="RED")
+        assert http.request.call_args.kwargs["params"] == {"tlp": "RED"}
+
+    async def test_export_omits_the_param_when_unset(self, ws):
+        api, http = ws
+        http.request.return_value = httpx.Response(200, content=b"{}")
+        await api.export_inventory("p1", fmt="cyclonedx")
+        assert http.request.call_args.kwargs["params"] is None
+
+    async def test_export_rejects_invalid_value_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.export_inventory("p1", fmt="cyclonedx", tlp="WHITE")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
+    async def test_export_url_encodes_plus(self):
+        """`AMBER+STRICT` must reach the wire as `AMBER%2BSTRICT` (a bare `+` decodes to a space)."""
+        seen: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen.append(str(request.url))
+            return httpx.Response(200, content=b"{}")
+
+        async with httpx.AsyncClient(base_url="https://api.test", transport=httpx.MockTransport(handler)) as http:
+            api = InventoryManagerAPI(http)
+            await api.export_inventory("p1", fmt="cyclonedx", tlp="AMBER+STRICT")
+
+        assert "tlp=AMBER%2BSTRICT" in seen[0]
 
 
 class TestAssetEdit:
@@ -567,6 +678,29 @@ class TestAssetEdit:
             params=None,
             json={"product": "nginx", "version": "1.27.4", "vendor": "f5"},
         )
+
+    async def test_apply_asset_fix_with_group_scope(self, ws):
+        # Scoping is what makes a host-scan inventory safe to patch: without `group` the fix rewrites
+        # every host carrying the product.
+        api, http = ws
+        http.request.return_value = _resp(200, {"id": "p1", "product": "nginx", "version": "1.27.4", "applied": 1})
+        out = await api.apply_asset_fix("p1", "nginx", "1.27.4", group="web-01")
+        assert out["applied"] == 1
+        http.request.assert_called_once_with(
+            "PATCH",
+            "/inventory-manager/inventories/p1/asset-version",
+            params=None,
+            json={"product": "nginx", "version": "1.27.4", "group": "web-01"},
+        )
+
+    async def test_apply_asset_fix_group_omitted_sends_no_group_key(self, ws):
+        # Backward compatibility: an omitted scope must not send `group` at all (the door's documented
+        # default is "every asset carrying the product").
+        api, http = ws
+        http.request.return_value = _resp(200, {"id": "p1", "item_count": 2})
+        await api.apply_asset_fix("p1", "nginx", "1.27.4", vendor="f5", group=None)
+        body = http.request.call_args.kwargs["json"]
+        assert body == {"product": "nginx", "version": "1.27.4", "vendor": "f5"}
 
     async def test_import_into_existing_replace(self, ws):
         api, http = ws
@@ -673,10 +807,13 @@ class TestAttachmentEnrichment:
         assert out["enrichment_id"] == eid
         # the attachment was fetched via the artifact-manager raw endpoint
         assert http.request.call_args_list[1].args == ("GET", "/artifact-manager/artifacts/att-1")
-        # the submit body carried the resolved attachments_text
+        # the submit body carried the resolved text as its own per-artifact entry, named.
         submit = http.request.call_args_list[2]
         assert submit.args == ("POST", "/v1/inventory-enrich")
-        assert "CVE-2024-9999" in submit.kwargs["json"]["attachments_text"]
+        assert submit.kwargs["json"]["attachments_texts"] == [
+            {"text": "CVE-2024-9999 seen at 1.2.3.4", "source_artifact_id": "att-1", "filename": "att-1"}
+        ]
+        assert "attachments_text" not in submit.kwargs["json"]
 
     async def test_binary_attachment_forwarded_as_file(self, ws):
         api, http = ws
@@ -695,9 +832,11 @@ class TestAttachmentEnrichment:
         out = await api.enrich_inventory("p1", poll_interval=0)
         assert out["enrichment_id"] == eid
         body = http.request.call_args_list[2].kwargs["json"]
-        # binary went to attachments_files (raw base64), NOT attachments_text
-        assert "attachments_text" not in body
-        assert body["attachments_files"] == [{"filename": "scan.xlsx", "content_b64": "UEsDBASE64XLSX"}]
+        # binary went to attachments_files (raw base64, source artifact named), NOT to the text path
+        assert "attachments_texts" not in body
+        assert body["attachments_files"] == [
+            {"filename": "scan.xlsx", "content_b64": "UEsDBASE64XLSX", "source_artifact_id": "att-x"}
+        ]
 
     async def test_failed_attachment_fetch_surfaces_omission_record(self, ws):
         api, http = ws
@@ -751,7 +890,49 @@ class TestAttachmentEnrichment:
         out = await api.enrich_inventory("p1", poll_interval=0)
         assert out["enrichment_id"] == "d" * 32
         assert http.request.call_count == 3  # no get_artifact call
-        assert "attachments_text" not in http.request.call_args_list[1].kwargs["json"]
+        assert "attachments_texts" not in http.request.call_args_list[1].kwargs["json"]
+
+
+class TestVexOverlayEnrichment:
+    """#324 — an inventory's attached VEX suppression overlay rides every enrich_inventory submit."""
+
+    async def test_attached_overlay_is_sent_as_vex_overlay(self, ws):
+        api, http = ws
+        doc = '{"@context":"https://openvex.dev/ns/v0.2.0","statements":[]}'
+        http.request.side_effect = [
+            _resp(
+                200,
+                {
+                    "inventory": [{"product": "nginx"}],
+                    "vex_overlay": {"dialect": "openvex", "document": doc, "statements": []},
+                },
+            ),
+            _resp(202, {"enrichment_id": "e" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich_inventory("p1", poll_interval=0)
+        submit = http.request.call_args_list[1]
+        assert submit.args == ("POST", "/v1/inventory-enrich")
+        assert submit.kwargs["json"]["vex_overlay"] == {"format": "vex", "content": doc}
+
+    async def test_no_overlay_omits_the_field(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(200, {"inventory": [{"product": "nginx"}], "vex_overlay": None}),
+            _resp(202, {"enrichment_id": "e" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich_inventory("p1", poll_interval=0)
+        assert "vex_overlay" not in http.request.call_args_list[1].kwargs["json"]
+
+    async def test_enrich_items_accepts_explicit_overlay(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(202, {"enrichment_id": "f" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich_items([{"product": "nginx"}], include=None, poll_interval=0, timeout=5, vex_overlay="{}")
+        assert http.request.call_args_list[0].kwargs["json"]["vex_overlay"] == {"format": "vex", "content": "{}"}
 
 
 class TestGapS5S8InventoryManagerMethods:

@@ -18,8 +18,10 @@ class BatchCAPECItem:
     Attributes:
         capec_id (None | str | Unset): CAPEC identifier for direct lookup (e.g. CAPEC-66)
         include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, mitigations, navigator, nist_controls, software,
-            summary, techniques, tie, web, web_scrape.
+            cves, defend, details, detections, groups, knowledgebase, log_sources, mitigations, navigator, nist_controls,
+            software, summary, techniques, tie, versions. `versions` attaches the object's KB revision history
+            (`revision_history`). `details` GATES this endpoint's own `attack_pattern` object (as does `versions`): without
+            either, a `capec_id` lookup returns `attack_pattern: null` and only the other requested layers.
         search (None | str | Unset): Text query to search attack patterns by name or description
         type_ (Literal['capec'] | Unset): Selects CAPEC enrichment for this batch item Default: 'capec'.
     """

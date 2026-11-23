@@ -17,9 +17,16 @@ class ThreatAssessment:
 
     Attributes:
         confidence (float | Unset): Verdict confidence (0.0-1.0) Default: 0.0.
+        corroborated (bool | Unset): True when the corpus treats this indicator as a threat rather than merely
+            mentioning it: every matched attribute is flagged for detection (`to_ids`) and at least one distinct feed
+            provider or MISP event carries it. A corroborated indicator is not penalised by `on_warninglist`. Default:
+            False.
         cross_feed_count (int | Unset): Distinct MISP events referencing this IOC (>3 adds a +0.10 corroboration bonus
             to threat_score) Default: 0.
         event_count (int | Unset): Linked threat events Default: 0.
+        feed_provider_count (int | Unset): Distinct threat feeds carrying this IOC (each adds +0.10 to threat_score,
+            capped at +0.20). Counted from the matched attributes' own feed correlations, not from the feeds their parent
+            events came from — `cross_feed_count` counts those events. Default: 0.
         on_warninglist (bool | Unset): Matches a known-benign warning list Default: False.
         recency_days (int | None | Unset): Days since most recent attribute
         sighting_count (int | Unset): Confirmed sightings across events Default: 0.
@@ -28,11 +35,16 @@ class ThreatAssessment:
         to_ids_ratio (float | Unset): Ratio of attributes flagged for detection Default: 0.0.
         verdict (str | Unset): Threat verdict: high_threat, medium_threat, low_threat, or informational Default:
             'informational'.
+        warninglist_penalty_applied (bool | Unset): True when `on_warninglist` reduced `threat_score` (×0.3). Only an
+            uncorroborated warninglisted IOC takes the penalty; on a corroborated one the warninglist is reported without
+            capping the verdict. Default: False.
     """
 
     confidence: float | Unset = 0.0
+    corroborated: bool | Unset = False
     cross_feed_count: int | Unset = 0
     event_count: int | Unset = 0
+    feed_provider_count: int | Unset = 0
     on_warninglist: bool | Unset = False
     recency_days: int | None | Unset = UNSET
     sighting_count: int | Unset = 0
@@ -40,14 +52,19 @@ class ThreatAssessment:
     threat_score: float | Unset = 0.0
     to_ids_ratio: float | Unset = 0.0
     verdict: str | Unset = "informational"
+    warninglist_penalty_applied: bool | Unset = False
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         confidence = self.confidence
 
+        corroborated = self.corroborated
+
         cross_feed_count = self.cross_feed_count
 
         event_count = self.event_count
+
+        feed_provider_count = self.feed_provider_count
 
         on_warninglist = self.on_warninglist
 
@@ -67,15 +84,21 @@ class ThreatAssessment:
 
         verdict = self.verdict
 
+        warninglist_penalty_applied = self.warninglist_penalty_applied
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
         if confidence is not UNSET:
             field_dict["confidence"] = confidence
+        if corroborated is not UNSET:
+            field_dict["corroborated"] = corroborated
         if cross_feed_count is not UNSET:
             field_dict["cross_feed_count"] = cross_feed_count
         if event_count is not UNSET:
             field_dict["event_count"] = event_count
+        if feed_provider_count is not UNSET:
+            field_dict["feed_provider_count"] = feed_provider_count
         if on_warninglist is not UNSET:
             field_dict["on_warninglist"] = on_warninglist
         if recency_days is not UNSET:
@@ -90,6 +113,8 @@ class ThreatAssessment:
             field_dict["to_ids_ratio"] = to_ids_ratio
         if verdict is not UNSET:
             field_dict["verdict"] = verdict
+        if warninglist_penalty_applied is not UNSET:
+            field_dict["warninglist_penalty_applied"] = warninglist_penalty_applied
 
         return field_dict
 
@@ -98,9 +123,13 @@ class ThreatAssessment:
         d = dict(src_dict)
         confidence = d.pop("confidence", UNSET)
 
+        corroborated = d.pop("corroborated", UNSET)
+
         cross_feed_count = d.pop("cross_feed_count", UNSET)
 
         event_count = d.pop("event_count", UNSET)
+
+        feed_provider_count = d.pop("feed_provider_count", UNSET)
 
         on_warninglist = d.pop("on_warninglist", UNSET)
 
@@ -123,10 +152,14 @@ class ThreatAssessment:
 
         verdict = d.pop("verdict", UNSET)
 
+        warninglist_penalty_applied = d.pop("warninglist_penalty_applied", UNSET)
+
         threat_assessment = cls(
             confidence=confidence,
+            corroborated=corroborated,
             cross_feed_count=cross_feed_count,
             event_count=event_count,
+            feed_provider_count=feed_provider_count,
             on_warninglist=on_warninglist,
             recency_days=recency_days,
             sighting_count=sighting_count,
@@ -134,6 +167,7 @@ class ThreatAssessment:
             threat_score=threat_score,
             to_ids_ratio=to_ids_ratio,
             verdict=verdict,
+            warninglist_penalty_applied=warninglist_penalty_applied,
         )
 
         threat_assessment.additional_properties = d

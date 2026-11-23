@@ -10,6 +10,7 @@ from ..models.artifact_enrichment_meta_overall_confidence_type_0 import Artifact
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.artifact_enrichment_meta_dropped_by_type import ArtifactEnrichmentMetaDroppedByType
     from ..models.artifact_enrichment_meta_extractor_versions import ArtifactEnrichmentMetaExtractorVersions
     from ..models.artifact_enrichment_meta_ref_count_by_type import ArtifactEnrichmentMetaRefCountByType
     from ..models.defense_coverage import DefenseCoverage
@@ -27,11 +28,25 @@ class ArtifactEnrichmentMeta:
         defense_coverage (DefenseCoverage | None | Unset): Report-level defense-readiness rollup (0-100 score +
             detection/mitigation/D3FEND coverage) over every ATT&CK technique in the enrichment. Pairs with the per-
             reference attack scores for a Risk-vs-Readiness read. Null when no references mapped to ATT&CK techniques.
+        dropped_by_type (ArtifactEnrichmentMetaDroppedByType | Unset): Count of discarded references keyed by reference
+            type (e.g. `{'ioc': 812, 'cve': 40}`). Survivors are selected by type priority — actionable types (CVE/product)
+            are kept ahead of contextual ones (IOC/actor) — so this shows what the priority cut gave up.
+        dropped_count (int | Unset): Distinct non-noise references discarded by the extraction cap. 0 when nothing was
+            dropped. Pairs with `dropped_by_type` so a caller can tell whether truncation removed 3 low-value indicators or
+            4,800 findings. Default: 0.
+        dropped_is_floor (bool | Unset): True when the extractor's selection reservoir filled and parsing stopped early,
+            making `dropped_count` a lower bound rather than an exact total. Render as 'more than N'. Default: False.
         extractor_versions (ArtifactEnrichmentMetaExtractorVersions | Unset): Version map of the extractors that ran
         overall_confidence (ArtifactEnrichmentMetaOverallConfidenceType0 | None | Unset): Overall analytic confidence
             across the report
         ref_count (int | Unset): Total references in the report Default: 0.
         ref_count_by_type (ArtifactEnrichmentMetaRefCountByType | Unset): Reference count keyed by type
+        schema_version (str | Unset): Report schema version. 2.0 added the full vulnerability record (CVSS vectors, EPSS
+            percentile, CWEs, full KEV record, Metasploit/Nuclei/vendor sources, references) and the ATT&CK v18 detection
+            fields; 2.1 added location / sector / D3FEND references, OSV fixed versions, NVD affected configurations,
+            grouped log sources, and per-analytic detection detail; 2.2 added full knowledge-base profiles (CWE, CAPEC,
+            group, software, campaign, ATLAS/DISARM/F3/CLOAK), MISP threat-actor targeting, technique coverage and group
+            exposure rollups, and per-field provenance Default: '2.2'.
         truncated (bool | Unset): True when the extractor hit a cap and dropped references Default: False.
         unique_nist_controls (list[str] | Unset): Sorted dedup'd set of NIST SP 800-53 rev 5 control IDs (e.g. 'AC-02')
             that mitigate the techniques mapped to references in this report. Aggregated across all references for at-a-
@@ -40,18 +55,29 @@ class ArtifactEnrichmentMeta:
 
     generated_at: str
     defense_coverage: DefenseCoverage | None | Unset = UNSET
+    dropped_by_type: ArtifactEnrichmentMetaDroppedByType | Unset = UNSET
+    dropped_count: int | Unset = 0
+    dropped_is_floor: bool | Unset = False
     extractor_versions: ArtifactEnrichmentMetaExtractorVersions | Unset = UNSET
     overall_confidence: ArtifactEnrichmentMetaOverallConfidenceType0 | None | Unset = UNSET
     ref_count: int | Unset = 0
     ref_count_by_type: ArtifactEnrichmentMetaRefCountByType | Unset = UNSET
+    schema_version: str | Unset = "2.2"
     truncated: bool | Unset = False
     unique_nist_controls: list[str] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.artifact_enrichment_meta_extractor_versions import ArtifactEnrichmentMetaExtractorVersions
-        from ..models.artifact_enrichment_meta_ref_count_by_type import ArtifactEnrichmentMetaRefCountByType
-        from ..models.defense_coverage import DefenseCoverage
+        from ..models.artifact_enrichment_meta_dropped_by_type import (
+            ArtifactEnrichmentMetaDroppedByType,  # noqa: PLC0415
+        )
+        from ..models.artifact_enrichment_meta_extractor_versions import (
+            ArtifactEnrichmentMetaExtractorVersions,  # noqa: PLC0415
+        )
+        from ..models.artifact_enrichment_meta_ref_count_by_type import (
+            ArtifactEnrichmentMetaRefCountByType,  # noqa: PLC0415
+        )
+        from ..models.defense_coverage import DefenseCoverage  # noqa: PLC0415
 
         generated_at = self.generated_at
 
@@ -62,6 +88,14 @@ class ArtifactEnrichmentMeta:
             defense_coverage = self.defense_coverage.to_dict()
         else:
             defense_coverage = self.defense_coverage
+
+        dropped_by_type: dict[str, Any] | Unset = UNSET
+        if not isinstance(self.dropped_by_type, Unset):
+            dropped_by_type = self.dropped_by_type.to_dict()
+
+        dropped_count = self.dropped_count
+
+        dropped_is_floor = self.dropped_is_floor
 
         extractor_versions: dict[str, Any] | Unset = UNSET
         if not isinstance(self.extractor_versions, Unset):
@@ -81,6 +115,8 @@ class ArtifactEnrichmentMeta:
         if not isinstance(self.ref_count_by_type, Unset):
             ref_count_by_type = self.ref_count_by_type.to_dict()
 
+        schema_version = self.schema_version
+
         truncated = self.truncated
 
         unique_nist_controls: list[str] | Unset = UNSET
@@ -96,6 +132,12 @@ class ArtifactEnrichmentMeta:
         )
         if defense_coverage is not UNSET:
             field_dict["defense_coverage"] = defense_coverage
+        if dropped_by_type is not UNSET:
+            field_dict["dropped_by_type"] = dropped_by_type
+        if dropped_count is not UNSET:
+            field_dict["dropped_count"] = dropped_count
+        if dropped_is_floor is not UNSET:
+            field_dict["dropped_is_floor"] = dropped_is_floor
         if extractor_versions is not UNSET:
             field_dict["extractor_versions"] = extractor_versions
         if overall_confidence is not UNSET:
@@ -104,6 +146,8 @@ class ArtifactEnrichmentMeta:
             field_dict["ref_count"] = ref_count
         if ref_count_by_type is not UNSET:
             field_dict["ref_count_by_type"] = ref_count_by_type
+        if schema_version is not UNSET:
+            field_dict["schema_version"] = schema_version
         if truncated is not UNSET:
             field_dict["truncated"] = truncated
         if unique_nist_controls is not UNSET:
@@ -113,9 +157,16 @@ class ArtifactEnrichmentMeta:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.artifact_enrichment_meta_extractor_versions import ArtifactEnrichmentMetaExtractorVersions
-        from ..models.artifact_enrichment_meta_ref_count_by_type import ArtifactEnrichmentMetaRefCountByType
-        from ..models.defense_coverage import DefenseCoverage
+        from ..models.artifact_enrichment_meta_dropped_by_type import (
+            ArtifactEnrichmentMetaDroppedByType,  # noqa: PLC0415
+        )
+        from ..models.artifact_enrichment_meta_extractor_versions import (
+            ArtifactEnrichmentMetaExtractorVersions,  # noqa: PLC0415
+        )
+        from ..models.artifact_enrichment_meta_ref_count_by_type import (
+            ArtifactEnrichmentMetaRefCountByType,  # noqa: PLC0415
+        )
+        from ..models.defense_coverage import DefenseCoverage  # noqa: PLC0415
 
         d = dict(src_dict)
         generated_at = d.pop("generated_at")
@@ -136,6 +187,17 @@ class ArtifactEnrichmentMeta:
             return cast(DefenseCoverage | None | Unset, data)
 
         defense_coverage = _parse_defense_coverage(d.pop("defense_coverage", UNSET))
+
+        _dropped_by_type = d.pop("dropped_by_type", UNSET)
+        dropped_by_type: ArtifactEnrichmentMetaDroppedByType | Unset
+        if isinstance(_dropped_by_type, Unset):
+            dropped_by_type = UNSET
+        else:
+            dropped_by_type = ArtifactEnrichmentMetaDroppedByType.from_dict(_dropped_by_type)
+
+        dropped_count = d.pop("dropped_count", UNSET)
+
+        dropped_is_floor = d.pop("dropped_is_floor", UNSET)
 
         _extractor_versions = d.pop("extractor_versions", UNSET)
         extractor_versions: ArtifactEnrichmentMetaExtractorVersions | Unset
@@ -170,6 +232,8 @@ class ArtifactEnrichmentMeta:
         else:
             ref_count_by_type = ArtifactEnrichmentMetaRefCountByType.from_dict(_ref_count_by_type)
 
+        schema_version = d.pop("schema_version", UNSET)
+
         truncated = d.pop("truncated", UNSET)
 
         unique_nist_controls = cast(list[str], d.pop("unique_nist_controls", UNSET))
@@ -177,10 +241,14 @@ class ArtifactEnrichmentMeta:
         artifact_enrichment_meta = cls(
             generated_at=generated_at,
             defense_coverage=defense_coverage,
+            dropped_by_type=dropped_by_type,
+            dropped_count=dropped_count,
+            dropped_is_floor=dropped_is_floor,
             extractor_versions=extractor_versions,
             overall_confidence=overall_confidence,
             ref_count=ref_count,
             ref_count_by_type=ref_count_by_type,
+            schema_version=schema_version,
             truncated=truncated,
             unique_nist_controls=unique_nist_controls,
         )

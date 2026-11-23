@@ -78,11 +78,16 @@ def sync_detailed(
 ) -> Response[Any | EnrichCWEResponse]:
     """Enrich CWE
 
-     Enrich a weakness classification with linked attack patterns and adversary techniques.
+     Enrich a weakness classification with linked attack patterns and their ATT&CK mappings.
 
-    Returns the weakness with associated attack patterns and ATT&CK techniques, connecting root cause
-    to adversary behavior. Technique mappings come with full mitigations and detection guidance even
-    when the weakness has sparse data.
+    Provide `cwe_id` for a direct lookup (e.g. CWE-79) or `search` for discovery by name; a request
+    naming neither is rejected with `422`.
+    Returns the weakness with associated attack patterns and the ATT&CK techniques those patterns map
+    to, connecting root cause to adversary behavior. The technique layer is resolved from this
+    weakness's
+    CAPEC links, so it is only as complete as those links are: a CAPEC carrying no ATT&CK mapping
+    contributes none, and mitigation and detection guidance covers the techniques that do resolve —
+    there is none when the linked CAPECs carry no mappings.
 
     **Include options**
 
@@ -97,17 +102,33 @@ def sync_detailed(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this weakness (queried by weakness id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for weakness-related research and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the weakness and its attack implications
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
 
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, and this endpoint resolves that
+    set itself from the weakness' CAPEC links, so each one answers when asked for ALONE and publishes
+    only its own section. `techniques[]` is the carrier that stays tied to the CAPEC walk rather than
+    to its own token: measured 2026-09-13 on CWE-522, `techniques`=0 with `['details','techniques']`
+    against `attack_patterns`=13 / `techniques`=12 with `['details','capecs','techniques']` — while a
+    `['nist_controls']`-only request maps that same CAPEC-linked set instead of short-circuiting to
+    `[]` (verified live 2026-10-15: CWE-522 alone → 198 controls, identical to the `capecs`-included
+    request; CWE-79 resolves no technique at all, so its `nist_controls` is empty in every shape).
+
     Args:
         body (EnrichCWERequest): Enrich a weakness classification with linked attack patterns and
-            adversary techniques.
+            their ATT&CK mappings.
+
+            Techniques resolve from this weakness's CAPEC links, so the layer is only as complete as
+            those
+            links are: a CAPEC carrying no ATT&CK mapping contributes none, and the layers derived
+            from
+            techniques are empty with it. Some weaknesses carry no CAPECs at all.
+            Supply at least one of `cwe_id` or `search`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,11 +156,16 @@ def sync(
 ) -> Any | EnrichCWEResponse | None:
     """Enrich CWE
 
-     Enrich a weakness classification with linked attack patterns and adversary techniques.
+     Enrich a weakness classification with linked attack patterns and their ATT&CK mappings.
 
-    Returns the weakness with associated attack patterns and ATT&CK techniques, connecting root cause
-    to adversary behavior. Technique mappings come with full mitigations and detection guidance even
-    when the weakness has sparse data.
+    Provide `cwe_id` for a direct lookup (e.g. CWE-79) or `search` for discovery by name; a request
+    naming neither is rejected with `422`.
+    Returns the weakness with associated attack patterns and the ATT&CK techniques those patterns map
+    to, connecting root cause to adversary behavior. The technique layer is resolved from this
+    weakness's
+    CAPEC links, so it is only as complete as those links are: a CAPEC carrying no ATT&CK mapping
+    contributes none, and mitigation and detection guidance covers the techniques that do resolve —
+    there is none when the linked CAPECs carry no mappings.
 
     **Include options**
 
@@ -154,17 +180,33 @@ def sync(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this weakness (queried by weakness id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for weakness-related research and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the weakness and its attack implications
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
 
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, and this endpoint resolves that
+    set itself from the weakness' CAPEC links, so each one answers when asked for ALONE and publishes
+    only its own section. `techniques[]` is the carrier that stays tied to the CAPEC walk rather than
+    to its own token: measured 2026-09-13 on CWE-522, `techniques`=0 with `['details','techniques']`
+    against `attack_patterns`=13 / `techniques`=12 with `['details','capecs','techniques']` — while a
+    `['nist_controls']`-only request maps that same CAPEC-linked set instead of short-circuiting to
+    `[]` (verified live 2026-10-15: CWE-522 alone → 198 controls, identical to the `capecs`-included
+    request; CWE-79 resolves no technique at all, so its `nist_controls` is empty in every shape).
+
     Args:
         body (EnrichCWERequest): Enrich a weakness classification with linked attack patterns and
-            adversary techniques.
+            their ATT&CK mappings.
+
+            Techniques resolve from this weakness's CAPEC links, so the layer is only as complete as
+            those
+            links are: a CAPEC carrying no ATT&CK mapping contributes none, and the layers derived
+            from
+            techniques are empty with it. Some weaknesses carry no CAPECs at all.
+            Supply at least one of `cwe_id` or `search`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -187,11 +229,16 @@ async def asyncio_detailed(
 ) -> Response[Any | EnrichCWEResponse]:
     """Enrich CWE
 
-     Enrich a weakness classification with linked attack patterns and adversary techniques.
+     Enrich a weakness classification with linked attack patterns and their ATT&CK mappings.
 
-    Returns the weakness with associated attack patterns and ATT&CK techniques, connecting root cause
-    to adversary behavior. Technique mappings come with full mitigations and detection guidance even
-    when the weakness has sparse data.
+    Provide `cwe_id` for a direct lookup (e.g. CWE-79) or `search` for discovery by name; a request
+    naming neither is rejected with `422`.
+    Returns the weakness with associated attack patterns and the ATT&CK techniques those patterns map
+    to, connecting root cause to adversary behavior. The technique layer is resolved from this
+    weakness's
+    CAPEC links, so it is only as complete as those links are: a CAPEC carrying no ATT&CK mapping
+    contributes none, and mitigation and detection guidance covers the techniques that do resolve —
+    there is none when the linked CAPECs carry no mappings.
 
     **Include options**
 
@@ -206,17 +253,33 @@ async def asyncio_detailed(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this weakness (queried by weakness id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for weakness-related research and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the weakness and its attack implications
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
 
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, and this endpoint resolves that
+    set itself from the weakness' CAPEC links, so each one answers when asked for ALONE and publishes
+    only its own section. `techniques[]` is the carrier that stays tied to the CAPEC walk rather than
+    to its own token: measured 2026-09-13 on CWE-522, `techniques`=0 with `['details','techniques']`
+    against `attack_patterns`=13 / `techniques`=12 with `['details','capecs','techniques']` — while a
+    `['nist_controls']`-only request maps that same CAPEC-linked set instead of short-circuiting to
+    `[]` (verified live 2026-10-15: CWE-522 alone → 198 controls, identical to the `capecs`-included
+    request; CWE-79 resolves no technique at all, so its `nist_controls` is empty in every shape).
+
     Args:
         body (EnrichCWERequest): Enrich a weakness classification with linked attack patterns and
-            adversary techniques.
+            their ATT&CK mappings.
+
+            Techniques resolve from this weakness's CAPEC links, so the layer is only as complete as
+            those
+            links are: a CAPEC carrying no ATT&CK mapping contributes none, and the layers derived
+            from
+            techniques are empty with it. Some weaknesses carry no CAPECs at all.
+            Supply at least one of `cwe_id` or `search`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -242,11 +305,16 @@ async def asyncio(
 ) -> Any | EnrichCWEResponse | None:
     """Enrich CWE
 
-     Enrich a weakness classification with linked attack patterns and adversary techniques.
+     Enrich a weakness classification with linked attack patterns and their ATT&CK mappings.
 
-    Returns the weakness with associated attack patterns and ATT&CK techniques, connecting root cause
-    to adversary behavior. Technique mappings come with full mitigations and detection guidance even
-    when the weakness has sparse data.
+    Provide `cwe_id` for a direct lookup (e.g. CWE-79) or `search` for discovery by name; a request
+    naming neither is rejected with `422`.
+    Returns the weakness with associated attack patterns and the ATT&CK techniques those patterns map
+    to, connecting root cause to adversary behavior. The technique layer is resolved from this
+    weakness's
+    CAPEC links, so it is only as complete as those links are: a CAPEC carrying no ATT&CK mapping
+    contributes none, and mitigation and detection guidance covers the techniques that do resolve —
+    there is none when the linked CAPECs carry no mappings.
 
     **Include options**
 
@@ -261,17 +329,33 @@ async def asyncio(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this weakness (queried by weakness id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for weakness-related research and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the weakness and its attack implications
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
 
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, and this endpoint resolves that
+    set itself from the weakness' CAPEC links, so each one answers when asked for ALONE and publishes
+    only its own section. `techniques[]` is the carrier that stays tied to the CAPEC walk rather than
+    to its own token: measured 2026-09-13 on CWE-522, `techniques`=0 with `['details','techniques']`
+    against `attack_patterns`=13 / `techniques`=12 with `['details','capecs','techniques']` — while a
+    `['nist_controls']`-only request maps that same CAPEC-linked set instead of short-circuiting to
+    `[]` (verified live 2026-10-15: CWE-522 alone → 198 controls, identical to the `capecs`-included
+    request; CWE-79 resolves no technique at all, so its `nist_controls` is empty in every shape).
+
     Args:
         body (EnrichCWERequest): Enrich a weakness classification with linked attack patterns and
-            adversary techniques.
+            their ATT&CK mappings.
+
+            Techniques resolve from this weakness's CAPEC links, so the layer is only as complete as
+            those
+            links are: a CAPEC carrying no ATT&CK mapping contributes none, and the layers derived
+            from
+            techniques are empty with it. Some weaknesses carry no CAPECs at all.
+            Supply at least one of `cwe_id` or `search`.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

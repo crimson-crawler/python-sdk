@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionAutomatable(str, Enum):
+class SSVCDecisionAutomatable(StrEnum):
     NO = "no"
     YES = "yes"
 

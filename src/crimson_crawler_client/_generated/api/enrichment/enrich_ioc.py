@@ -80,14 +80,19 @@ def sync_detailed(
 
      Enrich an indicator of compromise with linked threat events, techniques, and predictions.
 
-    Searches threat intelligence feeds for the indicator (by `value` + `type` — e.g. `ip-dst`, `domain`,
-    `sha256`, `url`, `email-src`), extracts linked threat actors and malware, maps to ATT&CK techniques,
-    and generates threat predictions. Technique mappings return even when the indicator has sparse data.
+    Searches our curated MISP (public threat feeds, listed at
+    https://crimsoncrawler.com/docs/guides/data-sources/#our-curated-misp) for the indicator (by
+    `value` + `type` — e.g. `ip-dst`, `domain`, `sha256`, `url`, `email-src`), extracts linked threat
+    actors and malware, maps to ATT&CK techniques, and generates threat predictions. Technique mappings
+    return even when the indicator has sparse data. An address requested as `ip-src`, `ip-dst` or
+    `ip` searches BOTH directions in one query — the corpus stores whichever direction the
+    publishing feed used — and `matched_value_types` reports what matched.
 
     **Include options**
 
     - `misp_attributes` — matching threat event attributes with event metadata
-    - `galaxies` — linked threat actor and malware context, resolved into full Galaxy cluster profiles
+    - `galaxies` — linked threat actor and malware context as compact Galaxy cluster profiles
+    - `galaxy_clusters_full` — cluster profiles with inbound relations (up to 30 clusters)
     - `techniques` — ATT&CK techniques linked to this indicator
     - `tie` — technique likelihood predictions for resolved techniques
     - `warninglist` — false-positive check against known safe-list entries
@@ -102,8 +107,6 @@ def sync_detailed(
     - `cves` — CVEs mapped to the linked techniques
     - `poc` — proof-of-concept exploits from GitHub for any linked CVEs
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat indicator analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the indicator's threat context
     - `inferred_chain` — quarantined AI-assisted technique candidates, returned only when published
       IOC relationships yield no techniques. These low-confidence analyst hints are never authoritative.
@@ -142,14 +145,19 @@ def sync(
 
      Enrich an indicator of compromise with linked threat events, techniques, and predictions.
 
-    Searches threat intelligence feeds for the indicator (by `value` + `type` — e.g. `ip-dst`, `domain`,
-    `sha256`, `url`, `email-src`), extracts linked threat actors and malware, maps to ATT&CK techniques,
-    and generates threat predictions. Technique mappings return even when the indicator has sparse data.
+    Searches our curated MISP (public threat feeds, listed at
+    https://crimsoncrawler.com/docs/guides/data-sources/#our-curated-misp) for the indicator (by
+    `value` + `type` — e.g. `ip-dst`, `domain`, `sha256`, `url`, `email-src`), extracts linked threat
+    actors and malware, maps to ATT&CK techniques, and generates threat predictions. Technique mappings
+    return even when the indicator has sparse data. An address requested as `ip-src`, `ip-dst` or
+    `ip` searches BOTH directions in one query — the corpus stores whichever direction the
+    publishing feed used — and `matched_value_types` reports what matched.
 
     **Include options**
 
     - `misp_attributes` — matching threat event attributes with event metadata
-    - `galaxies` — linked threat actor and malware context, resolved into full Galaxy cluster profiles
+    - `galaxies` — linked threat actor and malware context as compact Galaxy cluster profiles
+    - `galaxy_clusters_full` — cluster profiles with inbound relations (up to 30 clusters)
     - `techniques` — ATT&CK techniques linked to this indicator
     - `tie` — technique likelihood predictions for resolved techniques
     - `warninglist` — false-positive check against known safe-list entries
@@ -164,8 +172,6 @@ def sync(
     - `cves` — CVEs mapped to the linked techniques
     - `poc` — proof-of-concept exploits from GitHub for any linked CVEs
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat indicator analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the indicator's threat context
     - `inferred_chain` — quarantined AI-assisted technique candidates, returned only when published
       IOC relationships yield no techniques. These low-confidence analyst hints are never authoritative.
@@ -199,14 +205,19 @@ async def asyncio_detailed(
 
      Enrich an indicator of compromise with linked threat events, techniques, and predictions.
 
-    Searches threat intelligence feeds for the indicator (by `value` + `type` — e.g. `ip-dst`, `domain`,
-    `sha256`, `url`, `email-src`), extracts linked threat actors and malware, maps to ATT&CK techniques,
-    and generates threat predictions. Technique mappings return even when the indicator has sparse data.
+    Searches our curated MISP (public threat feeds, listed at
+    https://crimsoncrawler.com/docs/guides/data-sources/#our-curated-misp) for the indicator (by
+    `value` + `type` — e.g. `ip-dst`, `domain`, `sha256`, `url`, `email-src`), extracts linked threat
+    actors and malware, maps to ATT&CK techniques, and generates threat predictions. Technique mappings
+    return even when the indicator has sparse data. An address requested as `ip-src`, `ip-dst` or
+    `ip` searches BOTH directions in one query — the corpus stores whichever direction the
+    publishing feed used — and `matched_value_types` reports what matched.
 
     **Include options**
 
     - `misp_attributes` — matching threat event attributes with event metadata
-    - `galaxies` — linked threat actor and malware context, resolved into full Galaxy cluster profiles
+    - `galaxies` — linked threat actor and malware context as compact Galaxy cluster profiles
+    - `galaxy_clusters_full` — cluster profiles with inbound relations (up to 30 clusters)
     - `techniques` — ATT&CK techniques linked to this indicator
     - `tie` — technique likelihood predictions for resolved techniques
     - `warninglist` — false-positive check against known safe-list entries
@@ -221,8 +232,6 @@ async def asyncio_detailed(
     - `cves` — CVEs mapped to the linked techniques
     - `poc` — proof-of-concept exploits from GitHub for any linked CVEs
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat indicator analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the indicator's threat context
     - `inferred_chain` — quarantined AI-assisted technique candidates, returned only when published
       IOC relationships yield no techniques. These low-confidence analyst hints are never authoritative.
@@ -259,14 +268,19 @@ async def asyncio(
 
      Enrich an indicator of compromise with linked threat events, techniques, and predictions.
 
-    Searches threat intelligence feeds for the indicator (by `value` + `type` — e.g. `ip-dst`, `domain`,
-    `sha256`, `url`, `email-src`), extracts linked threat actors and malware, maps to ATT&CK techniques,
-    and generates threat predictions. Technique mappings return even when the indicator has sparse data.
+    Searches our curated MISP (public threat feeds, listed at
+    https://crimsoncrawler.com/docs/guides/data-sources/#our-curated-misp) for the indicator (by
+    `value` + `type` — e.g. `ip-dst`, `domain`, `sha256`, `url`, `email-src`), extracts linked threat
+    actors and malware, maps to ATT&CK techniques, and generates threat predictions. Technique mappings
+    return even when the indicator has sparse data. An address requested as `ip-src`, `ip-dst` or
+    `ip` searches BOTH directions in one query — the corpus stores whichever direction the
+    publishing feed used — and `matched_value_types` reports what matched.
 
     **Include options**
 
     - `misp_attributes` — matching threat event attributes with event metadata
-    - `galaxies` — linked threat actor and malware context, resolved into full Galaxy cluster profiles
+    - `galaxies` — linked threat actor and malware context as compact Galaxy cluster profiles
+    - `galaxy_clusters_full` — cluster profiles with inbound relations (up to 30 clusters)
     - `techniques` — ATT&CK techniques linked to this indicator
     - `tie` — technique likelihood predictions for resolved techniques
     - `warninglist` — false-positive check against known safe-list entries
@@ -281,8 +295,6 @@ async def asyncio(
     - `cves` — CVEs mapped to the linked techniques
     - `poc` — proof-of-concept exploits from GitHub for any linked CVEs
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for threat indicator analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the indicator's threat context
     - `inferred_chain` — quarantined AI-assisted technique candidates, returned only when published
       IOC relationships yield no techniques. These low-confidence analyst hints are never authoritative.

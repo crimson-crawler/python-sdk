@@ -80,9 +80,14 @@ def sync_detailed(
 
      Search D3FEND defensive techniques and countermeasures.
 
-    Find defensive techniques by name or description. Each result carries a count of the ATT&CK
-    techniques it
-    counters.
+    Find defensive techniques by name or description.
+
+    No per-row ATT&CK count is returned, and none can be: the D3FEND→ATT&CK linkage lives on the
+    **technique** side — a technique's bundle carries the D3FEND objects that mitigate it — while no
+    D3FEND object carries an ATT&CK external reference (censused 2026-09-13: 0 of the 1,148-object
+    corpus names one). The route set `technique_count` from a `linked_techniques` key the service
+    stopped emitting for exactly that reason, and `D3FENDDetail` declares neither, so the documented
+    count never reached a caller. Removed rather than faked.
 
     **Form filters**
 
@@ -124,9 +129,14 @@ def sync(
 
      Search D3FEND defensive techniques and countermeasures.
 
-    Find defensive techniques by name or description. Each result carries a count of the ATT&CK
-    techniques it
-    counters.
+    Find defensive techniques by name or description.
+
+    No per-row ATT&CK count is returned, and none can be: the D3FEND→ATT&CK linkage lives on the
+    **technique** side — a technique's bundle carries the D3FEND objects that mitigate it — while no
+    D3FEND object carries an ATT&CK external reference (censused 2026-09-13: 0 of the 1,148-object
+    corpus names one). The route set `technique_count` from a `linked_techniques` key the service
+    stopped emitting for exactly that reason, and `D3FENDDetail` declares neither, so the documented
+    count never reached a caller. Removed rather than faked.
 
     **Form filters**
 
@@ -163,9 +173,14 @@ async def asyncio_detailed(
 
      Search D3FEND defensive techniques and countermeasures.
 
-    Find defensive techniques by name or description. Each result carries a count of the ATT&CK
-    techniques it
-    counters.
+    Find defensive techniques by name or description.
+
+    No per-row ATT&CK count is returned, and none can be: the D3FEND→ATT&CK linkage lives on the
+    **technique** side — a technique's bundle carries the D3FEND objects that mitigate it — while no
+    D3FEND object carries an ATT&CK external reference (censused 2026-09-13: 0 of the 1,148-object
+    corpus names one). The route set `technique_count` from a `linked_techniques` key the service
+    stopped emitting for exactly that reason, and `D3FENDDetail` declares neither, so the documented
+    count never reached a caller. Removed rather than faked.
 
     **Form filters**
 
@@ -205,9 +220,14 @@ async def asyncio(
 
      Search D3FEND defensive techniques and countermeasures.
 
-    Find defensive techniques by name or description. Each result carries a count of the ATT&CK
-    techniques it
-    counters.
+    Find defensive techniques by name or description.
+
+    No per-row ATT&CK count is returned, and none can be: the D3FEND→ATT&CK linkage lives on the
+    **technique** side — a technique's bundle carries the D3FEND objects that mitigate it — while no
+    D3FEND object carries an ATT&CK external reference (censused 2026-09-13: 0 of the 1,148-object
+    corpus names one). The route set `technique_count` from a `linked_techniques` key the service
+    stopped emitting for exactly that reason, and `D3FENDDetail` declares neither, so the documented
+    count never reached a caller. Removed rather than faked.
 
     **Form filters**
 

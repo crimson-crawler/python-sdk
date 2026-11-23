@@ -32,6 +32,7 @@ from urllib.parse import unquote
 
 from ._url import path_segment
 from .exceptions import UnexpectedStatus
+from .tlp import Tlp, validate_tlp
 
 if TYPE_CHECKING:
     import httpx
@@ -127,6 +128,8 @@ class ArtifactManagerAPI:
         folder: str | None = None,
         since: str | None = None,
         until: str | None = None,
+        search: str | None = None,
+        tlp: Tlp | None = None,
     ) -> list[dict[str, Any]]:
         """List your artifacts (newest first, no content). ``kind`` filters to one of the five library
         kinds — ``input`` / ``enrichment`` / ``report`` plus ``inventory_enrichment`` (saved inventory
@@ -137,9 +140,24 @@ class ArtifactManagerAPI:
             folder: A folder UUID, or ``"__root__"`` for un-filed artifacts.
             since: ISO date/timestamp lower bound on ``created_at``.
             until: ISO date/timestamp upper bound on ``created_at``.
+            search: Match names and contents (an uploaded file matches on its text), like the portal's search box.
+            tlp: Filter by exact TLP 2.0 marking (``CLEAR`` / ``GREEN`` / ``AMBER`` / ``AMBER+STRICT`` /
+                ``RED``). An invalid value raises :class:`ValueError` before any request.
+
+        Each returned artifact carries its own ``tlp``.
         """
+        tlp = validate_tlp(tlp)
         params = {
-            k: v for k, v in {"kind": kind, "folder": folder, "since": since, "until": until}.items() if v is not None
+            k: v
+            for k, v in {
+                "kind": kind,
+                "folder": folder,
+                "since": since,
+                "until": until,
+                "search": search,
+                "tlp": tlp,
+            }.items()
+            if v is not None
         }
         resp = await self._request("GET", "/artifact-manager/artifacts", params=params or None)
         return resp.json()["artifacts"]
@@ -150,6 +168,7 @@ class ArtifactManagerAPI:
         *,
         folder_id: str | None = None,
         new_folder_name: str | None = None,
+        tlp: Tlp | None = None,
     ) -> dict[str, Any]:
         """Upload input artifacts (max 20/call, ≤10 MB content each).
 
@@ -158,6 +177,8 @@ class ArtifactManagerAPI:
                 "mime": …?}`` — pasted text or base64 file content.
             folder_id: File the uploads into an existing folder.
             new_folder_name: Or create (or reuse) a folder by name.
+            tlp: TLP 2.0 marking applied to EVERY artifact in the batch (default ``AMBER``). An invalid
+                value raises :class:`ValueError` before any request.
 
         Returns:
             ``{"ids": [...], "folderId": ...}`` — the new artifact ids.
@@ -167,6 +188,8 @@ class ArtifactManagerAPI:
             body["folderId"] = folder_id
         if new_folder_name is not None:
             body["newFolderName"] = new_folder_name
+        if tlp is not None:
+            body["tlp"] = validate_tlp(tlp)
         return (await self._request("POST", "/artifact-manager/artifacts", json=body)).json()
 
     async def get_artifact(self, artifact_id: str) -> dict[str, Any]:
@@ -179,7 +202,7 @@ class ArtifactManagerAPI:
 
         The buffer is limited to 10,000,000 bytes; this method does not return a streaming response.
         Metadata rides ``X-Artifact-*`` headers. Returns
-        ``{"content": str, "id", "kind", "name", "format", "mime", "created_at"}``.
+        ``{"content": str, "id", "kind", "name", "format", "mime", "tlp", "created_at"}``.
         """
         content, resp = await _get_buffered_raw(
             self._http,
@@ -193,6 +216,7 @@ class ArtifactManagerAPI:
             "name": unquote(resp.headers.get("x-artifact-name", "")),
             "format": resp.headers.get("x-artifact-format", ""),
             "mime": resp.headers.get("x-artifact-mime", ""),
+            "tlp": resp.headers.get("x-artifact-tlp", ""),
             "created_at": resp.headers.get("x-artifact-created", ""),
         }
 
@@ -203,17 +227,20 @@ class ArtifactManagerAPI:
         name: str | None = None,
         favorite: bool | None = None,
         folder_id: str | None = _UNSET,
+        tlp: Tlp | None = None,
     ) -> dict[str, Any]:
-        """Partial update: rename, star/unstar, and/or move between folders.
+        """Partial update: rename, star/unstar, move between folders, and/or set TLP.
 
         Args:
             name: New display name.
             favorite: Star (``True``) or unstar (``False``).
             folder_id: Target folder UUID, or ``None`` to move back to root.
                 Omit entirely to leave the folder unchanged.
+            tlp: New TLP 2.0 marking (any owned artifact, including inventories). A PATCH that sets
+                only ``tlp`` is valid. An invalid value raises :class:`ValueError` before any request.
 
         Returns:
-            The updated artifact.
+            The updated artifact (carrying ``tlp``).
         """
         body: dict[str, Any] = {}
         if name is not None:
@@ -222,6 +249,8 @@ class ArtifactManagerAPI:
             body["favorite"] = favorite
         if folder_id is not _UNSET:
             body["folderId"] = folder_id
+        if tlp is not None:
+            body["tlp"] = validate_tlp(tlp)
         resp = await self._request("PATCH", f"/artifact-manager/artifacts/{path_segment(artifact_id)}", json=body)
         return resp.json()["artifact"]
 
@@ -293,12 +322,19 @@ class ArtifactManagerAPI:
         )
         return int(resp.json()["count"])
 
-    async def download_bundle(self, artifact_ids: list[str]) -> bytes:
+    async def download_bundle(self, artifact_ids: list[str], *, tlp: Tlp | None = None) -> bytes:
         """Bundle an explicit set of your artifacts into one ``.zip`` (the bulk "Download .zip"). Enrichments
         contribute their machine exports under a per-enrichment subfolder; every other kind contributes its
         raw deliverable. Returns the raw ``.zip`` bytes; choose and validate the destination path before
-        writing it. See :meth:`download_folder` for the whole-folder twin."""
-        resp = await self._request("POST", "/artifact-manager/artifacts/bundle", json={"ids": artifact_ids})
+        writing it. See :meth:`download_folder` for the whole-folder twin.
+
+        ``tlp`` optionally sets the TLP 2.0 marking written into the wrapped exports, overriding each
+        artifact's own stored TLP. Omit it to mark each wrapped export with that artifact's stored
+        TLP."""
+        body: dict[str, Any] = {"ids": artifact_ids}
+        if tlp is not None:
+            body["tlp"] = validate_tlp(tlp)
+        resp = await self._request("POST", "/artifact-manager/artifacts/bundle", json=body)
         return resp.content
 
     # -- Scan ratings ------------------------------------------------------- #
@@ -323,12 +359,20 @@ class ArtifactManagerAPI:
         resp = await self._request("GET", f"/artifact-manager/artifacts/{path_segment(enrichment_id)}/exports")
         return resp.json()["formats"]
 
-    async def get_export(self, enrichment_id: str, format: str) -> dict[str, Any]:  # noqa: A002
+    async def get_export(  # noqa: A002
+        self, enrichment_id: str, format: str, *, tlp: Tlp | None = None
+    ) -> dict[str, Any]:
         """Download one export. The body IS the export file.
 
         Text formats (``stix``, ``misp``, ``csaf``, ``vex``, ``csv``, ``navigator``, …) live in
         ``content``; the two **binary XLSX** deliverables (``emass``, ``workbook``) live in ``bytes``
         (``content`` is a best-effort lossy decode — write ``bytes`` to a ``.xlsx`` file instead).
+
+        ``tlp`` optionally sets the TLP 2.0 marking written into the export (``CLEAR`` / ``GREEN`` /
+        ``AMBER`` / ``AMBER+STRICT`` / ``RED``), overriding the artifact's stored TLP. Omit it to
+        stamp the artifact's own stored TLP. Formats with no marking slot —
+        OpenVEX, CSV and the DISA eMASS worksheet — ignore it. An invalid value raises
+        :class:`ValueError` before any request.
 
         Returns:
             ``{"content": str, "bytes": bytes, "filename": str, "content_type": str}`` —
@@ -337,6 +381,7 @@ class ArtifactManagerAPI:
         resp = await self._request(
             "GET",
             f"/artifact-manager/artifacts/{path_segment(enrichment_id)}/exports/{path_segment(format)}",
+            params={"tlp": validate_tlp(tlp)} if tlp is not None else None,
         )
         filename = _safe_download_filename(resp.headers.get("content-disposition", ""), format)
         return {
@@ -346,13 +391,19 @@ class ArtifactManagerAPI:
             "content_type": resp.headers.get("content-type", ""),
         }
 
-    async def download_all_exports(self, enrichment_id: str) -> bytes:
+    async def download_all_exports(self, enrichment_id: str, *, tlp: Tlp | None = None) -> bytes:
         """Download EVERY machine export of a saved artifact as one ``.zip`` (one file per format —
         ``stix.json``, ``vex.json``, ``emass.xlsx``, …). The bulk twin of :meth:`get_export`, matching the
         export panel's "Download all (.zip)" button. Works for any saved enrichment / inventory-enrichment
         / inventory id. Returns the raw ``.zip`` bytes; choose and validate the destination path before writing it.
-        """
-        resp = await self._request("GET", f"/artifact-manager/artifacts/{path_segment(enrichment_id)}/exports/all")
+
+        ``tlp`` optionally sets the TLP 2.0 marking written into each export, overriding the artifact's
+        stored TLP. Omit it to stamp each with the artifact's own stored TLP."""
+        resp = await self._request(
+            "GET",
+            f"/artifact-manager/artifacts/{path_segment(enrichment_id)}/exports/all",
+            params={"tlp": validate_tlp(tlp)} if tlp is not None else None,
+        )
         return resp.content
 
     # -- Scan compare ------------------------------------------------------- #
@@ -389,9 +440,45 @@ class ArtifactManagerAPI:
         resp = await self._request("DELETE", f"/artifact-manager/folders/{path_segment(folder_id)}")
         return bool(resp.json().get("deleted"))
 
-    async def download_folder(self, folder_id: str) -> bytes:
+    async def download_folder(self, folder_id: str, *, tlp: Tlp | None = None) -> bytes:
         """Download every artifact filed under a folder as one ``<folder>.zip`` (the folder "Download .zip").
         Enrichments contribute their machine exports under a per-enrichment subfolder; every other kind
-        contributes its raw deliverable. Returns the raw ``.zip`` bytes; choose the destination path before writing."""
-        resp = await self._request("GET", f"/artifact-manager/folders/{path_segment(folder_id)}/exports/all")
+        contributes its raw deliverable. Returns the raw ``.zip`` bytes; choose the destination path before writing.
+
+        ``tlp`` optionally sets the TLP 2.0 marking written into each wrapped export, overriding each
+        artifact's own stored TLP. Omit it to mark each wrapped export with that artifact's stored
+        TLP."""
+        resp = await self._request(
+            "GET",
+            f"/artifact-manager/folders/{path_segment(folder_id)}/exports/all",
+            params={"tlp": validate_tlp(tlp)} if tlp is not None else None,
+        )
         return resp.content
+
+    # -- Enricher settings -------------------------------------------------- #
+
+    async def get_enricher_settings(self) -> dict[str, Any]:
+        """Your default TLP 2.0 marking for NEW enrichments, as two independent values:
+        ``{"artifact_tlp": Tlp, "inventory_tlp": Tlp}`` — ``AMBER`` for either one you have not set. The
+        Artifact Enricher page's Settings button edits the same two values."""
+        return (await self._request("GET", "/artifact-manager/settings")).json()
+
+    async def set_enricher_settings(
+        self, *, artifact_tlp: Tlp | None = None, inventory_tlp: Tlp | None = None
+    ) -> dict[str, Any]:
+        """Set the default marking a NEW enrichment starts from. Pass one or both — only what you pass is
+        written, and the stored pair is returned. An invalid value raises :class:`ValueError` before any
+        request; passing neither raises too.
+
+        The value is a BASELINE, not an override: an enrichment saved afterwards is marked
+        ``max(setting, the markings of the artifacts it was built from)``, so a more restrictive source still
+        wins. An explicit ``tlp`` on ``client.enricher.enrich(...)`` overrides ``artifact_tlp`` for that run's
+        exports."""
+        body: dict[str, Any] = {}
+        if artifact_tlp is not None:
+            body["artifact_tlp"] = validate_tlp(artifact_tlp)
+        if inventory_tlp is not None:
+            body["inventory_tlp"] = validate_tlp(inventory_tlp)
+        if not body:
+            raise ValueError("set_enricher_settings needs artifact_tlp and/or inventory_tlp")
+        return (await self._request("PUT", "/artifact-manager/settings", json=body)).json()

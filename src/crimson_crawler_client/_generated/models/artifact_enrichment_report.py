@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ..models.artifact_enrichment_reference import ArtifactEnrichmentReference
     from ..models.artifact_enrichment_report_exports import ArtifactEnrichmentReportExports
     from ..models.artifact_enrichment_report_rollups_type_0 import ArtifactEnrichmentReportRollupsType0
+    from ..models.attachment_source import AttachmentSource
     from ..models.attack_path import AttackPath
     from ..models.coverage_gap import CoverageGap
     from ..models.defense_triad import DefenseTriad
@@ -37,6 +38,11 @@ class ArtifactEnrichmentReport:
 
         Attributes:
             meta (ArtifactEnrichmentMeta): Report metadata.
+            attachment_sources (list[AttachmentSource] | Unset): Every artifact this report was built from, in request order
+                — the artifacts named by `attached_artifact_ids` (kind `text`) plus each uploaded file's `source_artifact_id`
+                (kind `file`). Empty when the caller named none, which is also when no reference carries an id. Report-level
+                rather than per-reference: with several sources the caller, not the engine, is the one that can say which block
+                of text each artifact contributed.
             attack_paths (list[AttackPath] | Unset): Kill-chain-ordered technique sequences
             bluf (None | str | Unset): ≤2-sentence bottom-line (deterministic: counts + top action)
             coverage_gaps (list[CoverageGap] | Unset): Structured 'what we DON'T know' panel — analyst-facing coverage gaps
@@ -61,6 +67,7 @@ class ArtifactEnrichmentReport:
     """
 
     meta: ArtifactEnrichmentMeta
+    attachment_sources: list[AttachmentSource] | Unset = UNSET
     attack_paths: list[AttackPath] | Unset = UNSET
     bluf: None | str | Unset = UNSET
     coverage_gaps: list[CoverageGap] | Unset = UNSET
@@ -78,21 +85,31 @@ class ArtifactEnrichmentReport:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.artifact_enrichment_meta import ArtifactEnrichmentMeta
-        from ..models.artifact_enrichment_reference import ArtifactEnrichmentReference
-        from ..models.artifact_enrichment_report_exports import ArtifactEnrichmentReportExports
-        from ..models.artifact_enrichment_report_rollups_type_0 import ArtifactEnrichmentReportRollupsType0
-        from ..models.attack_path import AttackPath
-        from ..models.coverage_gap import CoverageGap
-        from ..models.defense_triad import DefenseTriad
-        from ..models.detection_opportunity import DetectionOpportunity
-        from ..models.error_detail import ErrorDetail
-        from ..models.key_judgment import KeyJudgment
-        from ..models.prioritized_action import PrioritizedAction
-        from ..models.source_confidence_statement import SourceConfidenceStatement
-        from ..models.source_corroboration import SourceCorroboration
+        from ..models.artifact_enrichment_meta import ArtifactEnrichmentMeta  # noqa: PLC0415
+        from ..models.artifact_enrichment_reference import ArtifactEnrichmentReference  # noqa: PLC0415
+        from ..models.artifact_enrichment_report_exports import ArtifactEnrichmentReportExports  # noqa: PLC0415
+        from ..models.artifact_enrichment_report_rollups_type_0 import (
+            ArtifactEnrichmentReportRollupsType0,  # noqa: PLC0415
+        )
+        from ..models.attachment_source import AttachmentSource  # noqa: PLC0415
+        from ..models.attack_path import AttackPath  # noqa: PLC0415
+        from ..models.coverage_gap import CoverageGap  # noqa: PLC0415
+        from ..models.defense_triad import DefenseTriad  # noqa: PLC0415
+        from ..models.detection_opportunity import DetectionOpportunity  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.key_judgment import KeyJudgment  # noqa: PLC0415
+        from ..models.prioritized_action import PrioritizedAction  # noqa: PLC0415
+        from ..models.source_confidence_statement import SourceConfidenceStatement  # noqa: PLC0415
+        from ..models.source_corroboration import SourceCorroboration  # noqa: PLC0415
 
         meta = self.meta.to_dict()
+
+        attachment_sources: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.attachment_sources, Unset):
+            attachment_sources = []
+            for attachment_sources_item_data in self.attachment_sources:
+                attachment_sources_item = attachment_sources_item_data.to_dict()
+                attachment_sources.append(attachment_sources_item)
 
         attack_paths: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.attack_paths, Unset):
@@ -197,6 +214,8 @@ class ArtifactEnrichmentReport:
                 "meta": meta,
             }
         )
+        if attachment_sources is not UNSET:
+            field_dict["attachment_sources"] = attachment_sources
         if attack_paths is not UNSET:
             field_dict["attack_paths"] = attack_paths
         if bluf is not UNSET:
@@ -230,22 +249,34 @@ class ArtifactEnrichmentReport:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.artifact_enrichment_meta import ArtifactEnrichmentMeta
-        from ..models.artifact_enrichment_reference import ArtifactEnrichmentReference
-        from ..models.artifact_enrichment_report_exports import ArtifactEnrichmentReportExports
-        from ..models.artifact_enrichment_report_rollups_type_0 import ArtifactEnrichmentReportRollupsType0
-        from ..models.attack_path import AttackPath
-        from ..models.coverage_gap import CoverageGap
-        from ..models.defense_triad import DefenseTriad
-        from ..models.detection_opportunity import DetectionOpportunity
-        from ..models.error_detail import ErrorDetail
-        from ..models.key_judgment import KeyJudgment
-        from ..models.prioritized_action import PrioritizedAction
-        from ..models.source_confidence_statement import SourceConfidenceStatement
-        from ..models.source_corroboration import SourceCorroboration
+        from ..models.artifact_enrichment_meta import ArtifactEnrichmentMeta  # noqa: PLC0415
+        from ..models.artifact_enrichment_reference import ArtifactEnrichmentReference  # noqa: PLC0415
+        from ..models.artifact_enrichment_report_exports import ArtifactEnrichmentReportExports  # noqa: PLC0415
+        from ..models.artifact_enrichment_report_rollups_type_0 import (
+            ArtifactEnrichmentReportRollupsType0,  # noqa: PLC0415
+        )
+        from ..models.attachment_source import AttachmentSource  # noqa: PLC0415
+        from ..models.attack_path import AttackPath  # noqa: PLC0415
+        from ..models.coverage_gap import CoverageGap  # noqa: PLC0415
+        from ..models.defense_triad import DefenseTriad  # noqa: PLC0415
+        from ..models.detection_opportunity import DetectionOpportunity  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.key_judgment import KeyJudgment  # noqa: PLC0415
+        from ..models.prioritized_action import PrioritizedAction  # noqa: PLC0415
+        from ..models.source_confidence_statement import SourceConfidenceStatement  # noqa: PLC0415
+        from ..models.source_corroboration import SourceCorroboration  # noqa: PLC0415
 
         d = dict(src_dict)
         meta = ArtifactEnrichmentMeta.from_dict(d.pop("meta"))
+
+        _attachment_sources = d.pop("attachment_sources", UNSET)
+        attachment_sources: list[AttachmentSource] | Unset = UNSET
+        if _attachment_sources is not UNSET:
+            attachment_sources = []
+            for attachment_sources_item_data in _attachment_sources:
+                attachment_sources_item = AttachmentSource.from_dict(attachment_sources_item_data)
+
+                attachment_sources.append(attachment_sources_item)
 
         _attack_paths = d.pop("attack_paths", UNSET)
         attack_paths: list[AttackPath] | Unset = UNSET
@@ -397,6 +428,7 @@ class ArtifactEnrichmentReport:
 
         artifact_enrichment_report = cls(
             meta=meta,
+            attachment_sources=attachment_sources,
             attack_paths=attack_paths,
             bluf=bluf,
             coverage_gaps=coverage_gaps,

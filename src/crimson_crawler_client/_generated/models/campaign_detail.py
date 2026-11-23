@@ -9,6 +9,7 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.revision_entry import RevisionEntry
     from ..models.technique_detail import TechniqueDetail
 
 
@@ -23,13 +24,26 @@ class CampaignDetail:
         campaign_id (str): ATT&CK campaign ID (e.g. C0028)
         aliases (list[str] | Unset): Alternative campaign names
         contributors (list[str] | Unset): Contributors listed in x_mitre_contributors
+        created (None | str | Unset): When MITRE first created this object (ISO 8601)
         deprecated (bool | Unset): True if MITRE marked this campaign deprecated Default: False.
         description (None | str | Unset): Campaign description and objectives
+        domains (list[str] | Unset): ATT&CK matrix/matrices this object comes from (enterprise-attack, ics-attack,
+            mobile-attack)
         first_seen (None | str | Unset): Earliest known activity date
+        first_seen_citation (None | str | Unset): Source ATT&CK cites for the earliest known activity date
         groups (list[str] | Unset): Threat groups attributed to this campaign
         last_seen (None | str | Unset): Most recent known activity date
+        last_seen_citation (None | str | Unset): Source ATT&CK cites for the most recent known activity date
+        modified (None | str | Unset): When MITRE last revised this object (ISO 8601) — ATT&CK ships monthly
         name (None | str | Unset): Campaign name
+        object_marking_refs (list[str] | Unset): STIX marking-definition ids applied to this object (licence/terms)
+        revision_history (list[RevisionEntry] | Unset): The object's revision history from `/objects/{id}/versions/`.
+            Opt-in via include=['versions']; attached to every detail row this response returns — the endpoint's own object
+            AND the rows nested in its list layers (search hits, technique-context entries), one deduped cached read per
+            distinct object. Zero reads when the token is omitted.
         revoked (bool | Unset): True if MITRE has revoked this campaign Default: False.
+        spec_version (None | str | Unset): STIX spec revision the record was normalised under
+            (x_mitre_attack_spec_version, else spec_version)
         techniques (list[str | TechniqueDetail] | Unset): ATT&CK techniques used in this campaign
         url (None | str | Unset): Reference URL for full campaign details
         version (None | str | Unset): MITRE object version (x_mitre_version)
@@ -38,20 +52,29 @@ class CampaignDetail:
     campaign_id: str
     aliases: list[str] | Unset = UNSET
     contributors: list[str] | Unset = UNSET
+    created: None | str | Unset = UNSET
     deprecated: bool | Unset = False
     description: None | str | Unset = UNSET
+    domains: list[str] | Unset = UNSET
     first_seen: None | str | Unset = UNSET
+    first_seen_citation: None | str | Unset = UNSET
     groups: list[str] | Unset = UNSET
     last_seen: None | str | Unset = UNSET
+    last_seen_citation: None | str | Unset = UNSET
+    modified: None | str | Unset = UNSET
     name: None | str | Unset = UNSET
+    object_marking_refs: list[str] | Unset = UNSET
+    revision_history: list[RevisionEntry] | Unset = UNSET
     revoked: bool | Unset = False
+    spec_version: None | str | Unset = UNSET
     techniques: list[str | TechniqueDetail] | Unset = UNSET
     url: None | str | Unset = UNSET
     version: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.technique_detail import TechniqueDetail
+        from ..models.revision_entry import RevisionEntry  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
 
         campaign_id = self.campaign_id
 
@@ -63,6 +86,12 @@ class CampaignDetail:
         if not isinstance(self.contributors, Unset):
             contributors = self.contributors
 
+        created: None | str | Unset
+        if isinstance(self.created, Unset):
+            created = UNSET
+        else:
+            created = self.created
+
         deprecated = self.deprecated
 
         description: None | str | Unset
@@ -71,11 +100,21 @@ class CampaignDetail:
         else:
             description = self.description
 
+        domains: list[str] | Unset = UNSET
+        if not isinstance(self.domains, Unset):
+            domains = self.domains
+
         first_seen: None | str | Unset
         if isinstance(self.first_seen, Unset):
             first_seen = UNSET
         else:
             first_seen = self.first_seen
+
+        first_seen_citation: None | str | Unset
+        if isinstance(self.first_seen_citation, Unset):
+            first_seen_citation = UNSET
+        else:
+            first_seen_citation = self.first_seen_citation
 
         groups: list[str] | Unset = UNSET
         if not isinstance(self.groups, Unset):
@@ -87,13 +126,42 @@ class CampaignDetail:
         else:
             last_seen = self.last_seen
 
+        last_seen_citation: None | str | Unset
+        if isinstance(self.last_seen_citation, Unset):
+            last_seen_citation = UNSET
+        else:
+            last_seen_citation = self.last_seen_citation
+
+        modified: None | str | Unset
+        if isinstance(self.modified, Unset):
+            modified = UNSET
+        else:
+            modified = self.modified
+
         name: None | str | Unset
         if isinstance(self.name, Unset):
             name = UNSET
         else:
             name = self.name
 
+        object_marking_refs: list[str] | Unset = UNSET
+        if not isinstance(self.object_marking_refs, Unset):
+            object_marking_refs = self.object_marking_refs
+
+        revision_history: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.revision_history, Unset):
+            revision_history = []
+            for revision_history_item_data in self.revision_history:
+                revision_history_item = revision_history_item_data.to_dict()
+                revision_history.append(revision_history_item)
+
         revoked = self.revoked
+
+        spec_version: None | str | Unset
+        if isinstance(self.spec_version, Unset):
+            spec_version = UNSET
+        else:
+            spec_version = self.spec_version
 
         techniques: list[dict[str, Any] | str] | Unset = UNSET
         if not isinstance(self.techniques, Unset):
@@ -129,20 +197,36 @@ class CampaignDetail:
             field_dict["aliases"] = aliases
         if contributors is not UNSET:
             field_dict["contributors"] = contributors
+        if created is not UNSET:
+            field_dict["created"] = created
         if deprecated is not UNSET:
             field_dict["deprecated"] = deprecated
         if description is not UNSET:
             field_dict["description"] = description
+        if domains is not UNSET:
+            field_dict["domains"] = domains
         if first_seen is not UNSET:
             field_dict["first_seen"] = first_seen
+        if first_seen_citation is not UNSET:
+            field_dict["first_seen_citation"] = first_seen_citation
         if groups is not UNSET:
             field_dict["groups"] = groups
         if last_seen is not UNSET:
             field_dict["last_seen"] = last_seen
+        if last_seen_citation is not UNSET:
+            field_dict["last_seen_citation"] = last_seen_citation
+        if modified is not UNSET:
+            field_dict["modified"] = modified
         if name is not UNSET:
             field_dict["name"] = name
+        if object_marking_refs is not UNSET:
+            field_dict["object_marking_refs"] = object_marking_refs
+        if revision_history is not UNSET:
+            field_dict["revision_history"] = revision_history
         if revoked is not UNSET:
             field_dict["revoked"] = revoked
+        if spec_version is not UNSET:
+            field_dict["spec_version"] = spec_version
         if techniques is not UNSET:
             field_dict["techniques"] = techniques
         if url is not UNSET:
@@ -154,7 +238,8 @@ class CampaignDetail:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.technique_detail import TechniqueDetail
+        from ..models.revision_entry import RevisionEntry  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
 
         d = dict(src_dict)
         campaign_id = d.pop("campaign_id")
@@ -162,6 +247,15 @@ class CampaignDetail:
         aliases = cast(list[str], d.pop("aliases", UNSET))
 
         contributors = cast(list[str], d.pop("contributors", UNSET))
+
+        def _parse_created(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        created = _parse_created(d.pop("created", UNSET))
 
         deprecated = d.pop("deprecated", UNSET)
 
@@ -174,6 +268,8 @@ class CampaignDetail:
 
         description = _parse_description(d.pop("description", UNSET))
 
+        domains = cast(list[str], d.pop("domains", UNSET))
+
         def _parse_first_seen(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -182,6 +278,15 @@ class CampaignDetail:
             return cast(None | str | Unset, data)
 
         first_seen = _parse_first_seen(d.pop("first_seen", UNSET))
+
+        def _parse_first_seen_citation(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        first_seen_citation = _parse_first_seen_citation(d.pop("first_seen_citation", UNSET))
 
         groups = cast(list[str], d.pop("groups", UNSET))
 
@@ -194,6 +299,24 @@ class CampaignDetail:
 
         last_seen = _parse_last_seen(d.pop("last_seen", UNSET))
 
+        def _parse_last_seen_citation(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        last_seen_citation = _parse_last_seen_citation(d.pop("last_seen_citation", UNSET))
+
+        def _parse_modified(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        modified = _parse_modified(d.pop("modified", UNSET))
+
         def _parse_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -203,7 +326,27 @@ class CampaignDetail:
 
         name = _parse_name(d.pop("name", UNSET))
 
+        object_marking_refs = cast(list[str], d.pop("object_marking_refs", UNSET))
+
+        _revision_history = d.pop("revision_history", UNSET)
+        revision_history: list[RevisionEntry] | Unset = UNSET
+        if _revision_history is not UNSET:
+            revision_history = []
+            for revision_history_item_data in _revision_history:
+                revision_history_item = RevisionEntry.from_dict(revision_history_item_data)
+
+                revision_history.append(revision_history_item)
+
         revoked = d.pop("revoked", UNSET)
+
+        def _parse_spec_version(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        spec_version = _parse_spec_version(d.pop("spec_version", UNSET))
 
         _techniques = d.pop("techniques", UNSET)
         techniques: list[str | TechniqueDetail] | Unset = UNSET
@@ -248,13 +391,21 @@ class CampaignDetail:
             campaign_id=campaign_id,
             aliases=aliases,
             contributors=contributors,
+            created=created,
             deprecated=deprecated,
             description=description,
+            domains=domains,
             first_seen=first_seen,
+            first_seen_citation=first_seen_citation,
             groups=groups,
             last_seen=last_seen,
+            last_seen_citation=last_seen_citation,
+            modified=modified,
             name=name,
+            object_marking_refs=object_marking_refs,
+            revision_history=revision_history,
             revoked=revoked,
+            spec_version=spec_version,
             techniques=techniques,
             url=url,
             version=version,

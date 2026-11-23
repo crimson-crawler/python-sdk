@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ..models.capec_detail import CAPECDetail
     from ..models.cve_mini_detail import CVEMiniDetail
     from ..models.cwe_detail import CWEDetail
+    from ..models.cwe_grouping_membership import CWEGroupingMembership
     from ..models.d3fend_detail import D3FENDDetail
     from ..models.detection_detail import DetectionDetail
     from ..models.enrich_cwe_response_navigator_type_0 import EnrichCWEResponseNavigatorType0
@@ -25,7 +26,6 @@ if TYPE_CHECKING:
     from ..models.software_detail import SoftwareDetail
     from ..models.technique_detail import TechniqueDetail
     from ..models.threat_prediction import ThreatPrediction
-    from ..models.web_result import WebResult
 
 
 T = TypeVar("T", bound="EnrichCWEResponse")
@@ -40,12 +40,20 @@ class EnrichCWEResponse:
         campaigns (list[CampaignDetail] | Unset): Threat campaigns that used the linked techniques
         cves (list[CVEMiniDetail] | Unset): CVEs linked to this weakness via CWE mapping
         defend (list[D3FENDDetail] | Unset): D3FEND defensive techniques and countermeasures for the linked ATT&CK
-            techniques
+            techniques. The default form omits each row's `description`, `aliases`, STIX `pattern` and `stix_id`; request
+            include=['defend_full'] for them. The STIX licence marking (`object_marking_refs`) is kept in both forms.
         detections (list[DetectionDetail] | Unset): Detection data sources and components for the linked techniques
         errors (list[ErrorDetail] | Unset): Partial failure details
         exploitation_frequency (ExploitationFrequency | None | Unset): How often this weakness leads to real-world
             exploitation
+        grouping (CWEGroupingMembership | None | Unset): Set only when the requested `cwe_id` names a CWE Category or
+            View: the id is real but groups weaknesses instead of being one, so `weakness` is null and this block lists what
+            the grouping contains. Null on every weakness lookup and on `search` requests.
         groups (list[GroupDetail] | Unset): Threat actor groups known to use the linked techniques
+        identifier_resolved (bool | None | Unset): Whether the CWE id resolved to a weakness. `false` means the id was
+            not found, so every layer below is empty for that reason rather than because the weakness exists and has no
+            linked data — the two were previously indistinguishable. `null` when the request used `search` instead of an id,
+            where an empty result is a legitimate no-match, or when resolution was not evaluated.
         knowledgebase (list[KnowledgebaseResult] | Unset): Related intelligence from the knowledge base
         mitigations (list[MitigationDetail] | Unset): Defensive mitigations for the linked techniques
         navigator (EnrichCWEResponseNavigatorType0 | None | Unset): ATT&CK Navigator layer JSON for visualization in
@@ -54,11 +62,12 @@ class EnrichCWEResponse:
             this response, via MITRE CTID. Pass-through static lookup; only populates when 'nist_controls' is in the request
             include set.
         predictions (list[ThreatPrediction] | Unset): Threat predictions for linked techniques
+        search_results (list[CWEDetail] | Unset): Matching weaknesses (when searched by text)
         software (list[SoftwareDetail] | Unset): Malware and tools that employ the linked techniques
         summary (None | str | Unset): AI-generated summary of the weakness and its attack implications
         techniques (list[TechniqueDetail] | Unset): ATT&CK techniques reachable through linked attack patterns
-        weakness (CWEDetail | None | Unset): Weakness classification details
-        web (list[WebResult] | Unset): Web search results for this weakness
+        weakness (CWEDetail | None | Unset): Weakness classification details. Null when the requested id names a
+            Category or View — see `grouping`, which carries that id's membership instead.
     """
 
     attack_patterns: list[CAPECDetail] | Unset = UNSET
@@ -68,37 +77,39 @@ class EnrichCWEResponse:
     detections: list[DetectionDetail] | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
     exploitation_frequency: ExploitationFrequency | None | Unset = UNSET
+    grouping: CWEGroupingMembership | None | Unset = UNSET
     groups: list[GroupDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
     mitigations: list[MitigationDetail] | Unset = UNSET
     navigator: EnrichCWEResponseNavigatorType0 | None | Unset = UNSET
     nist_controls: list[NistControlMapping] | Unset = UNSET
     predictions: list[ThreatPrediction] | Unset = UNSET
+    search_results: list[CWEDetail] | Unset = UNSET
     software: list[SoftwareDetail] | Unset = UNSET
     summary: None | str | Unset = UNSET
     techniques: list[TechniqueDetail] | Unset = UNSET
     weakness: CWEDetail | None | Unset = UNSET
-    web: list[WebResult] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.capec_detail import CAPECDetail
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.cwe_detail import CWEDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.enrich_cwe_response_navigator_type_0 import EnrichCWEResponseNavigatorType0
-        from ..models.error_detail import ErrorDetail
-        from ..models.exploitation_frequency import ExploitationFrequency
-        from ..models.group_detail import GroupDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
-        from ..models.web_result import WebResult
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.capec_detail import CAPECDetail  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.cwe_detail import CWEDetail  # noqa: PLC0415
+        from ..models.cwe_grouping_membership import CWEGroupingMembership  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.enrich_cwe_response_navigator_type_0 import EnrichCWEResponseNavigatorType0  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.exploitation_frequency import ExploitationFrequency  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         attack_patterns: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.attack_patterns, Unset):
@@ -150,12 +161,26 @@ class EnrichCWEResponse:
         else:
             exploitation_frequency = self.exploitation_frequency
 
+        grouping: dict[str, Any] | None | Unset
+        if isinstance(self.grouping, Unset):
+            grouping = UNSET
+        elif isinstance(self.grouping, CWEGroupingMembership):
+            grouping = self.grouping.to_dict()
+        else:
+            grouping = self.grouping
+
         groups: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.groups, Unset):
             groups = []
             for groups_item_data in self.groups:
                 groups_item = groups_item_data.to_dict()
                 groups.append(groups_item)
+
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
 
         knowledgebase: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.knowledgebase, Unset):
@@ -193,6 +218,13 @@ class EnrichCWEResponse:
                 predictions_item = predictions_item_data.to_dict()
                 predictions.append(predictions_item)
 
+        search_results: list[dict[str, Any]] | Unset = UNSET
+        if not isinstance(self.search_results, Unset):
+            search_results = []
+            for search_results_item_data in self.search_results:
+                search_results_item = search_results_item_data.to_dict()
+                search_results.append(search_results_item)
+
         software: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.software, Unset):
             software = []
@@ -221,13 +253,6 @@ class EnrichCWEResponse:
         else:
             weakness = self.weakness
 
-        web: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.web, Unset):
-            web = []
-            for web_item_data in self.web:
-                web_item = web_item_data.to_dict()
-                web.append(web_item)
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -245,8 +270,12 @@ class EnrichCWEResponse:
             field_dict["errors"] = errors
         if exploitation_frequency is not UNSET:
             field_dict["exploitation_frequency"] = exploitation_frequency
+        if grouping is not UNSET:
+            field_dict["grouping"] = grouping
         if groups is not UNSET:
             field_dict["groups"] = groups
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
         if knowledgebase is not UNSET:
             field_dict["knowledgebase"] = knowledgebase
         if mitigations is not UNSET:
@@ -257,6 +286,8 @@ class EnrichCWEResponse:
             field_dict["nist_controls"] = nist_controls
         if predictions is not UNSET:
             field_dict["predictions"] = predictions
+        if search_results is not UNSET:
+            field_dict["search_results"] = search_results
         if software is not UNSET:
             field_dict["software"] = software
         if summary is not UNSET:
@@ -265,30 +296,28 @@ class EnrichCWEResponse:
             field_dict["techniques"] = techniques
         if weakness is not UNSET:
             field_dict["weakness"] = weakness
-        if web is not UNSET:
-            field_dict["web"] = web
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.capec_detail import CAPECDetail
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.cwe_detail import CWEDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.enrich_cwe_response_navigator_type_0 import EnrichCWEResponseNavigatorType0
-        from ..models.error_detail import ErrorDetail
-        from ..models.exploitation_frequency import ExploitationFrequency
-        from ..models.group_detail import GroupDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
-        from ..models.web_result import WebResult
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.capec_detail import CAPECDetail  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.cwe_detail import CWEDetail  # noqa: PLC0415
+        from ..models.cwe_grouping_membership import CWEGroupingMembership  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.enrich_cwe_response_navigator_type_0 import EnrichCWEResponseNavigatorType0  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.exploitation_frequency import ExploitationFrequency  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         d = dict(src_dict)
         _attack_patterns = d.pop("attack_patterns", UNSET)
@@ -362,6 +391,23 @@ class EnrichCWEResponse:
 
         exploitation_frequency = _parse_exploitation_frequency(d.pop("exploitation_frequency", UNSET))
 
+        def _parse_grouping(data: object) -> CWEGroupingMembership | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                grouping_type_0 = CWEGroupingMembership.from_dict(data)
+
+                return grouping_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CWEGroupingMembership | None | Unset, data)
+
+        grouping = _parse_grouping(d.pop("grouping", UNSET))
+
         _groups = d.pop("groups", UNSET)
         groups: list[GroupDetail] | Unset = UNSET
         if _groups is not UNSET:
@@ -370,6 +416,15 @@ class EnrichCWEResponse:
                 groups_item = GroupDetail.from_dict(groups_item_data)
 
                 groups.append(groups_item)
+
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
 
         _knowledgebase = d.pop("knowledgebase", UNSET)
         knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
@@ -424,6 +479,15 @@ class EnrichCWEResponse:
 
                 predictions.append(predictions_item)
 
+        _search_results = d.pop("search_results", UNSET)
+        search_results: list[CWEDetail] | Unset = UNSET
+        if _search_results is not UNSET:
+            search_results = []
+            for search_results_item_data in _search_results:
+                search_results_item = CWEDetail.from_dict(search_results_item_data)
+
+                search_results.append(search_results_item)
+
         _software = d.pop("software", UNSET)
         software: list[SoftwareDetail] | Unset = UNSET
         if _software is not UNSET:
@@ -468,15 +532,6 @@ class EnrichCWEResponse:
 
         weakness = _parse_weakness(d.pop("weakness", UNSET))
 
-        _web = d.pop("web", UNSET)
-        web: list[WebResult] | Unset = UNSET
-        if _web is not UNSET:
-            web = []
-            for web_item_data in _web:
-                web_item = WebResult.from_dict(web_item_data)
-
-                web.append(web_item)
-
         enrich_cwe_response = cls(
             attack_patterns=attack_patterns,
             campaigns=campaigns,
@@ -485,17 +540,19 @@ class EnrichCWEResponse:
             detections=detections,
             errors=errors,
             exploitation_frequency=exploitation_frequency,
+            grouping=grouping,
             groups=groups,
+            identifier_resolved=identifier_resolved,
             knowledgebase=knowledgebase,
             mitigations=mitigations,
             navigator=navigator,
             nist_controls=nist_controls,
             predictions=predictions,
+            search_results=search_results,
             software=software,
             summary=summary,
             techniques=techniques,
             weakness=weakness,
-            web=web,
         )
 
         enrich_cwe_response.additional_properties = d

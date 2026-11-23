@@ -17,38 +17,76 @@ class KEVEntry:
 
     Attributes:
         cve_id (str): CVE identifier
+        cwe_categories (list[str] | Unset): NVD's coarse CWE category class ids from the report's `cwe_category`
+            references (e.g. ['CWE-399']) — a different catalog column from the specific weaknesses in `cwe_ids`
+        cwe_ids (list[str] | Unset): Weaknesses the KEV report links to this CVE (its own `cwe` references)
         date_added (None | str | Unset): Date added to the KEV catalog
-        description (None | str | Unset): Brief description of the vulnerability
+        description (None | str | Unset): CISA's own `shortDescription` for the vulnerability (the catalog's one-line
+            summary). The remediation sentence is a different column — read `required_action`
         due_date (None | str | Unset): Required remediation deadline
         epss_percentile (float | None | Unset): EPSS percentile rank among all scored CVEs (0.0-1.0)
         epss_score (float | None | Unset): EPSS exploitation probability (0.0-1.0)
+        forensic_triage (None | str | Unset): CISA's own `forensicTriage` column for this entry ('Yes'/'No'), read from
+            CISA's KEV JSON on `include=['cisa_kev']`. That token is accepted only on `/v1/enrich/cve` and the paths that
+            delegate to it (`/v1/enrich/package`'s nested `cves[]`, and the `/v1/enrich/batch` `cve`/`package` items), so a
+            surface returning this object from the catalog mirror alone leaves it null — `/v1/search/kev`, whose only
+            include is `statistics`, and `/v1/assess/vulnerability-exposure`. The mirror layer this platform otherwise reads
+            does not carry the column at all, so it is null unless that opt-in ran and the official record answered
         in_kev (bool | Unset): Whether this CVE is in the Known Exploited Vulnerabilities catalog Default: True.
+        is_ot (bool | Unset): Whether the KEV `vendor_project` and `product` together name a curated operational-
+            technology vendor/product. Derived on every KEV entry from the committed OT vendor table; no new source is read.
+            Default: False.
         name (None | str | Unset): Vulnerability name
-        notes (None | str | Unset): Additional remediation notes
+        notes (None | str | Unset): CISA's own KEV `notes` column. The mirror layer supplies it by re-joining the
+            report's `cisa_note` references when they carry text; `include=['cisa_kev']` fills it from CISA's record when
+            the mirror has none. Never a placeholder — absent stays null
+        ot_vendor (None | str | Unset): The curated OT vendor name that matched `vendor_project`/`product`, when `is_ot`
+            is true
         poc_count (int | Unset): Number of proof-of-concept repositories on GitHub Default: 0.
-        product (None | str | Unset): Affected product name
+        product (None | str | Unset): Affected product name (CISA KEV `product`). Read from the KEV report's own
+            `product` external reference, which the Vulmatch KEV ingest publishes from CISA's column — so it populates once
+            that deployment has run the one-time KEV backfill and reads null before it (`POST /api/v1/arango-cve-
+            processor/cve-kev/`; see `.claude/rules/vulmatch.md`, 'KEV backfill'). Same reach as `vendor_project`
         ransomware (bool | Unset): Whether this CVE is known to be used in ransomware campaigns Default: False.
-        required_action (None | str | Unset): CISA KEV requiredAction (BOD 22-01 remediation)
+        required_action (None | str | Unset): CISA KEV requiredAction (the remediation the catalog names)
         short_description (None | str | Unset): CISA KEV shortDescription
-        vendor_project (None | str | Unset): CISA KEV vendorProject (the affected vendor)
+        supplemented_from (None | str | Unset): Set to 'cisa-official' when `include=['cisa_kev']` read CISA's own KEV
+            record for this CVE and filled at least one column the mirror layer left empty (`vendor_project`, `product`,
+            `forensic_triage`, `notes`). Same reach as `forensic_triage`: only the surfaces that accept `cisa_kev`
+            (`/v1/enrich/cve`, `/v1/enrich/package`'s nested `cves[]`, and the `/v1/enrich/batch` `cve`/`package` items) can
+            set it, so `/v1/search/kev` and `/v1/assess/vulnerability-exposure` always leave it null. Null otherwise too —
+            including when the official read failed or CISA does not list the CVE, so this never implies a source answered
+        vendor_project (None | str | Unset): CISA KEV vendorProject (the affected vendor). Read from the KEV report's
+            own `vendor_project` external reference, which the Vulmatch KEV ingest publishes from CISA's column — so it
+            populates on `/v1/search/kev` and `/v1/assess/vulnerability-exposure` once that deployment has run the one-time
+            KEV backfill (`POST /api/v1/arango-cve-processor/cve-kev/`; see `.claude/rules/vulmatch.md`, 'KEV backfill'),
+            and reads null before it. `include=['cisa_kev']` fills it from CISA's own KEV JSON without waiting for that
+            backfill (`/v1/enrich/cve`, plus `/v1/enrich/package`'s nested `cves[]` and the `/v1/enrich/batch`
+            `cve`/`package` items)
         vulnerability_name (None | str | Unset): CISA KEV vulnerabilityName (the catalog title)
         weaponization_score (float | None | Unset): Computed weaponization risk score (0-100)
     """
 
     cve_id: str
+    cwe_categories: list[str] | Unset = UNSET
+    cwe_ids: list[str] | Unset = UNSET
     date_added: None | str | Unset = UNSET
     description: None | str | Unset = UNSET
     due_date: None | str | Unset = UNSET
     epss_percentile: float | None | Unset = UNSET
     epss_score: float | None | Unset = UNSET
+    forensic_triage: None | str | Unset = UNSET
     in_kev: bool | Unset = True
+    is_ot: bool | Unset = False
     name: None | str | Unset = UNSET
     notes: None | str | Unset = UNSET
+    ot_vendor: None | str | Unset = UNSET
     poc_count: int | Unset = 0
     product: None | str | Unset = UNSET
     ransomware: bool | Unset = False
     required_action: None | str | Unset = UNSET
     short_description: None | str | Unset = UNSET
+    supplemented_from: None | str | Unset = UNSET
     vendor_project: None | str | Unset = UNSET
     vulnerability_name: None | str | Unset = UNSET
     weaponization_score: float | None | Unset = UNSET
@@ -56,6 +94,14 @@ class KEVEntry:
 
     def to_dict(self) -> dict[str, Any]:
         cve_id = self.cve_id
+
+        cwe_categories: list[str] | Unset = UNSET
+        if not isinstance(self.cwe_categories, Unset):
+            cwe_categories = self.cwe_categories
+
+        cwe_ids: list[str] | Unset = UNSET
+        if not isinstance(self.cwe_ids, Unset):
+            cwe_ids = self.cwe_ids
 
         date_added: None | str | Unset
         if isinstance(self.date_added, Unset):
@@ -87,7 +133,15 @@ class KEVEntry:
         else:
             epss_score = self.epss_score
 
+        forensic_triage: None | str | Unset
+        if isinstance(self.forensic_triage, Unset):
+            forensic_triage = UNSET
+        else:
+            forensic_triage = self.forensic_triage
+
         in_kev = self.in_kev
+
+        is_ot = self.is_ot
 
         name: None | str | Unset
         if isinstance(self.name, Unset):
@@ -100,6 +154,12 @@ class KEVEntry:
             notes = UNSET
         else:
             notes = self.notes
+
+        ot_vendor: None | str | Unset
+        if isinstance(self.ot_vendor, Unset):
+            ot_vendor = UNSET
+        else:
+            ot_vendor = self.ot_vendor
 
         poc_count = self.poc_count
 
@@ -122,6 +182,12 @@ class KEVEntry:
             short_description = UNSET
         else:
             short_description = self.short_description
+
+        supplemented_from: None | str | Unset
+        if isinstance(self.supplemented_from, Unset):
+            supplemented_from = UNSET
+        else:
+            supplemented_from = self.supplemented_from
 
         vendor_project: None | str | Unset
         if isinstance(self.vendor_project, Unset):
@@ -148,6 +214,10 @@ class KEVEntry:
                 "cve_id": cve_id,
             }
         )
+        if cwe_categories is not UNSET:
+            field_dict["cwe_categories"] = cwe_categories
+        if cwe_ids is not UNSET:
+            field_dict["cwe_ids"] = cwe_ids
         if date_added is not UNSET:
             field_dict["date_added"] = date_added
         if description is not UNSET:
@@ -158,12 +228,18 @@ class KEVEntry:
             field_dict["epss_percentile"] = epss_percentile
         if epss_score is not UNSET:
             field_dict["epss_score"] = epss_score
+        if forensic_triage is not UNSET:
+            field_dict["forensic_triage"] = forensic_triage
         if in_kev is not UNSET:
             field_dict["in_kev"] = in_kev
+        if is_ot is not UNSET:
+            field_dict["is_ot"] = is_ot
         if name is not UNSET:
             field_dict["name"] = name
         if notes is not UNSET:
             field_dict["notes"] = notes
+        if ot_vendor is not UNSET:
+            field_dict["ot_vendor"] = ot_vendor
         if poc_count is not UNSET:
             field_dict["poc_count"] = poc_count
         if product is not UNSET:
@@ -174,6 +250,8 @@ class KEVEntry:
             field_dict["required_action"] = required_action
         if short_description is not UNSET:
             field_dict["short_description"] = short_description
+        if supplemented_from is not UNSET:
+            field_dict["supplemented_from"] = supplemented_from
         if vendor_project is not UNSET:
             field_dict["vendor_project"] = vendor_project
         if vulnerability_name is not UNSET:
@@ -187,6 +265,10 @@ class KEVEntry:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         cve_id = d.pop("cve_id")
+
+        cwe_categories = cast(list[str], d.pop("cwe_categories", UNSET))
+
+        cwe_ids = cast(list[str], d.pop("cwe_ids", UNSET))
 
         def _parse_date_added(data: object) -> None | str | Unset:
             if data is None:
@@ -233,7 +315,18 @@ class KEVEntry:
 
         epss_score = _parse_epss_score(d.pop("epss_score", UNSET))
 
+        def _parse_forensic_triage(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        forensic_triage = _parse_forensic_triage(d.pop("forensic_triage", UNSET))
+
         in_kev = d.pop("in_kev", UNSET)
+
+        is_ot = d.pop("is_ot", UNSET)
 
         def _parse_name(data: object) -> None | str | Unset:
             if data is None:
@@ -252,6 +345,15 @@ class KEVEntry:
             return cast(None | str | Unset, data)
 
         notes = _parse_notes(d.pop("notes", UNSET))
+
+        def _parse_ot_vendor(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        ot_vendor = _parse_ot_vendor(d.pop("ot_vendor", UNSET))
 
         poc_count = d.pop("poc_count", UNSET)
 
@@ -284,6 +386,15 @@ class KEVEntry:
 
         short_description = _parse_short_description(d.pop("short_description", UNSET))
 
+        def _parse_supplemented_from(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        supplemented_from = _parse_supplemented_from(d.pop("supplemented_from", UNSET))
+
         def _parse_vendor_project(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -313,19 +424,25 @@ class KEVEntry:
 
         kev_entry = cls(
             cve_id=cve_id,
+            cwe_categories=cwe_categories,
+            cwe_ids=cwe_ids,
             date_added=date_added,
             description=description,
             due_date=due_date,
             epss_percentile=epss_percentile,
             epss_score=epss_score,
+            forensic_triage=forensic_triage,
             in_kev=in_kev,
+            is_ot=is_ot,
             name=name,
             notes=notes,
+            ot_vendor=ot_vendor,
             poc_count=poc_count,
             product=product,
             ransomware=ransomware,
             required_action=required_action,
             short_description=short_description,
+            supplemented_from=supplemented_from,
             vendor_project=vendor_project,
             vulnerability_name=vulnerability_name,
             weaponization_score=weaponization_score,

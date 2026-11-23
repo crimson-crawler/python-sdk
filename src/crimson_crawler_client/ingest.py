@@ -8,7 +8,8 @@ and the TS SDK's ``src/ingest.ts``. This copy delegates from
 
 The component is two pure-ish pieces:
   • :func:`assemble_briefing` — PURE (no I/O): turns a ``/v1/inventory-enrich`` result into a briefing by
-    attaching a top-N KEV-first ``recommended_actions`` list (the engine already ranks per-asset findings).
+    attaching a top-N KEV-first ``recommended_actions`` list (the engine already ranks per-asset findings)
+    plus an ``unverified_assets`` list naming the assets whose identity never resolved.
   • :func:`ingest_scan` — the orchestration: parse the scan (usage-exempt) → enrich the assets (one
     billable ``/v1/inventory-enrich`` submit) → assemble. It takes the live :class:`InventoryManagerAPI`
     and uses its ``parse_scan`` + ``enrich_items`` for the I/O, so the HTTP/key/retry transport stays in
@@ -35,7 +36,9 @@ def assemble_briefing(
 ) -> dict[str, Any]:
     """Turn a ``/v1/inventory-enrich`` result into a scan **briefing** — the engine already ranks per-asset
     findings KEV-first, so this just attaches a top-N ``recommended_actions`` list (highest-priority CVEs
-    across all assets, KEV first then weaponization, deduped) over the report. Pure (no I/O)."""
+    across all assets, KEV first then weaponization, deduped) and an ``unverified_assets`` list (assets whose
+    identity never resolved — match none/cpe_fuzzy — so an empty finding set means never looked, not clean)
+    over the report. Pure (no I/O)."""
     seen: dict[str, dict[str, Any]] = {}
     for asset in report.get("assets") or []:
         product = asset.get("product") or asset.get("name") or "—"
@@ -54,12 +57,24 @@ def assemble_briefing(
                     "reason": "KEV-listed — patch now" if cve.get("kev") else "High weaponization",
                 }
     actions = sorted(seen.values(), key=lambda a: (0 if a["kev"] else 1, -(a["weaponization_score"] or 0)))[:10]
+    # #348 — assets whose identity never resolved (match none/cpe_fuzzy). Each entry carries the reason
+    # string so a briefing consumer can surface WHY an asset could not be verified.
+    unverified_assets = [
+        {
+            "product": asset.get("product") or asset.get("name") or "—",
+            "versions": [v for v in (asset.get("versions") or []) if v][:1],
+            "match_detail": asset.get("match_detail"),
+        }
+        for asset in report.get("assets") or []
+        if asset.get("status") != "error" and asset.get("match") in ("none", "cpe_fuzzy")
+    ]
     out: dict[str, Any] = {
         "format": fmt,
         "parsed_count": parsed_count,
         "enrichment_id": enrichment_id,
         "report": report,
         "recommended_actions": actions,
+        "unverified_assets": unverified_assets,
     }
     if truncated:
         out["truncated"] = truncated
@@ -76,12 +91,13 @@ async def ingest_scan(
     timeout: float = 300.0,
     on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    """Parse a scan FILE (server-side, all 11 formats incl. binary ``xlsx`` via ``bytes``) → enrich the
+    """Parse a scan FILE (server-side, all 12 formats incl. binary ``xlsx`` via ``bytes``) → enrich the
     discovered assets against the
     ``/v1/inventory-enrich`` ranking engine → assemble a structured briefing. The parse is usage-exempt;
     the enrichment submit counts toward usage (one request). ``on_progress`` streams the live enrichment
     job each poll. Returns
-    ``{format, parsed_count, truncated?, enrichment_id, report, recommended_actions}``; an empty parse
+    ``{format, parsed_count, truncated?, enrichment_id, report, recommended_actions,
+    unverified_assets}``; an empty parse
     short-circuits to ``{format, parsed_count: 0, enrichment_id: None, empty: True}``."""
     parsed = await inv_api.parse_scan(content, scan_format)
     items = parsed.get("items") or []

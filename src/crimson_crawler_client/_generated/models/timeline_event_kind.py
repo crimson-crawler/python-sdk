@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class TimelineEventKind(str, Enum):
+class TimelineEventKind(StrEnum):
     DISCLOSED = "disclosed"
     EPSS_INFLECTION = "epss_inflection"
     KEV_ADDED = "kev_added"

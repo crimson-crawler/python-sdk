@@ -22,7 +22,6 @@ class KnowledgebaseResult:
     Attributes:
         content (str): Matched content
         collection (None | str | Unset): Knowledge base collection the result came from
-        distance (float | None | Unset): Vector distance for the match (lower is closer), when computed
         metadata (KnowledgebaseResultMetadataType0 | None | Unset): Per-chunk metadata fields beyond text/source/score
             (e.g. ttp_id, source_repo, phase, platforms, executors for the red_team collection). Shape varies by collection.
         score (float | None | Unset): Relevance score (higher is more relevant)
@@ -31,14 +30,13 @@ class KnowledgebaseResult:
 
     content: str
     collection: None | str | Unset = UNSET
-    distance: float | None | Unset = UNSET
     metadata: KnowledgebaseResultMetadataType0 | None | Unset = UNSET
     score: float | None | Unset = UNSET
     source: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.knowledgebase_result_metadata_type_0 import KnowledgebaseResultMetadataType0
+        from ..models.knowledgebase_result_metadata_type_0 import KnowledgebaseResultMetadataType0  # noqa: PLC0415
 
         content = self.content
 
@@ -47,12 +45,6 @@ class KnowledgebaseResult:
             collection = UNSET
         else:
             collection = self.collection
-
-        distance: float | None | Unset
-        if isinstance(self.distance, Unset):
-            distance = UNSET
-        else:
-            distance = self.distance
 
         metadata: dict[str, Any] | None | Unset
         if isinstance(self.metadata, Unset):
@@ -83,8 +75,6 @@ class KnowledgebaseResult:
         )
         if collection is not UNSET:
             field_dict["collection"] = collection
-        if distance is not UNSET:
-            field_dict["distance"] = distance
         if metadata is not UNSET:
             field_dict["metadata"] = metadata
         if score is not UNSET:
@@ -96,7 +86,7 @@ class KnowledgebaseResult:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.knowledgebase_result_metadata_type_0 import KnowledgebaseResultMetadataType0
+        from ..models.knowledgebase_result_metadata_type_0 import KnowledgebaseResultMetadataType0  # noqa: PLC0415
 
         d = dict(src_dict)
         content = d.pop("content")
@@ -109,15 +99,6 @@ class KnowledgebaseResult:
             return cast(None | str | Unset, data)
 
         collection = _parse_collection(d.pop("collection", UNSET))
-
-        def _parse_distance(data: object) -> float | None | Unset:
-            if data is None:
-                return data
-            if isinstance(data, Unset):
-                return data
-            return cast(float | None | Unset, data)
-
-        distance = _parse_distance(d.pop("distance", UNSET))
 
         def _parse_metadata(data: object) -> KnowledgebaseResultMetadataType0 | None | Unset:
             if data is None:
@@ -157,7 +138,6 @@ class KnowledgebaseResult:
         knowledgebase_result = cls(
             content=content,
             collection=collection,
-            distance=distance,
             metadata=metadata,
             score=score,
             source=source,

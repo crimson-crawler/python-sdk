@@ -126,6 +126,19 @@ class TestCreateAndFill:
         await api.create_draft("technical")
         assert http.request.call_args.kwargs["json"] == {"template": "technical"}
 
+    async def test_create_draft_sends_tlp(self, ws):
+        api, http = ws
+        http.request.return_value = _resp(201, {"id": "r3", "ai_sections": [], "skipped": [], "tlp": "AMBER+STRICT"})
+        out = await api.create_draft("exec", tlp="AMBER+STRICT")
+        assert http.request.call_args.kwargs["json"] == {"template": "exec", "tlp": "AMBER+STRICT"}
+        assert out["tlp"] == "AMBER+STRICT"
+
+    async def test_create_draft_rejects_bad_tlp_before_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.create_draft("exec", tlp="WHITE")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
     async def test_fill_section_next_pending(self, ws):
         api, http = ws
         http.request.return_value = _resp(
@@ -202,6 +215,24 @@ class TestExport:
         assert out["content"] == "<h1>R</h1>"
         assert http.request.call_args.args == ("GET", "/ai-reports/reports/r1/export/html")
 
+    async def test_export_sends_tlp_query_param(self, ws):
+        api, http = ws
+        http.request.return_value = _raw_resp("# R", {"content-disposition": 'filename="r1.md"'})
+        await api.export_report("r1", "md", tlp="AMBER+STRICT")
+        assert http.request.call_args.kwargs["params"] == {"tlp": "AMBER+STRICT"}
+
+    async def test_export_omits_tlp_when_unset(self, ws):
+        api, http = ws
+        http.request.return_value = _raw_resp("# R", {})
+        await api.export_report("r1", "md")
+        assert http.request.call_args.kwargs["params"] is None
+
+    async def test_export_rejects_invalid_tlp_before_any_request(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.export_report("r1", "md", tlp="TLP:RED")  # type: ignore[arg-type]
+        http.request.assert_not_called()
+
 
 class TestGenerateReport:
     async def test_create_fill_loop_then_get(self, ws):
@@ -231,6 +262,15 @@ class TestGenerateReport:
         assert out["sections"] == []
         assert http.request.call_count == 2  # create + get, no fill
 
+    async def test_tlp_reaches_the_draft(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(201, {"id": "r1", "ai_sections": [], "skipped": [], "tlp": "RED"}),
+            _resp(200, {"report": {"id": "r1"}}),
+        ]
+        await api.generate_report("exec", tlp="RED")
+        assert http.request.call_args_list[0].kwargs["json"] == {"template": "exec", "tlp": "RED"}
+
     async def test_copilot_blip_records_and_stops(self, ws):
         api, http = ws
         http.request.side_effect = [
@@ -241,6 +281,49 @@ class TestGenerateReport:
         out = await api.generate_report("exec")
         assert out["sections"] == [{"error": "generation failed", "status": 502}]
         assert out["report"]["id"] == "r1"
+
+    async def test_rate_limit_429_records_and_stops_keeping_the_partial_report(self, ws):
+        """A gateway rate limit stops the loop like a 502 — it must NOT raise out of generate_report
+        and destroy the partial-report contract the docstring promises."""
+        api, http = ws
+        http.request.side_effect = [
+            _resp(201, {"id": "r1", "ai_sections": [{"section_type": "a"}, {"section_type": "b"}], "skipped": []}),
+            _resp(200, {"section_type": "a", "filled": True, "remaining": ["b"], "complete": False}),
+            _resp(429, {"message": "API rate limit exceeded"}),
+            _resp(200, {"report": {"id": "r1"}}),
+        ]
+        out = await api.generate_report("exec")
+        # The section that DID fill survives; the stop is recorded, not raised.
+        assert out["sections"][0]["section_type"] == "a"
+        assert out["sections"][1] == {"error": "rate limited", "status": 429}
+        assert out["report"]["id"] == "r1"
+        # create → fill → fill(429) → get: it stops at the 429 instead of burning the rest.
+        assert http.request.call_count == 4
+
+    async def test_quota_429_is_recorded_as_quota_exhausted_not_a_rate_limit(self, ws):
+        """The built-in AI's daily allowance shares the 429 status with the gateway limit but not the fix."""
+        api, http = ws
+        http.request.side_effect = [
+            _resp(201, {"id": "r1", "ai_sections": [{"section_type": "a"}], "skipped": []}),
+            _resp(429, {"error": "report_inference_quota_exceeded", "detail": "used up"}),
+            _resp(200, {"report": {"id": "r1"}}),
+        ]
+        out = await api.generate_report("exec")
+        assert out["sections"] == [{"error": "quota exhausted", "status": 429}]
+
+    async def test_no_ai_provider_402_stops_and_still_returns_the_draft(self, ws):
+        """Bring-your-own-key: with no AI provider saved the first fill is a 402. The deterministic
+        draft already exists, so it comes back with the stop recorded instead of an exception."""
+        api, http = ws
+        http.request.side_effect = [
+            _resp(201, {"id": "r1", "ai_sections": [{"section_type": "a"}, {"section_type": "b"}], "skipped": []}),
+            _resp(402, {"error": "AI features use your own AI provider.", "code": "llm_not_configured"}),
+            _resp(200, {"report": {"id": "r1"}}),
+        ]
+        out = await api.generate_report("exec")
+        assert out["sections"] == [{"error": "no AI provider", "status": 402}]
+        assert out["report"]["id"] == "r1"
+        assert http.request.call_count == 3
 
 
 class TestGapS4GenerateReportOneShot:

@@ -13,25 +13,42 @@ T = TypeVar("T", bound="SearchMISPRequest")
 
 @_attrs_define
 class SearchMISPRequest:
-    """Search your threat intelligence feed by indicator value, event info, or event ID.
+    """Search our curated MISP (public threat feeds) by indicator value, event info, or event ID.
 
-    Attributes:
-        category (None | str | Unset): MISP attribute category (e.g. 'Network activity', 'Payload delivery')
-        date_from (None | str | Unset): Earliest event date (YYYY-MM-DD)
-        date_to (None | str | Unset): Latest event date (YYYY-MM-DD)
-        event_id (None | str | Unset): Direct event ID lookup
-        eventinfo (None | str | Unset): Search events by title/description text
-        limit (int | Unset): Maximum number of results to return (1-100) Default: 50.
-        page (int | Unset): Page number for pagination (1-indexed, max 100) Default: 1.
-        published (bool | None | Unset): If true, restrict to events published by their owning org (filters out analyst
-            drafts)
-        tags (list[str] | None | Unset): Filter by MISP tag(s) (any match). Supports tlp: prefixes, galaxy cluster
-            names.
-        threat_level_id (None | str | Unset): Filter by event threat level: '1' (high), '2' (medium), '3' (low), '4'
-            (undefined)
-        to_ids (bool | None | Unset): If true, return only attributes flagged for IDS detection (high-confidence IOCs)
-        type_attribute (None | str | Unset): Filter attributes by type (e.g. ip-dst, md5, domain)
-        value (None | str | Unset): Indicator value to search (IP, hash, domain, etc.)
+    Attribute filters (`value`, `type_attribute`, `category`, `tags`, `to_ids`) search attributes;
+    event filters (`eventinfo`, `published`) search events; `event_id` looks one event up directly.
+    The threat-level and date filters apply to BOTH kinds, so a request carrying only those —
+    with no attribute, event, or event-ID selector — searches attributes and events.
+
+        Attributes:
+            category (None | str | Unset): MISP attribute category (e.g. 'Network activity', 'Payload delivery')
+            date_from (None | str | Unset): Earliest event date (YYYY-MM-DD). Applies to both attributes and events.
+            date_to (None | str | Unset): Latest event date (YYYY-MM-DD). Applies to both attributes and events.
+            event_id (None | str | Unset): Direct event ID lookup
+            eventinfo (None | str | Unset): Search events by title/description text
+            include (list[str] | Unset): Result layers to include. `sightings` returns each attribute’s `sightings[]` and
+                `sighting_count` as real counts instead of 0, plus the same real (deduplicated) records on each returned event’s
+                `sightings[]`. `event_reports` returns the analyst-written markdown narratives MISP attaches to the returned
+                events (135 on the reference instance). `stats` fills each returned event’s `stats` with its attribute/object
+                composition (`/events/viewEventStats`). `version` reports the MISP build behind the data (`version` +
+                `pymisp_recommended_version` only). `tags` returns one page of the instance’s tag NAMES with the total available
+                (`tag_names` + `tag_names_total`). `feeds` previews the feeds the matched indicators came from
+                (`/feeds/previewIndex`, page-bounded). `objects` resolves composite-object references and returns full event
+                bodies; `misp_events_full` returns full event bodies without resolving objects. Otherwise events are summary
+                rows. The default is `event_reports`, `tags`, and `version`; pass `include=[]` to skip them. Allowed values:
+                event_reports, feeds, misp_events_full, objects, sightings, stats, tags, version.
+            limit (int | Unset): Maximum number of results to return (1-100) Default: 50.
+            page (int | Unset): Page number for pagination (1-indexed, max 100) Default: 1.
+            published (bool | None | Unset): If true, restrict to events published by their owning org (filters out analyst
+                drafts)
+            tags (list[str] | None | Unset): Filter by MISP tag(s) (any match). Supports tlp: prefixes, galaxy cluster
+                names.
+            threat_level_id (None | str | Unset): Filter by event threat level: '1' (high), '2' (medium), '3' (low), '4'
+                (undefined). Applies to both attributes and events.
+            to_ids (bool | None | Unset): Attribute selector. `true` returns only attributes flagged for IDS detection
+                (high-confidence IOCs); `false` returns only attributes NOT flagged. Omitting it does not filter.
+            type_attribute (None | str | Unset): Filter attributes by type (e.g. ip-dst, md5, domain)
+            value (None | str | Unset): Indicator value to search (IP, hash, domain, etc.)
     """
 
     category: None | str | Unset = UNSET
@@ -39,6 +56,7 @@ class SearchMISPRequest:
     date_to: None | str | Unset = UNSET
     event_id: None | str | Unset = UNSET
     eventinfo: None | str | Unset = UNSET
+    include: list[str] | Unset = UNSET
     limit: int | Unset = 50
     page: int | Unset = 1
     published: bool | None | Unset = UNSET
@@ -79,6 +97,10 @@ class SearchMISPRequest:
             eventinfo = UNSET
         else:
             eventinfo = self.eventinfo
+
+        include: list[str] | Unset = UNSET
+        if not isinstance(self.include, Unset):
+            include = self.include
 
         limit = self.limit
 
@@ -136,6 +158,8 @@ class SearchMISPRequest:
             field_dict["event_id"] = event_id
         if eventinfo is not UNSET:
             field_dict["eventinfo"] = eventinfo
+        if include is not UNSET:
+            field_dict["include"] = include
         if limit is not UNSET:
             field_dict["limit"] = limit
         if page is not UNSET:
@@ -203,6 +227,8 @@ class SearchMISPRequest:
             return cast(None | str | Unset, data)
 
         eventinfo = _parse_eventinfo(d.pop("eventinfo", UNSET))
+
+        include = cast(list[str], d.pop("include", UNSET))
 
         limit = d.pop("limit", UNSET)
 
@@ -276,6 +302,7 @@ class SearchMISPRequest:
             date_to=date_to,
             event_id=event_id,
             eventinfo=eventinfo,
+            include=include,
             limit=limit,
             page=page,
             published=published,

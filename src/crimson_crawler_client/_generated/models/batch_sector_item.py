@@ -16,11 +16,13 @@ class BatchSectorItem:
     """Batch item: enrich an industry sector.
 
     Attributes:
-        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, locations, mitigations, navigator, software, summary,
-            techniques, tie, web, web_scrape.
+        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: details,
+            knowledgebase, summary, versions. `versions` attaches the object's KB revision history (`revision_history`).
         search (None | str | Unset): Text query to search sectors by name (e.g. 'healthcare')
-        sector_id (None | str | Unset): Sector identifier for direct lookup
+        sector_id (None | str | Unset): Sector identifier for direct lookup. Verified present: `financial-
+            organizations`. Sectors are seeded from the knowledge base rather than a fixed list, so an unseeded value
+            (`healthcare`, `financial-services`) returns an empty result with `identifier_resolved: false` — use `search`
+            when unsure of the exact id.
         type_ (Literal['sector'] | Unset): Selects sector enrichment for this batch item Default: 'sector'.
     """
 

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SourceCorroborationOverallConfidence(str, Enum):
+class SourceCorroborationOverallConfidence(StrEnum):
     HIGH = "high"
     LOW = "low"
     MODERATE = "moderate"

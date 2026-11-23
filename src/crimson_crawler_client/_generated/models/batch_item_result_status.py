@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BatchItemResultStatus(str, Enum):
+class BatchItemResultStatus(StrEnum):
     ERROR = "error"
     OK = "ok"
 

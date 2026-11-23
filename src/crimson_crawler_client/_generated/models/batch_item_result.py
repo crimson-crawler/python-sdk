@@ -30,6 +30,10 @@ class BatchItemResult:
         data (BatchItemResultDataType0 | None | Unset): The matching Enrich<Type>Response payload (by `type`) when
             status='ok'; null when status='error'. Per-layer partial failures are reported inside `data.errors`.
         errors (list[ErrorDetail] | Unset): Dispatch-level failure details — populated only when status='error'
+        identifier_resolved (bool | None | Unset): Resolution outcome copied from the matching enrichment response (see
+            that type's `identifier_resolved`). `status` reports only whether the DISPATCH ran, so a bogus id dispatched
+            successfully is status='ok' with `identifier_resolved=false` here. `null` when the type's response declares no
+            such marker, when the item dispatch failed, or when resolution was not evaluated.
     """
 
     identifier: str
@@ -38,11 +42,12 @@ class BatchItemResult:
     type_: str
     data: BatchItemResultDataType0 | None | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.batch_item_result_data_type_0 import BatchItemResultDataType0
-        from ..models.error_detail import ErrorDetail
+        from ..models.batch_item_result_data_type_0 import BatchItemResultDataType0  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         identifier = self.identifier
 
@@ -67,6 +72,12 @@ class BatchItemResult:
                 errors_item = errors_item_data.to_dict()
                 errors.append(errors_item)
 
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -81,13 +92,15 @@ class BatchItemResult:
             field_dict["data"] = data
         if errors is not UNSET:
             field_dict["errors"] = errors
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.batch_item_result_data_type_0 import BatchItemResultDataType0
-        from ..models.error_detail import ErrorDetail
+        from ..models.batch_item_result_data_type_0 import BatchItemResultDataType0  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         d = dict(src_dict)
         identifier = d.pop("identifier")
@@ -124,6 +137,15 @@ class BatchItemResult:
 
                 errors.append(errors_item)
 
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
+
         batch_item_result = cls(
             identifier=identifier,
             index=index,
@@ -131,6 +153,7 @@ class BatchItemResult:
             type_=type_,
             data=data,
             errors=errors,
+            identifier_resolved=identifier_resolved,
         )
 
         batch_item_result.additional_properties = d

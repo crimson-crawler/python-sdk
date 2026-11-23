@@ -78,16 +78,26 @@ def sync_detailed(
 ) -> Response[Any | SearchVendorResponse]:
     """Search Vendor Products
 
-     List products from a vendor with CPE identifiers.
+     List products from a vendor, or enumerate the vendor directory.
 
-    Returns up to `limit` known products for the vendor from the CPE dictionary. Pass a returned CPE
-    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product.
+    Pass `vendor` for up to `limit` known products from the CPE dictionary — pass a returned CPE
+    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product. A
+    multi-version product contributes one row per CPE entry, and `total_products` counts the
+    distinct products those rows represent. Omit `vendor` (optionally with `q`) to enumerate the
+    CPE vendor directory with product counts.
 
     The `errors` array reports any partial failures.
 
     Args:
-        body (SearchVendorRequest): List products from a vendor with CPE identifiers for
-            vulnerability lookup.
+        body (SearchVendorRequest): List products from a vendor, or enumerate the vendor
+            directory.
+
+            Two modes on one surface: pass `vendor` for that vendor's product catalogue; omit it
+            (optionally
+            with `q`) to enumerate the CPE vendor directory — 22,364 vendors with their product
+            counts, the
+            discovery half that had no consumer path (`search_cpe_vendors` was written and never
+            called).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -115,16 +125,26 @@ def sync(
 ) -> Any | SearchVendorResponse | None:
     """Search Vendor Products
 
-     List products from a vendor with CPE identifiers.
+     List products from a vendor, or enumerate the vendor directory.
 
-    Returns up to `limit` known products for the vendor from the CPE dictionary. Pass a returned CPE
-    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product.
+    Pass `vendor` for up to `limit` known products from the CPE dictionary — pass a returned CPE
+    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product. A
+    multi-version product contributes one row per CPE entry, and `total_products` counts the
+    distinct products those rows represent. Omit `vendor` (optionally with `q`) to enumerate the
+    CPE vendor directory with product counts.
 
     The `errors` array reports any partial failures.
 
     Args:
-        body (SearchVendorRequest): List products from a vendor with CPE identifiers for
-            vulnerability lookup.
+        body (SearchVendorRequest): List products from a vendor, or enumerate the vendor
+            directory.
+
+            Two modes on one surface: pass `vendor` for that vendor's product catalogue; omit it
+            (optionally
+            with `q`) to enumerate the CPE vendor directory — 22,364 vendors with their product
+            counts, the
+            discovery half that had no consumer path (`search_cpe_vendors` was written and never
+            called).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -147,16 +167,26 @@ async def asyncio_detailed(
 ) -> Response[Any | SearchVendorResponse]:
     """Search Vendor Products
 
-     List products from a vendor with CPE identifiers.
+     List products from a vendor, or enumerate the vendor directory.
 
-    Returns up to `limit` known products for the vendor from the CPE dictionary. Pass a returned CPE
-    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product.
+    Pass `vendor` for up to `limit` known products from the CPE dictionary — pass a returned CPE
+    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product. A
+    multi-version product contributes one row per CPE entry, and `total_products` counts the
+    distinct products those rows represent. Omit `vendor` (optionally with `q`) to enumerate the
+    CPE vendor directory with product counts.
 
     The `errors` array reports any partial failures.
 
     Args:
-        body (SearchVendorRequest): List products from a vendor with CPE identifiers for
-            vulnerability lookup.
+        body (SearchVendorRequest): List products from a vendor, or enumerate the vendor
+            directory.
+
+            Two modes on one surface: pass `vendor` for that vendor's product catalogue; omit it
+            (optionally
+            with `q`) to enumerate the CPE vendor directory — 22,364 vendors with their product
+            counts, the
+            discovery half that had no consumer path (`search_cpe_vendors` was written and never
+            called).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,16 +212,26 @@ async def asyncio(
 ) -> Any | SearchVendorResponse | None:
     """Search Vendor Products
 
-     List products from a vendor with CPE identifiers.
+     List products from a vendor, or enumerate the vendor directory.
 
-    Returns up to `limit` known products for the vendor from the CPE dictionary. Pass a returned CPE
-    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product.
+    Pass `vendor` for up to `limit` known products from the CPE dictionary — pass a returned CPE
+    string to `/v1/search/cve` as the `cpe` filter to find vulnerabilities for that product. A
+    multi-version product contributes one row per CPE entry, and `total_products` counts the
+    distinct products those rows represent. Omit `vendor` (optionally with `q`) to enumerate the
+    CPE vendor directory with product counts.
 
     The `errors` array reports any partial failures.
 
     Args:
-        body (SearchVendorRequest): List products from a vendor with CPE identifiers for
-            vulnerability lookup.
+        body (SearchVendorRequest): List products from a vendor, or enumerate the vendor
+            directory.
+
+            Two modes on one surface: pass `vendor` for that vendor's product catalogue; omit it
+            (optionally
+            with `q`) to enumerate the CPE vendor directory — 22,364 vendors with their product
+            counts, the
+            discovery half that had no consumer path (`search_cpe_vendors` was written and never
+            called).
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -78,11 +78,12 @@ def sync_detailed(
 ) -> Response[Any | EnrichCAPECResponse]:
     """Enrich CAPEC
 
-     Look up or search attack patterns and resolve linked adversary techniques.
+     Look up or search attack patterns and resolve their own ATT&CK mappings into techniques.
 
-    Provide `capec_id` for a direct lookup or `search` for text-based discovery. Linked ATT&CK
-    techniques are resolved into full objects with mitigations and detection guidance, returned even
-    when the attack pattern has sparse data.
+    Provide `capec_id` for a direct lookup or `search` for text-based discovery. The ATT&CK techniques
+    linked to this attack pattern are resolved into full objects with mitigations and detection
+    guidance; a pattern carrying no ATT&CK mapping resolves to none, and the technique-derived
+    layers are empty with it.
     If both fields are omitted, the endpoint returns HTTP 200 with no selected pattern and empty search
     results.
 
@@ -98,17 +99,28 @@ def sync_detailed(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this attack pattern (queried by CAPEC id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for attack pattern research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the attack pattern
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `network_context` *(opt-in)* — ASN, AS name, registration country and covering prefix for an IP
+      indicator, from the seeded iptoasn corpus (PDDL v1.0). A registration country, not geolocation.
+    - `domain_context` *(opt-in)* — RDAP registration facts for a domain, hostname or the host of a URL:
+      registration and expiration dates, domain age in days, registrar, registry and status codes.
+    - `listed_on` *(opt-in)* — every list carrying this value, unified across the curated MISP feed
+      caches and the seeded Spamhaus DROP / ASN-DROP corpora, each entry naming how it matched
+      (`exact`, `cidr`, or `asn`). MISP's own exact-value read is unchanged; CIDR and ASN matches are
+      what an exact-value cache cannot express.
 
     Args:
-        body (EnrichCAPECRequest): Look up or search attack patterns and resolve linked adversary
-            techniques.
+        body (EnrichCAPECRequest): Look up or search attack patterns and resolve their own ATT&CK
+            mappings into techniques.
+
+            A pattern carrying no ATT&CK mapping resolves to no techniques, and the layers derived
+            from
+            techniques are empty with it.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,11 +148,12 @@ def sync(
 ) -> Any | EnrichCAPECResponse | None:
     """Enrich CAPEC
 
-     Look up or search attack patterns and resolve linked adversary techniques.
+     Look up or search attack patterns and resolve their own ATT&CK mappings into techniques.
 
-    Provide `capec_id` for a direct lookup or `search` for text-based discovery. Linked ATT&CK
-    techniques are resolved into full objects with mitigations and detection guidance, returned even
-    when the attack pattern has sparse data.
+    Provide `capec_id` for a direct lookup or `search` for text-based discovery. The ATT&CK techniques
+    linked to this attack pattern are resolved into full objects with mitigations and detection
+    guidance; a pattern carrying no ATT&CK mapping resolves to none, and the technique-derived
+    layers are empty with it.
     If both fields are omitted, the endpoint returns HTTP 200 with no selected pattern and empty search
     results.
 
@@ -156,17 +169,28 @@ def sync(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this attack pattern (queried by CAPEC id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for attack pattern research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the attack pattern
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `network_context` *(opt-in)* — ASN, AS name, registration country and covering prefix for an IP
+      indicator, from the seeded iptoasn corpus (PDDL v1.0). A registration country, not geolocation.
+    - `domain_context` *(opt-in)* — RDAP registration facts for a domain, hostname or the host of a URL:
+      registration and expiration dates, domain age in days, registrar, registry and status codes.
+    - `listed_on` *(opt-in)* — every list carrying this value, unified across the curated MISP feed
+      caches and the seeded Spamhaus DROP / ASN-DROP corpora, each entry naming how it matched
+      (`exact`, `cidr`, or `asn`). MISP's own exact-value read is unchanged; CIDR and ASN matches are
+      what an exact-value cache cannot express.
 
     Args:
-        body (EnrichCAPECRequest): Look up or search attack patterns and resolve linked adversary
-            techniques.
+        body (EnrichCAPECRequest): Look up or search attack patterns and resolve their own ATT&CK
+            mappings into techniques.
+
+            A pattern carrying no ATT&CK mapping resolves to no techniques, and the layers derived
+            from
+            techniques are empty with it.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -189,11 +213,12 @@ async def asyncio_detailed(
 ) -> Response[Any | EnrichCAPECResponse]:
     """Enrich CAPEC
 
-     Look up or search attack patterns and resolve linked adversary techniques.
+     Look up or search attack patterns and resolve their own ATT&CK mappings into techniques.
 
-    Provide `capec_id` for a direct lookup or `search` for text-based discovery. Linked ATT&CK
-    techniques are resolved into full objects with mitigations and detection guidance, returned even
-    when the attack pattern has sparse data.
+    Provide `capec_id` for a direct lookup or `search` for text-based discovery. The ATT&CK techniques
+    linked to this attack pattern are resolved into full objects with mitigations and detection
+    guidance; a pattern carrying no ATT&CK mapping resolves to none, and the technique-derived
+    layers are empty with it.
     If both fields are omitted, the endpoint returns HTTP 200 with no selected pattern and empty search
     results.
 
@@ -209,17 +234,28 @@ async def asyncio_detailed(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this attack pattern (queried by CAPEC id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for attack pattern research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the attack pattern
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `network_context` *(opt-in)* — ASN, AS name, registration country and covering prefix for an IP
+      indicator, from the seeded iptoasn corpus (PDDL v1.0). A registration country, not geolocation.
+    - `domain_context` *(opt-in)* — RDAP registration facts for a domain, hostname or the host of a URL:
+      registration and expiration dates, domain age in days, registrar, registry and status codes.
+    - `listed_on` *(opt-in)* — every list carrying this value, unified across the curated MISP feed
+      caches and the seeded Spamhaus DROP / ASN-DROP corpora, each entry naming how it matched
+      (`exact`, `cidr`, or `asn`). MISP's own exact-value read is unchanged; CIDR and ASN matches are
+      what an exact-value cache cannot express.
 
     Args:
-        body (EnrichCAPECRequest): Look up or search attack patterns and resolve linked adversary
-            techniques.
+        body (EnrichCAPECRequest): Look up or search attack patterns and resolve their own ATT&CK
+            mappings into techniques.
+
+            A pattern carrying no ATT&CK mapping resolves to no techniques, and the layers derived
+            from
+            techniques are empty with it.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -245,11 +281,12 @@ async def asyncio(
 ) -> Any | EnrichCAPECResponse | None:
     """Enrich CAPEC
 
-     Look up or search attack patterns and resolve linked adversary techniques.
+     Look up or search attack patterns and resolve their own ATT&CK mappings into techniques.
 
-    Provide `capec_id` for a direct lookup or `search` for text-based discovery. Linked ATT&CK
-    techniques are resolved into full objects with mitigations and detection guidance, returned even
-    when the attack pattern has sparse data.
+    Provide `capec_id` for a direct lookup or `search` for text-based discovery. The ATT&CK techniques
+    linked to this attack pattern are resolved into full objects with mitigations and detection
+    guidance; a pattern carrying no ATT&CK mapping resolves to none, and the technique-derived
+    layers are empty with it.
     If both fields are omitted, the endpoint returns HTTP 200 with no selected pattern and empty search
     results.
 
@@ -265,17 +302,28 @@ async def asyncio(
     - `mitigations` — defensive courses of action per technique
     - `detections` — detection data sources per technique
     - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked techniques
+    - `cves` — CVEs referencing this attack pattern (queried by CAPEC id, independent of the technique
+    layer)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for attack pattern research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated summary of the attack pattern
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `network_context` *(opt-in)* — ASN, AS name, registration country and covering prefix for an IP
+      indicator, from the seeded iptoasn corpus (PDDL v1.0). A registration country, not geolocation.
+    - `domain_context` *(opt-in)* — RDAP registration facts for a domain, hostname or the host of a URL:
+      registration and expiration dates, domain age in days, registrar, registry and status codes.
+    - `listed_on` *(opt-in)* — every list carrying this value, unified across the curated MISP feed
+      caches and the seeded Spamhaus DROP / ASN-DROP corpora, each entry naming how it matched
+      (`exact`, `cidr`, or `asn`). MISP's own exact-value read is unchanged; CIDR and ASN matches are
+      what an exact-value cache cannot express.
 
     Args:
-        body (EnrichCAPECRequest): Look up or search attack patterns and resolve linked adversary
-            techniques.
+        body (EnrichCAPECRequest): Look up or search attack patterns and resolve their own ATT&CK
+            mappings into techniques.
+
+            A pattern carrying no ATT&CK mapping resolves to no techniques, and the layers derived
+            from
+            techniques are empty with it.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

@@ -1,6 +1,6 @@
 [project]
 name = "crimson-crawler-client"
-version = "4.1.1"
+version = "5.0.0"
 description = "Typed Python client for the Crimson Crawler API"
 dynamic = ["readme"]  # supplied by hatch_build.py:PackagedReadmeUrls
 requires-python = ">=3.11"
@@ -36,7 +36,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-cov>=7",
     "mypy>=1.19,<2",
-    "openapi-python-client>=0.28.3",
+    "openapi-python-client>=0.29.1",
     "hatchling>=1.27,<2",
     "twine==6.2.0",
 ]
@@ -116,3 +116,11 @@ select = ["E", "F", "I", "W"]
 # different section per environment, so identical code passed locally and failed
 # `ruff-check:docker` with I001. Pinning it here makes the gate environment-independent.
 known-first-party = ["crimson_crawler_client"]
+
+[tool.uv]
+# Security floor for a transitive dep (CC-9.1 pattern used by the root pyproject):
+# certifi arrives via httpx. The lock is the pin; this floor keeps a re-lock from
+# silently resolving a certifi below the advisory fix (GHSA-6q48-6c7w-9gw2).
+constraint-dependencies = [
+    "certifi>=2026.10.19",
+]

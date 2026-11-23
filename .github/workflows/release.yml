@@ -112,6 +112,7 @@ jobs:
       # malformed serialNumber, a scan-directory subject, an empty inventory, or a
       # missing declared runtime dependency.
       - name: Validate and normalize SBOM
+        shell: bash
         run: |
           python scripts/normalize-public-sbom.py SBOM.raw.cdx.json SBOM.cdx.json \
             --expect-component crimson-crawler-client \

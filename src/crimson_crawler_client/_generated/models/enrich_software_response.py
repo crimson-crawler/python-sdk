@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from ..models.nist_control_mapping import NistControlMapping
     from ..models.software_detail import SoftwareDetail
     from ..models.threat_prediction import ThreatPrediction
-    from ..models.web_result import WebResult
 
 
 T = TypeVar("T", bound="EnrichSoftwareResponse")
@@ -36,10 +35,15 @@ class EnrichSoftwareResponse:
         campaigns (list[CampaignDetail] | Unset): Threat campaigns that used the linked techniques
         cves (list[CVEMiniDetail] | Unset): CVEs linked to this software's techniques
         defend (list[D3FENDDetail] | Unset): D3FEND defensive techniques and countermeasures for the linked ATT&CK
-            techniques
+            techniques. The default form omits each row's `description`, `aliases`, STIX `pattern` and `stix_id`; request
+            include=['defend_full'] for them. The STIX licence marking (`object_marking_refs`) is kept in both forms.
         detections (list[DetectionDetail] | Unset): Detection data sources and components for the linked techniques
         errors (list[ErrorDetail] | Unset): Partial failure details
         groups (list[GroupDetail] | Unset): Threat actor groups known to use the linked techniques
+        identifier_resolved (bool | None | Unset): Whether a direct-lookup identifier resolved to a record. `false`
+            means the id was not found, so every layer below is empty for that reason rather than because the record exists
+            and has no data — the two were previously indistinguishable. `null` when the request used `search` instead of an
+            id (a legitimate no-match), or when the include set meant the lookup was never attempted.
         knowledgebase (list[KnowledgebaseResult] | Unset): Related intelligence from the knowledge base
         misp (list[MISPEvent] | Unset): Threat events referencing this software
         mitigations (list[MitigationDetail] | Unset): Defensive mitigations for the linked techniques
@@ -52,7 +56,6 @@ class EnrichSoftwareResponse:
         search_results (list[SoftwareDetail] | Unset): Matching software (when searched by text)
         software (None | SoftwareDetail | Unset): Software profile (when looked up by ID)
         summary (None | str | Unset): AI-generated summary of the software profile
-        web (list[WebResult] | Unset): Web search results for this software
     """
 
     campaigns: list[CampaignDetail] | Unset = UNSET
@@ -61,6 +64,7 @@ class EnrichSoftwareResponse:
     detections: list[DetectionDetail] | Unset = UNSET
     errors: list[ErrorDetail] | Unset = UNSET
     groups: list[GroupDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
     misp: list[MISPEvent] | Unset = UNSET
     mitigations: list[MitigationDetail] | Unset = UNSET
@@ -70,24 +74,24 @@ class EnrichSoftwareResponse:
     search_results: list[SoftwareDetail] | Unset = UNSET
     software: None | SoftwareDetail | Unset = UNSET
     summary: None | str | Unset = UNSET
-    web: list[WebResult] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.enrich_software_response_navigator_type_0 import EnrichSoftwareResponseNavigatorType0
-        from ..models.error_detail import ErrorDetail
-        from ..models.group_detail import GroupDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.misp_event import MISPEvent
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.threat_prediction import ThreatPrediction
-        from ..models.web_result import WebResult
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.enrich_software_response_navigator_type_0 import (
+            EnrichSoftwareResponseNavigatorType0,  # noqa: PLC0415
+        )
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.misp_event import MISPEvent  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         campaigns: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.campaigns, Unset):
@@ -130,6 +134,12 @@ class EnrichSoftwareResponse:
             for groups_item_data in self.groups:
                 groups_item = groups_item_data.to_dict()
                 groups.append(groups_item)
+
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
 
         knowledgebase: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.knowledgebase, Unset):
@@ -195,13 +205,6 @@ class EnrichSoftwareResponse:
         else:
             summary = self.summary
 
-        web: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.web, Unset):
-            web = []
-            for web_item_data in self.web:
-                web_item = web_item_data.to_dict()
-                web.append(web_item)
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -217,6 +220,8 @@ class EnrichSoftwareResponse:
             field_dict["errors"] = errors
         if groups is not UNSET:
             field_dict["groups"] = groups
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
         if knowledgebase is not UNSET:
             field_dict["knowledgebase"] = knowledgebase
         if misp is not UNSET:
@@ -235,27 +240,26 @@ class EnrichSoftwareResponse:
             field_dict["software"] = software
         if summary is not UNSET:
             field_dict["summary"] = summary
-        if web is not UNSET:
-            field_dict["web"] = web
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.cve_mini_detail import CVEMiniDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.enrich_software_response_navigator_type_0 import EnrichSoftwareResponseNavigatorType0
-        from ..models.error_detail import ErrorDetail
-        from ..models.group_detail import GroupDetail
-        from ..models.knowledgebase_result import KnowledgebaseResult
-        from ..models.misp_event import MISPEvent
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.threat_prediction import ThreatPrediction
-        from ..models.web_result import WebResult
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.cve_mini_detail import CVEMiniDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.enrich_software_response_navigator_type_0 import (
+            EnrichSoftwareResponseNavigatorType0,  # noqa: PLC0415
+        )
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.knowledgebase_result import KnowledgebaseResult  # noqa: PLC0415
+        from ..models.misp_event import MISPEvent  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         d = dict(src_dict)
         _campaigns = d.pop("campaigns", UNSET)
@@ -311,6 +315,15 @@ class EnrichSoftwareResponse:
                 groups_item = GroupDetail.from_dict(groups_item_data)
 
                 groups.append(groups_item)
+
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
 
         _knowledgebase = d.pop("knowledgebase", UNSET)
         knowledgebase: list[KnowledgebaseResult] | Unset = UNSET
@@ -409,15 +422,6 @@ class EnrichSoftwareResponse:
 
         summary = _parse_summary(d.pop("summary", UNSET))
 
-        _web = d.pop("web", UNSET)
-        web: list[WebResult] | Unset = UNSET
-        if _web is not UNSET:
-            web = []
-            for web_item_data in _web:
-                web_item = WebResult.from_dict(web_item_data)
-
-                web.append(web_item)
-
         enrich_software_response = cls(
             campaigns=campaigns,
             cves=cves,
@@ -425,6 +429,7 @@ class EnrichSoftwareResponse:
             detections=detections,
             errors=errors,
             groups=groups,
+            identifier_resolved=identifier_resolved,
             knowledgebase=knowledgebase,
             misp=misp,
             mitigations=mitigations,
@@ -434,7 +439,6 @@ class EnrichSoftwareResponse:
             search_results=search_results,
             software=software,
             summary=summary,
-            web=web,
         )
 
         enrich_software_response.additional_properties = d

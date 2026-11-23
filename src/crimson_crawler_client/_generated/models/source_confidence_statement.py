@@ -23,27 +23,25 @@ class SourceConfidenceStatement:
     Attributes:
         overall_confidence (SourceConfidenceStatementOverallConfidence): Overall analytic confidence across the report
         coverage_caveats (list[str] | Unset): Known coverage gaps (e.g. sparse CAPEC→ATT&CK edges)
-        deterministic (bool | Unset): Always true; the judgment path is deterministic Default: True.
         grade_distribution (SourceConfidenceStatementGradeDistribution | Unset): Count of references per Admiralty grade
             (e.g. {'A1': 3, 'B2': 5})
     """
 
     overall_confidence: SourceConfidenceStatementOverallConfidence
     coverage_caveats: list[str] | Unset = UNSET
-    deterministic: bool | Unset = True
     grade_distribution: SourceConfidenceStatementGradeDistribution | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.source_confidence_statement_grade_distribution import SourceConfidenceStatementGradeDistribution
+        from ..models.source_confidence_statement_grade_distribution import (
+            SourceConfidenceStatementGradeDistribution,  # noqa: PLC0415
+        )
 
         overall_confidence = self.overall_confidence.value
 
         coverage_caveats: list[str] | Unset = UNSET
         if not isinstance(self.coverage_caveats, Unset):
             coverage_caveats = self.coverage_caveats
-
-        deterministic = self.deterministic
 
         grade_distribution: dict[str, Any] | Unset = UNSET
         if not isinstance(self.grade_distribution, Unset):
@@ -58,8 +56,6 @@ class SourceConfidenceStatement:
         )
         if coverage_caveats is not UNSET:
             field_dict["coverage_caveats"] = coverage_caveats
-        if deterministic is not UNSET:
-            field_dict["deterministic"] = deterministic
         if grade_distribution is not UNSET:
             field_dict["grade_distribution"] = grade_distribution
 
@@ -67,14 +63,14 @@ class SourceConfidenceStatement:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.source_confidence_statement_grade_distribution import SourceConfidenceStatementGradeDistribution
+        from ..models.source_confidence_statement_grade_distribution import (
+            SourceConfidenceStatementGradeDistribution,  # noqa: PLC0415
+        )
 
         d = dict(src_dict)
         overall_confidence = SourceConfidenceStatementOverallConfidence(d.pop("overall_confidence"))
 
         coverage_caveats = cast(list[str], d.pop("coverage_caveats", UNSET))
-
-        deterministic = d.pop("deterministic", UNSET)
 
         _grade_distribution = d.pop("grade_distribution", UNSET)
         grade_distribution: SourceConfidenceStatementGradeDistribution | Unset
@@ -86,7 +82,6 @@ class SourceConfidenceStatement:
         source_confidence_statement = cls(
             overall_confidence=overall_confidence,
             coverage_caveats=coverage_caveats,
-            deterministic=deterministic,
             grade_distribution=grade_distribution,
         )
 

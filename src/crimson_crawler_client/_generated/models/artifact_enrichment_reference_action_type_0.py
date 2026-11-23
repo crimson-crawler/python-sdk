@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentReferenceActionType0(str, Enum):
+class ArtifactEnrichmentReferenceActionType0(StrEnum):
     BLOCK = "BLOCK"
     INFO = "INFO"
     PATCH = "PATCH"

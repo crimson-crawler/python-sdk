@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BatchTechniqueItemFramework(str, Enum):
+class BatchTechniqueItemFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

@@ -93,6 +93,9 @@ def sync_detailed(
     - `cves` — CVEs known to map to any of the assessed techniques (reverse lookup, capped)
     - `coverage_score` — mitigation/detection coverage percentages plus uncovered technique list
     - `summary` — AI-generated coverage-gap brief covering mitigations and high-priority gaps
+    - `asset_classes` — targeted ICS asset classes and their inverse technique links (ICS framework
+    only)
+    - `cisa_campaigns` — CISA joint advisories naming the assessed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the assessed
       techniques, based on MITRE Center for Threat-Informed Defense mappings
 
@@ -141,6 +144,9 @@ def sync(
     - `cves` — CVEs known to map to any of the assessed techniques (reverse lookup, capped)
     - `coverage_score` — mitigation/detection coverage percentages plus uncovered technique list
     - `summary` — AI-generated coverage-gap brief covering mitigations and high-priority gaps
+    - `asset_classes` — targeted ICS asset classes and their inverse technique links (ICS framework
+    only)
+    - `cisa_campaigns` — CISA joint advisories naming the assessed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the assessed
       techniques, based on MITRE Center for Threat-Informed Defense mappings
 
@@ -184,6 +190,9 @@ async def asyncio_detailed(
     - `cves` — CVEs known to map to any of the assessed techniques (reverse lookup, capped)
     - `coverage_score` — mitigation/detection coverage percentages plus uncovered technique list
     - `summary` — AI-generated coverage-gap brief covering mitigations and high-priority gaps
+    - `asset_classes` — targeted ICS asset classes and their inverse technique links (ICS framework
+    only)
+    - `cisa_campaigns` — CISA joint advisories naming the assessed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the assessed
       techniques, based on MITRE Center for Threat-Informed Defense mappings
 
@@ -230,6 +239,9 @@ async def asyncio(
     - `cves` — CVEs known to map to any of the assessed techniques (reverse lookup, capped)
     - `coverage_score` — mitigation/detection coverage percentages plus uncovered technique list
     - `summary` — AI-generated coverage-gap brief covering mitigations and high-priority gaps
+    - `asset_classes` — targeted ICS asset classes and their inverse technique links (ICS framework
+    only)
+    - `cisa_campaigns` — CISA joint advisories naming the assessed techniques
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the assessed
       techniques, based on MITRE Center for Threat-Informed Defense mappings
 

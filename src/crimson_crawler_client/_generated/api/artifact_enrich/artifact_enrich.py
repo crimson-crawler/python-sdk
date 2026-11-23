@@ -97,9 +97,17 @@ def sync_detailed(
     Decisions, scores, grades, references, and prioritized actions are always returned. The allowed
     section names and export formats are defined in the request schema.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    `tlp` marks the exports that carry a marking. Omit it and the run uses your saved Artifact Enricher
+    default (`/artifact-manager/settings`); an explicit `tlp` always wins.
+
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -154,9 +162,17 @@ def sync(
     Decisions, scores, grades, references, and prioritized actions are always returned. The allowed
     section names and export formats are defined in the request schema.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    `tlp` marks the exports that carry a marking. Omit it and the run uses your saved Artifact Enricher
+    default (`/artifact-manager/settings`); an explicit `tlp` always wins.
+
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -206,9 +222,17 @@ async def asyncio_detailed(
     Decisions, scores, grades, references, and prioritized actions are always returned. The allowed
     section names and export formats are defined in the request schema.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    `tlp` marks the exports that carry a marking. Omit it and the run uses your saved Artifact Enricher
+    default (`/artifact-manager/settings`); an explicit `tlp` always wins.
+
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -261,9 +285,17 @@ async def asyncio(
     Decisions, scores, grades, references, and prioritized actions are always returned. The allowed
     section names and export formats are defined in the request schema.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    `tlp` marks the exports that carry a marking. Omit it and the run uses your saved Artifact Enricher
+    default (`/artifact-manager/settings`); an explicit `tlp` always wins.
+
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:

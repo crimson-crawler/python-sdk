@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionTechnicalImpact(str, Enum):
+class SSVCDecisionTechnicalImpact(StrEnum):
     PARTIAL = "partial"
     TOTAL = "total"
 

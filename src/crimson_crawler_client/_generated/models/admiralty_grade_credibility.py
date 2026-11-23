@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AdmiraltyGradeCredibility(str, Enum):
+class AdmiraltyGradeCredibility(StrEnum):
     VALUE_0 = "1"
     VALUE_1 = "2"
     VALUE_2 = "3"

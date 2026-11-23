@@ -50,8 +50,8 @@ class RiskSummary:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.risk_summary_top_cwes_item import RiskSummaryTopCwesItem
-        from ..models.risk_summary_top_techniques_item import RiskSummaryTopTechniquesItem
+        from ..models.risk_summary_top_cwes_item import RiskSummaryTopCwesItem  # noqa: PLC0415
+        from ..models.risk_summary_top_techniques_item import RiskSummaryTopTechniquesItem  # noqa: PLC0415
 
         avg_weaponization: float | None | Unset
         if isinstance(self.avg_weaponization, Unset):
@@ -127,8 +127,8 @@ class RiskSummary:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.risk_summary_top_cwes_item import RiskSummaryTopCwesItem
-        from ..models.risk_summary_top_techniques_item import RiskSummaryTopTechniquesItem
+        from ..models.risk_summary_top_cwes_item import RiskSummaryTopCwesItem  # noqa: PLC0415
+        from ..models.risk_summary_top_techniques_item import RiskSummaryTopTechniquesItem  # noqa: PLC0415
 
         d = dict(src_dict)
 

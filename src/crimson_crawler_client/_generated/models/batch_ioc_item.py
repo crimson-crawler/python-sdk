@@ -22,12 +22,33 @@ class BatchIOCItem:
 
         Attributes:
             value (str): Indicator value (IP address, hash, domain, etc.)
-            include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-                cves, defend, detections, galaxies, groups, inferred_chain, knowledgebase, misp_attributes, mitigations,
-                navigator, nist_controls, poc, sightings, software, summary, techniques, tie, warninglist, web, web_scrape.
+            include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values:
+                analytic_details, campaigns, cisa_campaigns, cves, defend, detections, domain_context, galaxies,
+                galaxy_clusters_full, groups, hashlookup, inferred_chain, knowledgebase, listed_on, log_sources,
+                misp_attributes, mitigations, navigator, network_context, nist_controls, poc, sightings, software, summary,
+                techniques, tie, warninglist. `galaxy_clusters_full` returns cluster profiles with inbound relations; the
+                30-cluster fetch cap remains. `network_context` adds ASN / AS name / registration country / covering prefix from
+                the seeded iptoasn corpus (IP values only). `domain_context` adds RDAP registration facts (registration and
+                expiry dates, age in days, registrar, status) for a domain, hostname, or the host of a URL. `listed_on` unifies
+                every list hit into one ledger — curated MISP feed caches plus the seeded Spamhaus DROP / ASN-DROP corpora — and
+                is the only field that can report a `cidr` or `asn` match. `analytic_details` attaches each detection analytic's
+                tunable fields and log sources. The technique-derived layers (analytic_details, campaigns, defend, detections,
+                groups, log_sources, mitigations, navigator, nist_controls, software, techniques, tie) read the MISP attributes'
+                galaxy tags, so each resolves that read for itself and answers without `misp_attributes` in the same request —
+                while `misp_attributes` is still what publishes that section. `defend` reaches its countermeasures through the
+                technique's ATT&CK mitigations — the corpus links D3FEND to mitigations, never directly to a technique — and
+                reports `error: "no_mapping"` only where that join finds none. `hashlookup` attaches `hashlookup` — the CIRCL
+                hashlookup / NSRL known-good verdict — and is answered only for the hash types (md5, sha1, sha256); every other
+                type returns null and makes no request. `cisa_campaigns` attaches `cisa_campaigns[]` — the CISA joint
+                cybersecurity advisories (AA-series) whose STIX bundle publishes this indicator, each carrying the matching
+                observables in `matched_indicators`; matching is on the normalised observable type (`ip-src`/`ip-dst`/`ip` →
+                IPv4/IPv6, `hostname` → domain, case-insensitive hashes and domains) and is exact, never a substring or a URL
+                host of a domain.
             type_ (Literal['ioc'] | Unset): Selects IOC enrichment for this batch item Default: 'ioc'.
             value_type (str | Unset): Indicator type. Common values: ip-dst, ip-src, domain, hostname, md5, sha1, sha256,
-                url, email Default: 'ip-dst'.
+                url, email. `ip-src` and `ip-dst` both search BOTH IP directions — an address is one indicator however the
+                source labelled it — and `ip` is an alias for that same both-direction search. Which directions matched is
+                reported as `matched_value_types`. Default: 'ip-dst'.
     """
 
     value: str

@@ -27,6 +27,7 @@ import hashlib
 import json
 import re
 import tarfile
+import tomllib
 import uuid
 import zipfile
 from email.parser import Parser
@@ -101,26 +102,90 @@ def read_npm_metadata(tarball: Path) -> tuple[str, str, list[str]]:
     return name, version, sorted(manifest.get("dependencies") or {})
 
 
-def resolve_uv_lock_versions(lock: Path, wanted: list[str]) -> dict[str, str]:
-    """Map dependency name to the concrete version pinned in a `uv.lock`."""
-    text = lock.read_text()
-    resolved: dict[str, str] = {}
-    for name in wanted:
-        match = re.search(rf'\[\[package\]\]\nname = "{re.escape(name)}"\nversion = "([^"]+)"', text)
-        if match:
-            resolved[name] = match.group(1)
-    return resolved
+def _walk(roots: list[str], edges: dict[str, list[str]], known: set[str]) -> set[str]:
+    """Return the transitive closure of ``roots`` over ``edges``, restricted to ``known``.
+
+    Iterative, and guarded by the visited set: dependency graphs contain cycles
+    (dev tooling especially), and a recursive walk would blow the stack on one.
+    """
+    seen: set[str] = set()
+    stack = list(roots)
+    while stack:
+        node = stack.pop()
+        if node in seen or node not in known:
+            continue
+        seen.add(node)
+        stack.extend(edges.get(node, ()))
+    return seen
 
 
-def resolve_npm_lock_versions(lock: Path, wanted: list[str]) -> dict[str, str]:
-    """Map dependency name to the concrete version pinned in a `package-lock.json`."""
-    packages = (json.loads(lock.read_text()).get("packages") or {}).items()
-    resolved: dict[str, str] = {}
-    for name in wanted:
-        entry = dict(packages).get(f"node_modules/{name}")
-        if isinstance(entry, dict) and isinstance(entry.get("version"), str):
-            resolved[name] = entry["version"]
-    return resolved
+def resolve_uv_lock_graph(lock: Path, root: str) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Return ``(name -> version, name -> runtime deps)`` for a `uv.lock` runtime closure.
+
+    Parsed with ``tomllib`` rather than a regex over the raw text. The previous
+    regex could only answer "what version is package X pinned at"; the edges are
+    what make the closure and the CycloneDX ``dependencies`` graph possible.
+
+    **Dev exclusion is structural, not a filter.** Only ``[[package]].dependencies``
+    edges are traversed, and dev tooling is reachable exclusively through
+    ``dev-dependencies`` / ``metadata.requires-dev``, so it can never enter the
+    closure. That is stronger than name-matching a denylist: a new dev dependency
+    is excluded automatically, with nothing to keep in sync.
+
+    Marker-gated dependencies (``sys_platform``, ``python_full_version``) ARE
+    included. An SBOM describes what the package may install, and resolving
+    markers would require choosing a target platform the document does not have.
+    """
+    data = tomllib.loads(lock.read_text())
+    packages = data.get("package") or []
+
+    versions: dict[str, str] = {}
+    edges: dict[str, list[str]] = {}
+    for entry in packages:
+        name = entry.get("name")
+        if not isinstance(name, str):
+            continue
+        if isinstance(entry.get("version"), str):
+            versions[name] = entry["version"]
+        deps = entry.get("dependencies") or []
+        edges[name] = sorted({d["name"] for d in deps if isinstance(d, dict) and isinstance(d.get("name"), str)})
+
+    if root not in versions:
+        raise SbomGenerationError(f"{lock}: no [[package]] entry named {root!r} — cannot root the runtime closure")
+
+    reachable = _walk(edges.get(root, []), edges, set(versions))
+    return {n: versions[n] for n in reachable}, {n: edges.get(n, []) for n in reachable}
+
+
+def resolve_npm_lock_graph(lock: Path, root: str) -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Return ``(name -> version, name -> runtime deps)`` for a `package-lock.json` closure.
+
+    npm marks every entry reachable only from ``devDependencies`` with ``dev: true``,
+    so that flag *is* the runtime projection — computed by npm's own resolver, which
+    is more trustworthy than re-deriving it here. Entries are additionally reachable
+    from the root's ``dependencies`` to catch a stale flag.
+
+    The vast majority of a front-end lock is dev tooling: at the time this was
+    written 306 of 308 entries in `client-ts/package-lock.json` carried ``dev: true``.
+    Emitting those would assert that `vitest` and `eslint` ship inside the published
+    package — affirmatively false, and worse than under-reporting.
+    """
+    packages = json.loads(lock.read_text()).get("packages") or {}
+
+    versions: dict[str, str] = {}
+    edges: dict[str, list[str]] = {}
+    for key, entry in packages.items():
+        if not key or not isinstance(entry, dict) or entry.get("dev"):
+            continue
+        name = key.split("node_modules/")[-1]
+        if isinstance(entry.get("version"), str):
+            versions[name] = entry["version"]
+        edges[name] = sorted(entry.get("dependencies") or {})
+
+    root_entry = packages.get("") or {}
+    roots = sorted(root_entry.get("dependencies") or {})
+    reachable = _walk(roots, edges, set(versions))
+    return {n: versions[n] for n in reachable}, {n: edges.get(n, []) for n in reachable}
 
 
 def build_sbom(
@@ -129,8 +194,16 @@ def build_sbom(
     version: str,
     dependencies: list[str],
     resolved: dict[str, str],
+    edges: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
-    """Assemble the CycloneDX document, then stamp its content-derived serial."""
+    """Assemble the CycloneDX document, then stamp its content-derived serial.
+
+    ``dependencies`` are the package's DIRECT runtime requirements (from wheel
+    METADATA / package.json); ``resolved`` is the full runtime closure from the
+    lockfile. The direct set must be a subset of the closure — if it is not, the
+    lockfile does not describe the artifact being shipped, and emitting anyway
+    would attest to an inventory that never existed.
+    """
     missing = sorted(set(dependencies) - set(resolved))
     if missing:
         raise SbomGenerationError(
@@ -138,16 +211,21 @@ def build_sbom(
             "The SBOM must carry concrete versions, so refusing to emit an incomplete inventory."
         )
 
+    edges = edges or {}
     subject_ref = f"pkg:{ecosystem}/{name}@{version}"
+
+    def ref(dep: str) -> str:
+        return f"pkg:{ecosystem}/{dep}@{resolved[dep]}"
+
     components = [
         {
             "type": "library",
-            "bom-ref": f"pkg:{ecosystem}/{dep}@{resolved[dep]}",
+            "bom-ref": ref(dep),
             "name": dep,
             "version": resolved[dep],
-            "purl": f"pkg:{ecosystem}/{dep}@{resolved[dep]}",
+            "purl": ref(dep),
         }
-        for dep in sorted(dependencies)
+        for dep in sorted(resolved)
     ]
     document: dict[str, Any] = {
         "$schema": CYCLONEDX_SCHEMA,
@@ -167,9 +245,16 @@ def build_sbom(
             },
         },
         "components": components,
+        # Real edges, so an SCA tool can tell a direct dependency from a transitive
+        # one. The root depends on the DIRECT set only; every other edge comes from
+        # the lockfile. A flat "root dependsOn everything" graph would make the
+        # larger document merely bigger, not more useful.
         "dependencies": [
-            {"ref": subject_ref, "dependsOn": [c["bom-ref"] for c in components]},
-            *({"ref": c["bom-ref"], "dependsOn": []} for c in components),
+            {"ref": subject_ref, "dependsOn": [ref(d) for d in sorted(dependencies)]},
+            *(
+                {"ref": ref(dep), "dependsOn": [ref(d) for d in sorted(edges.get(dep, [])) if d in resolved]}
+                for dep in sorted(resolved)
+            ),
         ],
     }
     document["serialNumber"] = _content_serial(document)
@@ -189,13 +274,23 @@ def main() -> int:
         if args.wheel is not None:
             ecosystem = "pypi"
             name, version, dependencies = read_wheel_metadata(args.wheel)
-            resolved = resolve_uv_lock_versions(args.lock, dependencies)
+            # Root the closure at the package's own [[package]] entry. uv.lock uses
+            # normalised (hyphenated) names, which is what the wheel METADATA
+            # `Name:` field already carries for these packages.
+            resolved, edges = resolve_uv_lock_graph(args.lock, name)
         else:
             ecosystem = "npm"
             name, version, dependencies = read_npm_metadata(args.npm_tarball)
-            resolved = resolve_npm_lock_versions(args.lock, dependencies)
-        document = build_sbom(ecosystem, name, version, dependencies, resolved)
-    except (SbomGenerationError, OSError, json.JSONDecodeError, zipfile.BadZipFile, tarfile.TarError) as exc:
+            resolved, edges = resolve_npm_lock_graph(args.lock, name)
+        document = build_sbom(ecosystem, name, version, dependencies, resolved, edges)
+    except (
+        SbomGenerationError,
+        OSError,
+        json.JSONDecodeError,
+        tomllib.TOMLDecodeError,
+        zipfile.BadZipFile,
+        tarfile.TarError,
+    ) as exc:
         raise SystemExit(f"unable to generate SBOM: {exc}") from exc
 
     args.output.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n")

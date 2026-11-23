@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentJobResponseStatus(str, Enum):
+class ArtifactEnrichmentJobResponseStatus(StrEnum):
     DONE = "done"
     ERROR = "error"
     QUEUED = "queued"

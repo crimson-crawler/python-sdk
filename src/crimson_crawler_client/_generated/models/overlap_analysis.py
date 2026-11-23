@@ -38,8 +38,10 @@ class OverlapAnalysis:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.overlap_analysis_tactic_coverage_per_group import OverlapAnalysisTacticCoveragePerGroup
-        from ..models.overlap_analysis_unique_per_group import OverlapAnalysisUniquePerGroup
+        from ..models.overlap_analysis_tactic_coverage_per_group import (
+            OverlapAnalysisTacticCoveragePerGroup,  # noqa: PLC0415
+        )
+        from ..models.overlap_analysis_unique_per_group import OverlapAnalysisUniquePerGroup  # noqa: PLC0415
 
         combined_unique = self.combined_unique
 
@@ -81,8 +83,10 @@ class OverlapAnalysis:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.overlap_analysis_tactic_coverage_per_group import OverlapAnalysisTacticCoveragePerGroup
-        from ..models.overlap_analysis_unique_per_group import OverlapAnalysisUniquePerGroup
+        from ..models.overlap_analysis_tactic_coverage_per_group import (
+            OverlapAnalysisTacticCoveragePerGroup,  # noqa: PLC0415
+        )
+        from ..models.overlap_analysis_unique_per_group import OverlapAnalysisUniquePerGroup  # noqa: PLC0415
 
         d = dict(src_dict)
         combined_unique = d.pop("combined_unique", UNSET)

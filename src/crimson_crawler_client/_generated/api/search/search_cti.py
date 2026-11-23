@@ -81,21 +81,28 @@ def sync_detailed(
      Search across multiple threat intelligence knowledge bases simultaneously.
 
     Searches the knowledge bases selected in `sources`, including ATT&CK, CWE, CAPEC, ATLAS,
-    DISARM, location, and sector records. Each result has a canonical `_source` label. Use
-    `types` to restrict compatible object types within the selected sources.
+    DISARM, F3, CLOAK, location, and sector records. Each result has a canonical `_source` label.
+    Use `types` to restrict compatible object types within the selected sources.
 
     **Sources**
 
-    - `attack` — ATT&CK Enterprise techniques
-    - `attack-enterprise` — ATT&CK Enterprise techniques
-    - `attack-ics` — ATT&CK ICS techniques
-    - `attack-mobile` — ATT&CK Mobile techniques
+    - `attack` — ATT&CK Enterprise objects
+    - `attack-enterprise` — ATT&CK Enterprise objects
+    - `attack-ics` — ATT&CK ICS objects
+    - `attack-mobile` — ATT&CK Mobile objects
     - `cwe` — CWE weaknesses
     - `capec` — CAPEC attack patterns
     - `atlas` — MITRE ATLAS adversarial ML techniques
     - `disarm` — DISARM influence-operation techniques
+    - `f3` — MITRE Fight Fraud Framework (F3) financial-crime techniques
+    - `cloak` — CLOAK concealment layers for online anonymity
     - `location` — geographic threat-landscape entries
     - `sector` — industry-sector threat profiles
+
+    An ATT&CK matrix source is not techniques-only: the same `attack` search also returns Analytics
+    (`AN####`, e.g. "Analytic 0292") and tactic rows, and neither belongs to a `types` value the
+    filter accepts, so they cannot be excluded. Filter on the row's own id prefix (or on
+    `_source` + the presence of `technique_id`) if you need techniques alone.
 
     **Type filters**
 
@@ -107,7 +114,13 @@ def sync_detailed(
     - `weakness` — CWE weaknesses
     - `course-of-action` — mitigations and countermeasures
 
-    Each result carries a relevance score. The `errors` array reports any partial failures.
+    Each result is tagged with its knowledge base in `_source`. Results arrive in the knowledge base's
+    own ranking order; no relevance score is attached. The former `relevance_score` was a function
+    of the row's position **on its page** — 1.0 for the first row of every page, 0.5 for the last, so
+    page 2's worst row could outrank page 1's best and tightening `limit` inflated the top rows
+    (measured 2026-09-13: T1558.002 read 0.60 / 0.80 / 0.90 at `limit` 5 / 10 / 20, and the first row
+    of pages 1, 2 and 3 all read 1.0). Removed rather than left as a rank dressed up as a similarity.
+    The `errors` array reports any partial failures.
 
     Args:
         body (SearchCTIRequest): Search across multiple threat intelligence knowledge bases
@@ -142,21 +155,28 @@ def sync(
      Search across multiple threat intelligence knowledge bases simultaneously.
 
     Searches the knowledge bases selected in `sources`, including ATT&CK, CWE, CAPEC, ATLAS,
-    DISARM, location, and sector records. Each result has a canonical `_source` label. Use
-    `types` to restrict compatible object types within the selected sources.
+    DISARM, F3, CLOAK, location, and sector records. Each result has a canonical `_source` label.
+    Use `types` to restrict compatible object types within the selected sources.
 
     **Sources**
 
-    - `attack` — ATT&CK Enterprise techniques
-    - `attack-enterprise` — ATT&CK Enterprise techniques
-    - `attack-ics` — ATT&CK ICS techniques
-    - `attack-mobile` — ATT&CK Mobile techniques
+    - `attack` — ATT&CK Enterprise objects
+    - `attack-enterprise` — ATT&CK Enterprise objects
+    - `attack-ics` — ATT&CK ICS objects
+    - `attack-mobile` — ATT&CK Mobile objects
     - `cwe` — CWE weaknesses
     - `capec` — CAPEC attack patterns
     - `atlas` — MITRE ATLAS adversarial ML techniques
     - `disarm` — DISARM influence-operation techniques
+    - `f3` — MITRE Fight Fraud Framework (F3) financial-crime techniques
+    - `cloak` — CLOAK concealment layers for online anonymity
     - `location` — geographic threat-landscape entries
     - `sector` — industry-sector threat profiles
+
+    An ATT&CK matrix source is not techniques-only: the same `attack` search also returns Analytics
+    (`AN####`, e.g. "Analytic 0292") and tactic rows, and neither belongs to a `types` value the
+    filter accepts, so they cannot be excluded. Filter on the row's own id prefix (or on
+    `_source` + the presence of `technique_id`) if you need techniques alone.
 
     **Type filters**
 
@@ -168,7 +188,13 @@ def sync(
     - `weakness` — CWE weaknesses
     - `course-of-action` — mitigations and countermeasures
 
-    Each result carries a relevance score. The `errors` array reports any partial failures.
+    Each result is tagged with its knowledge base in `_source`. Results arrive in the knowledge base's
+    own ranking order; no relevance score is attached. The former `relevance_score` was a function
+    of the row's position **on its page** — 1.0 for the first row of every page, 0.5 for the last, so
+    page 2's worst row could outrank page 1's best and tightening `limit` inflated the top rows
+    (measured 2026-09-13: T1558.002 read 0.60 / 0.80 / 0.90 at `limit` 5 / 10 / 20, and the first row
+    of pages 1, 2 and 3 all read 1.0). Removed rather than left as a rank dressed up as a similarity.
+    The `errors` array reports any partial failures.
 
     Args:
         body (SearchCTIRequest): Search across multiple threat intelligence knowledge bases
@@ -198,21 +224,28 @@ async def asyncio_detailed(
      Search across multiple threat intelligence knowledge bases simultaneously.
 
     Searches the knowledge bases selected in `sources`, including ATT&CK, CWE, CAPEC, ATLAS,
-    DISARM, location, and sector records. Each result has a canonical `_source` label. Use
-    `types` to restrict compatible object types within the selected sources.
+    DISARM, F3, CLOAK, location, and sector records. Each result has a canonical `_source` label.
+    Use `types` to restrict compatible object types within the selected sources.
 
     **Sources**
 
-    - `attack` — ATT&CK Enterprise techniques
-    - `attack-enterprise` — ATT&CK Enterprise techniques
-    - `attack-ics` — ATT&CK ICS techniques
-    - `attack-mobile` — ATT&CK Mobile techniques
+    - `attack` — ATT&CK Enterprise objects
+    - `attack-enterprise` — ATT&CK Enterprise objects
+    - `attack-ics` — ATT&CK ICS objects
+    - `attack-mobile` — ATT&CK Mobile objects
     - `cwe` — CWE weaknesses
     - `capec` — CAPEC attack patterns
     - `atlas` — MITRE ATLAS adversarial ML techniques
     - `disarm` — DISARM influence-operation techniques
+    - `f3` — MITRE Fight Fraud Framework (F3) financial-crime techniques
+    - `cloak` — CLOAK concealment layers for online anonymity
     - `location` — geographic threat-landscape entries
     - `sector` — industry-sector threat profiles
+
+    An ATT&CK matrix source is not techniques-only: the same `attack` search also returns Analytics
+    (`AN####`, e.g. "Analytic 0292") and tactic rows, and neither belongs to a `types` value the
+    filter accepts, so they cannot be excluded. Filter on the row's own id prefix (or on
+    `_source` + the presence of `technique_id`) if you need techniques alone.
 
     **Type filters**
 
@@ -224,7 +257,13 @@ async def asyncio_detailed(
     - `weakness` — CWE weaknesses
     - `course-of-action` — mitigations and countermeasures
 
-    Each result carries a relevance score. The `errors` array reports any partial failures.
+    Each result is tagged with its knowledge base in `_source`. Results arrive in the knowledge base's
+    own ranking order; no relevance score is attached. The former `relevance_score` was a function
+    of the row's position **on its page** — 1.0 for the first row of every page, 0.5 for the last, so
+    page 2's worst row could outrank page 1's best and tightening `limit` inflated the top rows
+    (measured 2026-09-13: T1558.002 read 0.60 / 0.80 / 0.90 at `limit` 5 / 10 / 20, and the first row
+    of pages 1, 2 and 3 all read 1.0). Removed rather than left as a rank dressed up as a similarity.
+    The `errors` array reports any partial failures.
 
     Args:
         body (SearchCTIRequest): Search across multiple threat intelligence knowledge bases
@@ -257,21 +296,28 @@ async def asyncio(
      Search across multiple threat intelligence knowledge bases simultaneously.
 
     Searches the knowledge bases selected in `sources`, including ATT&CK, CWE, CAPEC, ATLAS,
-    DISARM, location, and sector records. Each result has a canonical `_source` label. Use
-    `types` to restrict compatible object types within the selected sources.
+    DISARM, F3, CLOAK, location, and sector records. Each result has a canonical `_source` label.
+    Use `types` to restrict compatible object types within the selected sources.
 
     **Sources**
 
-    - `attack` — ATT&CK Enterprise techniques
-    - `attack-enterprise` — ATT&CK Enterprise techniques
-    - `attack-ics` — ATT&CK ICS techniques
-    - `attack-mobile` — ATT&CK Mobile techniques
+    - `attack` — ATT&CK Enterprise objects
+    - `attack-enterprise` — ATT&CK Enterprise objects
+    - `attack-ics` — ATT&CK ICS objects
+    - `attack-mobile` — ATT&CK Mobile objects
     - `cwe` — CWE weaknesses
     - `capec` — CAPEC attack patterns
     - `atlas` — MITRE ATLAS adversarial ML techniques
     - `disarm` — DISARM influence-operation techniques
+    - `f3` — MITRE Fight Fraud Framework (F3) financial-crime techniques
+    - `cloak` — CLOAK concealment layers for online anonymity
     - `location` — geographic threat-landscape entries
     - `sector` — industry-sector threat profiles
+
+    An ATT&CK matrix source is not techniques-only: the same `attack` search also returns Analytics
+    (`AN####`, e.g. "Analytic 0292") and tactic rows, and neither belongs to a `types` value the
+    filter accepts, so they cannot be excluded. Filter on the row's own id prefix (or on
+    `_source` + the presence of `technique_id`) if you need techniques alone.
 
     **Type filters**
 
@@ -283,7 +329,13 @@ async def asyncio(
     - `weakness` — CWE weaknesses
     - `course-of-action` — mitigations and countermeasures
 
-    Each result carries a relevance score. The `errors` array reports any partial failures.
+    Each result is tagged with its knowledge base in `_source`. Results arrive in the knowledge base's
+    own ranking order; no relevance score is attached. The former `relevance_score` was a function
+    of the row's position **on its page** — 1.0 for the first row of every page, 0.5 for the last, so
+    page 2's worst row could outrank page 1's best and tightening `limit` inflated the top rows
+    (measured 2026-09-13: T1558.002 read 0.60 / 0.80 / 0.90 at `limit` 5 / 10 / 20, and the first row
+    of pages 1, 2 and 3 all read 1.0). Removed rather than left as a rank dressed up as a similarity.
+    The `errors` array reports any partial failures.
 
     Args:
         body (SearchCTIRequest): Search across multiple threat intelligence knowledge bases

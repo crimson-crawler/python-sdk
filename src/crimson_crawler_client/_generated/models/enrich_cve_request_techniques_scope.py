@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnrichCVERequestTechniquesScope(str, Enum):
+class EnrichCVERequestTechniquesScope(StrEnum):
     ALL = "all"
     SPECIFIC = "specific"
 

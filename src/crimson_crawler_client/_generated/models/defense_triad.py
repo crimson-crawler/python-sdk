@@ -44,9 +44,9 @@ class DefenseTriad:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.mitigation_detail import MitigationDetail
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
 
         technique_id = self.technique_id
 
@@ -103,9 +103,9 @@ class DefenseTriad:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.mitigation_detail import MitigationDetail
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
 
         d = dict(src_dict)
         technique_id = d.pop("technique_id")

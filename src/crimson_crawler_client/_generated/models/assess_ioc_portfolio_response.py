@@ -45,11 +45,41 @@ class AssessIOCPortfolioResponse:
             Returned when include=['galaxies'] — the multi-IOC sibling of enrich/ioc's galaxies include; deduped by UUID and
             capped.
         groups (list[GroupDetail] | Unset): Threat groups linked across all IOCs
+        identifier_resolved (bool | None | Unset): Whether any assessed indicator matched locally held threat
+            intelligence. `false` means none of them matched anything, so every derived layer below (`misp_attributes`,
+            `misp_events`, `techniques`, `groups`, …) is empty for that reason rather than because the indicators exist and
+            simply carry no linked intelligence — the two were previously indistinguishable. `null` when the request never
+            asked for the correlation at all — an `include` set that does not read MISP's attribute index (no
+            `misp_attributes`/`galaxies`/`sightings`, and no technique-derived layer, which reads the same attributes for
+            its galaxy tags) — where an empty payload says nothing about the indicators.
         indicators_assessed (int | Unset): Number of IOCs processed Default: 0.
-        misp_attributes (list[MISPAttribute] | Unset): Deduplicated threat indicators across all IOCs
-        misp_events (list[MISPEvent] | Unset): Deduplicated threat events across all IOCs
-        misp_feed_hits (list[MISPFeedHit] | Unset): Deduplicated supplemental-feed correlations across the assessed
-            indicators, including sources such as URLhaus, ThreatFox, and Bambenek DGA.
+        misp_attributes (list[MISPAttribute] | Unset): Deduplicated threat indicators across all IOCs. **Summary rows by
+            default** — `id`, `uuid`, `type`, `value`, `category`, `to_ids`, `event_id`, `event_info`, `event_date`,
+            `threat_level`, `first_seen`, `last_seen`, `sighting_count`, `timestamp` — capped at 100; the per-row bodies
+            (galaxies, tags, notices, comments) are what made a single populated indicator multi-megabyte. Add
+            `misp_attributes_full` to the include set for the full rows (capped at 200), or page freely through
+            `/v1/search/misp`. Check `misp_attributes_total` and `misp_attributes_truncated`.
+        misp_attributes_read_truncated (bool | Unset): True when the MISP attribute read stopped at its page bound, so
+            later matching attributes were never read — the technique layers derive from every attribute, so this is
+            reported rather than silently dropped. See `errors[]` for the `read_truncated` entry. Default: False.
+        misp_attributes_total (int | Unset): Total deduplicated attributes found before the published cap was applied
+            Default: 0.
+        misp_attributes_truncated (bool | Unset): True when fewer attributes were published than found — see
+            `misp_attributes_total`, and request `misp_attributes_full` or page `/v1/search/misp` for the rest Default:
+            False.
+        misp_events (list[MISPEvent] | Unset): Deduplicated threat events across all IOCs. Up to 10 parent events are
+            read; the response has a separate maximum of 25. **Summary rows by default** — `id`, `uuid`, `info`, `date`,
+            `threat_level_id`, `analysis`, `published`, `first_publication`, `org`, `attribute_count`, `timestamp`,
+            `tag_names`. The section is read with MISP's `metadata: true`, so an event body is never materialised unless you
+            ask for it — that body is ~1.35 MB per populated event (prod, 2026-10-26) and was most of this endpoint's bytes.
+            Add `misp_events_full` for the full event bodies. Check `misp_events_truncated` and `misp_events_total` to see
+            whether more exist, and page the remainder from `/v1/search/misp`.
+        misp_events_total (int | Unset): Total deduplicated correlated events found before the event read bound Default:
+            0.
+        misp_events_truncated (bool | Unset): True when more events were found than returned — see `misp_events_total`
+            Default: False.
+        misp_feed_hits (list[MISPFeedHit] | Unset): Feeds in our curated MISP that also carry the assessed indicators
+            (list: https://crimsoncrawler.com/docs/guides/data-sources/#our-curated-misp).
         mitigations (list[MitigationDetail] | Unset): Deduplicated mitigations across all techniques
         nist_controls (list[NistControlMapping] | Unset): NIST SP 800-53 rev 5 controls that mitigate the techniques on
             this response, via MITRE CTID. Pass-through static lookup; only populates when 'nist_controls' is in the request
@@ -71,9 +101,15 @@ class AssessIOCPortfolioResponse:
     errors: list[ErrorDetail] | Unset = UNSET
     galaxy_clusters: list[GalaxyClusterDetail] | Unset = UNSET
     groups: list[GroupDetail] | Unset = UNSET
+    identifier_resolved: bool | None | Unset = UNSET
     indicators_assessed: int | Unset = 0
     misp_attributes: list[MISPAttribute] | Unset = UNSET
+    misp_attributes_read_truncated: bool | Unset = False
+    misp_attributes_total: int | Unset = 0
+    misp_attributes_truncated: bool | Unset = False
     misp_events: list[MISPEvent] | Unset = UNSET
+    misp_events_total: int | Unset = 0
+    misp_events_truncated: bool | Unset = False
     misp_feed_hits: list[MISPFeedHit] | Unset = UNSET
     mitigations: list[MitigationDetail] | Unset = UNSET
     nist_controls: list[NistControlMapping] | Unset = UNSET
@@ -87,22 +123,22 @@ class AssessIOCPortfolioResponse:
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.assess_ioc_portfolio_response_warninglist_hits_item import (
-            AssessIOCPortfolioResponseWarninglistHitsItem,
+            AssessIOCPortfolioResponseWarninglistHitsItem,  # noqa: PLC0415
         )
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.galaxy_cluster_detail import GalaxyClusterDetail
-        from ..models.group_detail import GroupDetail
-        from ..models.misp_attribute import MISPAttribute
-        from ..models.misp_event import MISPEvent
-        from ..models.misp_feed_hit import MISPFeedHit
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.galaxy_cluster_detail import GalaxyClusterDetail  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.misp_attribute import MISPAttribute  # noqa: PLC0415
+        from ..models.misp_event import MISPEvent  # noqa: PLC0415
+        from ..models.misp_feed_hit import MISPFeedHit  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         campaigns: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.campaigns, Unset):
@@ -146,6 +182,12 @@ class AssessIOCPortfolioResponse:
                 groups_item = groups_item_data.to_dict()
                 groups.append(groups_item)
 
+        identifier_resolved: bool | None | Unset
+        if isinstance(self.identifier_resolved, Unset):
+            identifier_resolved = UNSET
+        else:
+            identifier_resolved = self.identifier_resolved
+
         indicators_assessed = self.indicators_assessed
 
         misp_attributes: list[dict[str, Any]] | Unset = UNSET
@@ -155,12 +197,22 @@ class AssessIOCPortfolioResponse:
                 misp_attributes_item = misp_attributes_item_data.to_dict()
                 misp_attributes.append(misp_attributes_item)
 
+        misp_attributes_read_truncated = self.misp_attributes_read_truncated
+
+        misp_attributes_total = self.misp_attributes_total
+
+        misp_attributes_truncated = self.misp_attributes_truncated
+
         misp_events: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.misp_events, Unset):
             misp_events = []
             for misp_events_item_data in self.misp_events:
                 misp_events_item = misp_events_item_data.to_dict()
                 misp_events.append(misp_events_item)
+
+        misp_events_total = self.misp_events_total
+
+        misp_events_truncated = self.misp_events_truncated
 
         misp_feed_hits: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.misp_feed_hits, Unset):
@@ -234,12 +286,24 @@ class AssessIOCPortfolioResponse:
             field_dict["galaxy_clusters"] = galaxy_clusters
         if groups is not UNSET:
             field_dict["groups"] = groups
+        if identifier_resolved is not UNSET:
+            field_dict["identifier_resolved"] = identifier_resolved
         if indicators_assessed is not UNSET:
             field_dict["indicators_assessed"] = indicators_assessed
         if misp_attributes is not UNSET:
             field_dict["misp_attributes"] = misp_attributes
+        if misp_attributes_read_truncated is not UNSET:
+            field_dict["misp_attributes_read_truncated"] = misp_attributes_read_truncated
+        if misp_attributes_total is not UNSET:
+            field_dict["misp_attributes_total"] = misp_attributes_total
+        if misp_attributes_truncated is not UNSET:
+            field_dict["misp_attributes_truncated"] = misp_attributes_truncated
         if misp_events is not UNSET:
             field_dict["misp_events"] = misp_events
+        if misp_events_total is not UNSET:
+            field_dict["misp_events_total"] = misp_events_total
+        if misp_events_truncated is not UNSET:
+            field_dict["misp_events_truncated"] = misp_events_truncated
         if misp_feed_hits is not UNSET:
             field_dict["misp_feed_hits"] = misp_feed_hits
         if mitigations is not UNSET:
@@ -264,22 +328,22 @@ class AssessIOCPortfolioResponse:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.assess_ioc_portfolio_response_warninglist_hits_item import (
-            AssessIOCPortfolioResponseWarninglistHitsItem,
+            AssessIOCPortfolioResponseWarninglistHitsItem,  # noqa: PLC0415
         )
-        from ..models.campaign_detail import CampaignDetail
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.detection_detail import DetectionDetail
-        from ..models.error_detail import ErrorDetail
-        from ..models.galaxy_cluster_detail import GalaxyClusterDetail
-        from ..models.group_detail import GroupDetail
-        from ..models.misp_attribute import MISPAttribute
-        from ..models.misp_event import MISPEvent
-        from ..models.misp_feed_hit import MISPFeedHit
-        from ..models.mitigation_detail import MitigationDetail
-        from ..models.nist_control_mapping import NistControlMapping
-        from ..models.software_detail import SoftwareDetail
-        from ..models.technique_detail import TechniqueDetail
-        from ..models.threat_prediction import ThreatPrediction
+        from ..models.campaign_detail import CampaignDetail  # noqa: PLC0415
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.detection_detail import DetectionDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.galaxy_cluster_detail import GalaxyClusterDetail  # noqa: PLC0415
+        from ..models.group_detail import GroupDetail  # noqa: PLC0415
+        from ..models.misp_attribute import MISPAttribute  # noqa: PLC0415
+        from ..models.misp_event import MISPEvent  # noqa: PLC0415
+        from ..models.misp_feed_hit import MISPFeedHit  # noqa: PLC0415
+        from ..models.mitigation_detail import MitigationDetail  # noqa: PLC0415
+        from ..models.nist_control_mapping import NistControlMapping  # noqa: PLC0415
+        from ..models.software_detail import SoftwareDetail  # noqa: PLC0415
+        from ..models.technique_detail import TechniqueDetail  # noqa: PLC0415
+        from ..models.threat_prediction import ThreatPrediction  # noqa: PLC0415
 
         d = dict(src_dict)
         _campaigns = d.pop("campaigns", UNSET)
@@ -336,6 +400,15 @@ class AssessIOCPortfolioResponse:
 
                 groups.append(groups_item)
 
+        def _parse_identifier_resolved(data: object) -> bool | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(bool | None | Unset, data)
+
+        identifier_resolved = _parse_identifier_resolved(d.pop("identifier_resolved", UNSET))
+
         indicators_assessed = d.pop("indicators_assessed", UNSET)
 
         _misp_attributes = d.pop("misp_attributes", UNSET)
@@ -347,6 +420,12 @@ class AssessIOCPortfolioResponse:
 
                 misp_attributes.append(misp_attributes_item)
 
+        misp_attributes_read_truncated = d.pop("misp_attributes_read_truncated", UNSET)
+
+        misp_attributes_total = d.pop("misp_attributes_total", UNSET)
+
+        misp_attributes_truncated = d.pop("misp_attributes_truncated", UNSET)
+
         _misp_events = d.pop("misp_events", UNSET)
         misp_events: list[MISPEvent] | Unset = UNSET
         if _misp_events is not UNSET:
@@ -355,6 +434,10 @@ class AssessIOCPortfolioResponse:
                 misp_events_item = MISPEvent.from_dict(misp_events_item_data)
 
                 misp_events.append(misp_events_item)
+
+        misp_events_total = d.pop("misp_events_total", UNSET)
+
+        misp_events_truncated = d.pop("misp_events_truncated", UNSET)
 
         _misp_feed_hits = d.pop("misp_feed_hits", UNSET)
         misp_feed_hits: list[MISPFeedHit] | Unset = UNSET
@@ -439,9 +522,15 @@ class AssessIOCPortfolioResponse:
             errors=errors,
             galaxy_clusters=galaxy_clusters,
             groups=groups,
+            identifier_resolved=identifier_resolved,
             indicators_assessed=indicators_assessed,
             misp_attributes=misp_attributes,
+            misp_attributes_read_truncated=misp_attributes_read_truncated,
+            misp_attributes_total=misp_attributes_total,
+            misp_attributes_truncated=misp_attributes_truncated,
             misp_events=misp_events,
+            misp_events_total=misp_events_total,
+            misp_events_truncated=misp_events_truncated,
             misp_feed_hits=misp_feed_hits,
             mitigations=mitigations,
             nist_controls=nist_controls,

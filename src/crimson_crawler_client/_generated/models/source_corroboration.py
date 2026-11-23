@@ -36,8 +36,10 @@ class SourceCorroboration:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.source_contribution import SourceContribution
-        from ..models.source_corroboration_grade_distribution import SourceCorroborationGradeDistribution
+        from ..models.source_contribution import SourceContribution  # noqa: PLC0415
+        from ..models.source_corroboration_grade_distribution import (
+            SourceCorroborationGradeDistribution,  # noqa: PLC0415
+        )
 
         caveats: list[str] | Unset = UNSET
         if not isinstance(self.caveats, Unset):
@@ -74,8 +76,10 @@ class SourceCorroboration:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.source_contribution import SourceContribution
-        from ..models.source_corroboration_grade_distribution import SourceCorroborationGradeDistribution
+        from ..models.source_contribution import SourceContribution  # noqa: PLC0415
+        from ..models.source_corroboration_grade_distribution import (
+            SourceCorroborationGradeDistribution,  # noqa: PLC0415
+        )
 
         d = dict(src_dict)
         caveats = cast(list[str], d.pop("caveats", UNSET))

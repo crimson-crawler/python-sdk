@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SearchD3FENDRequestD3FendFormType0(str, Enum):
+class SearchD3FENDRequestD3FendFormType0(StrEnum):
     ARTIFACT = "artifact"
     MITIGATION = "mitigation"
     SUB_MITIGATION = "sub-mitigation"

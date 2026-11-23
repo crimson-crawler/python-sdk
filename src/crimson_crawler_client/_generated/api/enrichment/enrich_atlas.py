@@ -81,31 +81,22 @@ def sync_detailed(
      Look up or search adversarial machine learning techniques from the ATLAS knowledge base.
 
     Covers AI/ML-specific attack techniques including model evasion, data poisoning, and model theft.
-    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery. Returns
-    Enterprise technique mappings even when the ATLAS technique has sparse data.
+    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full ATLAS technique object with description and procedure examples
-    - `techniques` — linked ATT&CK Enterprise techniques that enable or support this AI/ML attack,
-      resolved into full objects with mitigations and detection guidance
-    - `tie` — technique likelihood predictions for linked Enterprise techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked Enterprise techniques
-    - `groups` — threat actor groups using the linked Enterprise techniques
-    - `software` — malware and tools using the linked Enterprise techniques
-    - `campaigns` — threat campaigns using the linked Enterprise techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked Enterprise techniques
+    - `techniques` — the ATLAS parent/sub-technique family this object belongs to, resolved
+      into full objects from the object's own ATLAS bundle
+    - `mitigations` — the ATLAS-native course-of-action objects (AML.M####) this technique is
+      joined to, read from the same bundle. Self-sufficient: it does not require `details`
+      or `techniques` to be requested alongside it.
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for AI/ML attack research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the AI/ML attack and its relationship to
-      Enterprise ATT&CK techniques
-    - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
-      based on MITRE Center for Threat-Informed Defense mappings
+    - `summary` — AI-generated executive brief covering the AI/ML attack
+
+    ATLAS has no ATT&CK-Enterprise-keyed layers: the imported corpus carries no
+    ATLAS-to-Enterprise edge, so none are declared on the response.
 
     Args:
         body (EnrichATLASRequest): Look up or search adversarial machine learning techniques from
@@ -140,31 +131,22 @@ def sync(
      Look up or search adversarial machine learning techniques from the ATLAS knowledge base.
 
     Covers AI/ML-specific attack techniques including model evasion, data poisoning, and model theft.
-    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery. Returns
-    Enterprise technique mappings even when the ATLAS technique has sparse data.
+    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full ATLAS technique object with description and procedure examples
-    - `techniques` — linked ATT&CK Enterprise techniques that enable or support this AI/ML attack,
-      resolved into full objects with mitigations and detection guidance
-    - `tie` — technique likelihood predictions for linked Enterprise techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked Enterprise techniques
-    - `groups` — threat actor groups using the linked Enterprise techniques
-    - `software` — malware and tools using the linked Enterprise techniques
-    - `campaigns` — threat campaigns using the linked Enterprise techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked Enterprise techniques
+    - `techniques` — the ATLAS parent/sub-technique family this object belongs to, resolved
+      into full objects from the object's own ATLAS bundle
+    - `mitigations` — the ATLAS-native course-of-action objects (AML.M####) this technique is
+      joined to, read from the same bundle. Self-sufficient: it does not require `details`
+      or `techniques` to be requested alongside it.
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for AI/ML attack research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the AI/ML attack and its relationship to
-      Enterprise ATT&CK techniques
-    - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
-      based on MITRE Center for Threat-Informed Defense mappings
+    - `summary` — AI-generated executive brief covering the AI/ML attack
+
+    ATLAS has no ATT&CK-Enterprise-keyed layers: the imported corpus carries no
+    ATLAS-to-Enterprise edge, so none are declared on the response.
 
     Args:
         body (EnrichATLASRequest): Look up or search adversarial machine learning techniques from
@@ -194,31 +176,22 @@ async def asyncio_detailed(
      Look up or search adversarial machine learning techniques from the ATLAS knowledge base.
 
     Covers AI/ML-specific attack techniques including model evasion, data poisoning, and model theft.
-    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery. Returns
-    Enterprise technique mappings even when the ATLAS technique has sparse data.
+    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full ATLAS technique object with description and procedure examples
-    - `techniques` — linked ATT&CK Enterprise techniques that enable or support this AI/ML attack,
-      resolved into full objects with mitigations and detection guidance
-    - `tie` — technique likelihood predictions for linked Enterprise techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked Enterprise techniques
-    - `groups` — threat actor groups using the linked Enterprise techniques
-    - `software` — malware and tools using the linked Enterprise techniques
-    - `campaigns` — threat campaigns using the linked Enterprise techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked Enterprise techniques
+    - `techniques` — the ATLAS parent/sub-technique family this object belongs to, resolved
+      into full objects from the object's own ATLAS bundle
+    - `mitigations` — the ATLAS-native course-of-action objects (AML.M####) this technique is
+      joined to, read from the same bundle. Self-sufficient: it does not require `details`
+      or `techniques` to be requested alongside it.
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for AI/ML attack research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the AI/ML attack and its relationship to
-      Enterprise ATT&CK techniques
-    - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
-      based on MITRE Center for Threat-Informed Defense mappings
+    - `summary` — AI-generated executive brief covering the AI/ML attack
+
+    ATLAS has no ATT&CK-Enterprise-keyed layers: the imported corpus carries no
+    ATLAS-to-Enterprise edge, so none are declared on the response.
 
     Args:
         body (EnrichATLASRequest): Look up or search adversarial machine learning techniques from
@@ -251,31 +224,22 @@ async def asyncio(
      Look up or search adversarial machine learning techniques from the ATLAS knowledge base.
 
     Covers AI/ML-specific attack techniques including model evasion, data poisoning, and model theft.
-    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery. Returns
-    Enterprise technique mappings even when the ATLAS technique has sparse data.
+    Provide `technique_id` for a direct lookup (e.g. AML.T0043) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full ATLAS technique object with description and procedure examples
-    - `techniques` — linked ATT&CK Enterprise techniques that enable or support this AI/ML attack,
-      resolved into full objects with mitigations and detection guidance
-    - `tie` — technique likelihood predictions for linked Enterprise techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked Enterprise techniques
-    - `groups` — threat actor groups using the linked Enterprise techniques
-    - `software` — malware and tools using the linked Enterprise techniques
-    - `campaigns` — threat campaigns using the linked Enterprise techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the linked Enterprise techniques
+    - `techniques` — the ATLAS parent/sub-technique family this object belongs to, resolved
+      into full objects from the object's own ATLAS bundle
+    - `mitigations` — the ATLAS-native course-of-action objects (AML.M####) this technique is
+      joined to, read from the same bundle. Self-sufficient: it does not require `details`
+      or `techniques` to be requested alongside it.
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for AI/ML attack research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the AI/ML attack and its relationship to
-      Enterprise ATT&CK techniques
-    - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the linked techniques,
-      based on MITRE Center for Threat-Informed Defense mappings
+    - `summary` — AI-generated executive brief covering the AI/ML attack
+
+    ATLAS has no ATT&CK-Enterprise-keyed layers: the imported corpus carries no
+    ATLAS-to-Enterprise edge, so none are declared on the response.
 
     Args:
         body (EnrichATLASRequest): Look up or search adversarial machine learning techniques from

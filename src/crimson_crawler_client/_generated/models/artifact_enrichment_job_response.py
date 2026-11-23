@@ -49,10 +49,10 @@ class ArtifactEnrichmentJobResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.artifact_enrichment_report import ArtifactEnrichmentReport
-        from ..models.enrichment_job_event import EnrichmentJobEvent
-        from ..models.enrichment_job_stage import EnrichmentJobStage
-        from ..models.error_detail import ErrorDetail
+        from ..models.artifact_enrichment_report import ArtifactEnrichmentReport  # noqa: PLC0415
+        from ..models.enrichment_job_event import EnrichmentJobEvent  # noqa: PLC0415
+        from ..models.enrichment_job_stage import EnrichmentJobStage  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         created_at = self.created_at
 
@@ -123,10 +123,10 @@ class ArtifactEnrichmentJobResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.artifact_enrichment_report import ArtifactEnrichmentReport
-        from ..models.enrichment_job_event import EnrichmentJobEvent
-        from ..models.enrichment_job_stage import EnrichmentJobStage
-        from ..models.error_detail import ErrorDetail
+        from ..models.artifact_enrichment_report import ArtifactEnrichmentReport  # noqa: PLC0415
+        from ..models.enrichment_job_event import EnrichmentJobEvent  # noqa: PLC0415
+        from ..models.enrichment_job_stage import EnrichmentJobStage  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         d = dict(src_dict)
         created_at = d.pop("created_at")

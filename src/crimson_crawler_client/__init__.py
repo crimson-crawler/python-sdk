@@ -11,7 +11,7 @@ Usage:
 
         async with CrawlerClient() as client:
             result = await client.enrich_cve_full("CVE-2024-3400")
-            print(result.cve.cvss_score)
+            print(result.cve.cvss_v3_score, result.cve.cvss_v4_score)
 
     Configuration:
 
@@ -21,7 +21,7 @@ Usage:
       constructor, to select a custom, self-hosted, or local deployment.
       Defaults to ``https://crimsoncrawler.com``.
 
-See ``presets`` for the default ``include=[...]`` chains. Every one of the 33 ``/v1``
+See ``presets`` for the default ``include=[...]`` chains. Every one of the 37 ``/v1``
 operations has a named method on ``CrawlerClient``; ``_generated`` stays available as an
 escape hatch for hand-built request models and sync callers.
 """
@@ -49,6 +49,7 @@ from .exceptions import (
 )
 from .ingest import assemble_briefing, ingest_scan
 from .inventory_manager import InventoryManagerAPI
+from .tlp import TLP_INVALID_MESSAGE, TLP_VALUES, Tlp, validate_tlp
 
 try:
     from importlib.metadata import version as _pkg_version
@@ -69,6 +70,9 @@ __all__ = [
     "ENV_BASE_URL",
     "MissingCredentials",
     "ENV_VERIFY_SSL",
+    "TLP_INVALID_MESSAGE",
+    "TLP_VALUES",
+    "Tlp",
     "UnexpectedStatus",
     "AiReportsAPI",
     "ArtifactManagerAPI",
@@ -76,6 +80,7 @@ __all__ = [
     "EnricherAPI",
     "assemble_briefing",
     "ingest_scan",
+    "validate_tlp",
     "__version__",
     "presets",
 ]

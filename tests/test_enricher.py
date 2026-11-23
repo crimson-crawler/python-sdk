@@ -102,6 +102,19 @@ class TestEnrich:
         body = http.request.call_args_list[0].kwargs["json"]
         assert body == {"files": files, "formats": ["markdown"]}
 
+    async def test_attachment_provenance_rides_into_submit(self, ws):
+        """Per-artifact texts (and the whole-run id list) reach the engine — attribution the caller
+        knows must not be dropped by the hand-built body."""
+        api, http = ws
+        texts = [{"text": "CVE-2000-0001", "source_artifact_id": "art-1", "filename": "notes.txt"}]
+        http.request.side_effect = [
+            _resp(202, {"enrichment_id": "c" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich(texts=texts, attached_artifact_ids=["art-1"], poll_interval=0)
+        body = http.request.call_args_list[0].kwargs["json"]
+        assert body == {"texts": texts, "attached_artifact_ids": ["art-1"]}
+
     async def test_stakeholder_rides_into_submit(self, ws):
         api, http = ws
         sh = {
@@ -117,6 +130,34 @@ class TestEnrich:
         ]
         await api.enrich(text="CVE-2021-44228", include=["ssvc"], stakeholder=sh, poll_interval=0)
         assert http.request.call_args_list[0].kwargs["json"]["stakeholder"] == sh
+
+    async def test_tlp_rides_into_submit(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(202, {"enrichment_id": "d" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich(text="CVE-2021-44228", formats=["stix"], tlp="AMBER+STRICT", poll_interval=0)
+        assert http.request.call_args_list[0].kwargs["json"] == {
+            "text": "CVE-2021-44228",
+            "formats": ["stix"],
+            "tlp": "AMBER+STRICT",
+        }
+
+    async def test_tlp_omitted_when_unset(self, ws):
+        api, http = ws
+        http.request.side_effect = [
+            _resp(202, {"enrichment_id": "d" * 32}),
+            _resp(200, {"status": "done", "result": {}}),
+        ]
+        await api.enrich(text="CVE-2021-44228", poll_interval=0)
+        assert "tlp" not in http.request.call_args_list[0].kwargs["json"]
+
+    async def test_invalid_tlp_rejected_before_the_billable_submit(self, ws):
+        api, http = ws
+        with pytest.raises(ValueError, match="tlp must be one of"):
+            await api.enrich(text="x", tlp="white", poll_interval=0)  # type: ignore[arg-type]
+        http.request.assert_not_called()
 
     async def test_raises_on_engine_error_status(self, ws):
         api, http = ws

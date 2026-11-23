@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AssessTechniqueCoverageRequestFramework(str, Enum):
+class AssessTechniqueCoverageRequestFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

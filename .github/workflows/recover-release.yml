@@ -141,6 +141,7 @@ jobs:
       # digest than the defective one the first run recorded. The distribution digests are
       # unchanged and were verified against both the original file and PyPI above.
       - name: Write checksums for the exact release assets
+        shell: bash
         run: |
           cp original/*.whl original/*.tar.gz .
           for file in ./*.whl ./*.tar.gz SBOM.cdx.json; do sha256sum "$file"; done \

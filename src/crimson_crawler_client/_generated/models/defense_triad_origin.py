@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class DefenseTriadOrigin(str, Enum):
+class DefenseTriadOrigin(StrEnum):
     DERIVED = "derived"
     OBSERVED = "observed"
 

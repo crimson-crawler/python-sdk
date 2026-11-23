@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentReferenceLikelihoodType0(str, Enum):
+class ArtifactEnrichmentReferenceLikelihoodType0(StrEnum):
     ALMOST_CERTAIN = "almost_certain"
     ALMOST_NO_CHANCE = "almost_no_chance"
     LIKELY = "likely"

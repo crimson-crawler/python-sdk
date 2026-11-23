@@ -30,8 +30,8 @@ class SearchD3FENDResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.error_detail import ErrorDetail
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         errors: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.errors, Unset):
@@ -59,8 +59,8 @@ class SearchD3FENDResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.d3fend_detail import D3FENDDetail
-        from ..models.error_detail import ErrorDetail
+        from ..models.d3fend_detail import D3FENDDetail  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
 
         d = dict(src_dict)
         _errors = d.pop("errors", UNSET)

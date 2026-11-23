@@ -25,12 +25,24 @@ Example::
 from __future__ import annotations
 
 import base64
+from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
 from ._poll import ProgressCallback, poll_until_done, validate_poll_options
 from ._url import path_segment
 from .exceptions import UnexpectedStatus
+from .tlp import Tlp, validate_tlp
+
+
+def _manifest_vex_overlay(manifest: dict[str, Any]) -> str | None:
+    """The inventory manifest's attached VEX overlay document text (``vex_overlay.document`` from
+    ``GET /inventory-manager/inventories/{id}``), or ``None`` when no overlay is attached."""
+    overlay = manifest.get("vex_overlay")
+    if not isinstance(overlay, dict):
+        return None
+    doc = overlay.get("document")
+    return doc if isinstance(doc, str) and doc.strip() else None
 
 
 def _wire_content(content: str | bytes) -> str:
@@ -76,6 +88,31 @@ def _inventory_body(
         if val is not None:
             body[key] = val
     return body
+
+
+def _history_params(
+    *,
+    types: list[str] | str | None,
+    q: str | None,
+    since: str | None,
+    until: str | None,
+    actor: str | None,
+    limit: int | None,
+    cursor: str | None,
+) -> dict[str, Any]:
+    """Query string for ``GET …/history``. ``types`` is a list or a ready comma-separated string; ``None``
+    fields are omitted so the server applies its own defaults."""
+    joined = types if isinstance(types, str) else (",".join(types) if types else None)
+    params = {
+        "type": joined,
+        "q": q,
+        "since": since,
+        "until": until,
+        "actor": actor,
+        "limit": limit,
+        "cursor": cursor,
+    }
+    return {k: v for k, v in params.items() if v is not None}
 
 
 class InventoryManagerAPI:
@@ -156,6 +193,62 @@ class InventoryManagerAPI:
         )
         return resp.json()["matrix"]
 
+    async def get_history(
+        self,
+        inventory_id: str,
+        *,
+        types: list[str] | str | None = None,
+        q: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        actor: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """One page of an inventory's change history, newest first: ``{items, next_cursor}``.
+
+        Covers asset, attachment, TLP, rename, settings and VEX changes, saved enrichments and generated
+        reports. ``types`` filters by event type, ``q`` searches the summary, ``actor`` is ``you`` /
+        ``daily monitor`` / ``api``, ``since`` / ``until`` are ISO dates, and ``cursor`` continues from a
+        previous page's ``next_cursor``. Exports and Copy for AI are not logged.
+        """
+        resp = await self._request(
+            "GET",
+            f"/inventory-manager/inventories/{path_segment(inventory_id)}/history",
+            params=_history_params(types=types, q=q, since=since, until=until, actor=actor, limit=limit, cursor=cursor),
+        )
+        return resp.json()
+
+    async def iter_history(
+        self,
+        inventory_id: str,
+        *,
+        types: list[str] | str | None = None,
+        q: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        actor: str | None = None,
+        limit: int | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Yield every history item newest first, following ``next_cursor`` across pages until exhausted."""
+        cursor: str | None = None
+        while True:
+            page = await self.get_history(
+                inventory_id,
+                types=types,
+                q=q,
+                since=since,
+                until=until,
+                actor=actor,
+                limit=limit,
+                cursor=cursor,
+            )
+            for item in page["items"]:
+                yield item
+            cursor = page.get("next_cursor")
+            if not cursor:
+                return
+
     async def create_inventory(
         self,
         inventory_name: str,
@@ -172,12 +265,16 @@ class InventoryManagerAPI:
             description: Optional free-text description.
             items: The asset inventory — each ``{"product": …, "vendor"?, "versions"?,
                 "ecosystem"?, "category"?, "criticality"?, "notes"?, "exposure"?,
-                "environment"?, "owner"?, "tags"?}``.
+                "environment"?, "owner"?, "tags"?}``; optionally its OT context —
+                ``{"asset_class"?, "purdue_level"?, "protocols"?, "firmware_version"?,
+                "hardware_version"?, "safety_critical"?}`` (all caller-supplied, never inferred).
             monitoring: Enable scheduled re-enrichments (always full depth — there is no fast/lite mode).
-            linked_artifact_ids: Attached reference-artifact ids (the inventory's context window).
+            linked_artifact_ids: Attached reference-artifact ids (the inventory's context window). Each of
+                these takes the new inventory's own TLP 2.0 marking.
 
         Returns:
-            ``{"id": …, "item_count": …}``.
+            ``{"id": …, "item_count": …}``, plus ``attachment_tlp`` / ``attachment_tlp_ids`` when linked
+            artifacts were passed (the marking carried onto them).
         """
         return (
             await self._request(
@@ -206,7 +303,10 @@ class InventoryManagerAPI:
         """Update an inventory's definition (name, description, inventory, monitoring, attachments). This is
         a **partial merge** (PATCH): only the fields you pass change — omitted fields are PRESERVED,
         including the asset-group metadata and daily-report config this method doesn't expose.
-        ``inventory_name`` is still required by the API. Returns ``{"id": …, "item_count": …}``.
+        ``inventory_name`` is still required by the API. Any artifact newly added through
+        ``linked_artifact_ids`` takes the inventory's own TLP 2.0 marking (already-attached artifacts are
+        left alone). Returns ``{"id": …, "item_count": …}``, plus ``attachment_tlp`` /
+        ``attachment_tlp_ids`` (the marking carried onto newly attached artifacts).
         """
         return (
             await self._request(
@@ -237,7 +337,12 @@ class InventoryManagerAPI:
                 ``csv`` (spreadsheet), ``nmap`` (nmap ``-sV`` XML), ``list`` (CPE / purl list),
                 ``grype``, ``trivy`` (SCA scanner JSON), ``depcheck`` (OWASP Dependency-Check JSON),
                 ``nessus`` (``.nessus`` XML), ``gvm`` (OpenVAS / Greenbone XML),
-                ``xlsx`` (Excel spreadsheet — pass the file as ``bytes``).
+                ``xlsx`` (Excel spreadsheet — pass the file as ``bytes``), or ``vex`` (a VEX
+                suppression overlay — OpenVEX 0.2.0 / CSAF 2.0 VEX JSON. Unlike the asset formats it
+                imports NO assets: it attaches the overlay to an existing inventory when
+                ``inventory_id`` is given (or creates a bare inventory holding it), and the Inventory
+                Enricher then marks matching not_affected/fixed findings suppressed instead of
+                re-reporting them).
             content: The file's text content — or ``bytes`` for the binary ``xlsx`` format (base64-encoded
                 for you on the wire).
             inventory_name: Optional inventory name (overrides anything the file carries).
@@ -246,8 +351,9 @@ class InventoryManagerAPI:
             mode: ``replace`` (default) or ``append`` — only used with ``inventory_id``.
 
         Returns:
-            Create → ``{"id", "item_count", "imported", "format", "truncated"?}``;
+            Create → ``{"id", "item_count", "imported", "format", "truncated"?, "dropped"?}``;
             into existing → ``{"id", "item_count", "imported", "format", "replaced": True, "mode"}``.
+            ``dropped`` (SBOM imports only) counts dependency edges the parser could not retain (#334).
         """
         body: dict[str, Any] = {"format": fmt, "content": _wire_content(content)}
         if inventory_name is not None:
@@ -274,8 +380,8 @@ class InventoryManagerAPI:
                 ``per_source`` with its ``error`` and contributes nothing — never failing the whole call).
 
         Returns:
-            ``{"items", "count", "asset_groups", "truncated"?, "per_source": [{"label", "contributed",
-            "truncated"?, "error"?}]}``. Usage-exempt.
+            ``{"items", "count", "asset_groups", "truncated"?, "dropped"?, "per_source": [{"label", "contributed",
+            "truncated"?, "dropped"?, "error"?}]}``. Usage-exempt.
         """
         return (
             await self._request(
@@ -349,17 +455,23 @@ class InventoryManagerAPI:
         product: str,
         version: str,
         vendor: str | None = None,
+        group: str | None = None,
     ) -> dict[str, Any]:
         """Apply a recommended upgrade — set the matched asset's version to the published fix the
         Inventory Enricher surfaced (``recommended_fix_version`` / ``recommended_fix_version_kev``),
         PRESERVING everything else on the inventory. Match is by ``product`` (case-insensitive;
-        ``vendor`` disambiguates duplicate product names). It writes the inventory only — it does NOT
+        ``vendor`` disambiguates duplicate product names). This rewrites **every** asset carrying that
+        product — pass ``group`` to scope the fix to one host/asset group (``group`` is the asset's own
+        grouping, which host-derived imports set per host). It writes the inventory only — it does NOT
         re-enrich; the next enrichment / daily monitor confirms the CVEs cleared. Returns
-        ``{"id", "product", "version", "item_count"}`` (404 when no asset matches the product).
+        ``{"id", "product", "version", "applied", "item_count"}`` (404 when no asset matches the
+        product, or no asset matches within ``group``).
         """
         body: dict[str, Any] = {"product": product, "version": version}
         if vendor is not None:
             body["vendor"] = vendor
+        if group is not None:
+            body["group"] = group
         return (
             await self._request(
                 "PATCH",
@@ -377,23 +489,29 @@ class InventoryManagerAPI:
             )
         ).json()["formats"]
 
-    async def export_inventory(self, inventory_id: str, fmt: str = "json") -> str | bytes:
+    async def export_inventory(self, inventory_id: str, fmt: str = "json", *, tlp: Tlp | None = None) -> str | bytes:
         """Export an inventory's asset inventory as a file — the returned value IS the file.
 
-        Returns ``str`` for the text formats and ``bytes`` for the binary ``workbook`` (write those
-        straight to a ``.xlsx`` file).
+        Returns ``str`` for the text formats and ``bytes`` for the binary ``workbook`` (write it straight
+        to a ``.xlsx`` file) and ``all`` (every format as one ``.zip``).
 
         Args:
             inventory_id: The inventory id.
             fmt: ``json`` / ``csv`` / ``list`` (CPE/purl) / ``cyclonedx`` / ``spdx`` (3.0.1) /
-                ``spdx2`` (SPDX 2.3) / ``workbook`` (binary Excel .xlsx). ``json`` / ``csv`` / ``list``
-                round-trip back through :meth:`import_inventory`.
+                ``spdx2`` (SPDX 2.3) / ``workbook`` (binary Excel .xlsx) / ``all`` (.zip of every format).
+                ``json`` / ``csv`` / ``list`` round-trip back through :meth:`import_inventory`.
+            tlp: Optional TLP 2.0 marking written into every format that has a marking slot —
+                ``cyclonedx`` / ``spdx`` / ``spdx2`` / ``workbook`` (``CLEAR`` / ``GREEN`` / ``AMBER`` /
+                ``AMBER+STRICT`` / ``RED``), overriding the inventory's stored TLP. Omit it to stamp
+                the inventory's own stored TLP. ``json`` / ``csv`` / ``list`` have no
+                slot and ignore it. An invalid value raises :class:`ValueError` before any request.
         """
         resp = await self._request(
             "GET",
             f"/inventory-manager/inventories/{path_segment(inventory_id)}/export/{path_segment(fmt)}",
+            params={"tlp": validate_tlp(tlp)} if tlp is not None else None,
         )
-        return resp.content if fmt == "workbook" else resp.text
+        return resp.content if fmt in ("workbook", "all") else resp.text
 
     async def delete_inventory(self, inventory_id: str) -> bool:
         """Delete an inventory. Returns ``True`` on success (404 raises)."""
@@ -401,8 +519,9 @@ class InventoryManagerAPI:
         return bool(resp.json().get("deleted"))
 
     async def attach_to_inventory(self, inventory_id: str, artifact_id: str) -> dict[str, Any]:
-        """Link an existing artifact to an inventory. Returns
-        ``{"ok": …, "linked": …, "already": …}``."""
+        """Link an existing artifact to an inventory. The newly attached artifact takes the INVENTORY's own
+        TLP 2.0 marking (it can raise or lower the artifact's marking). Returns
+        ``{"ok": …, "linked": …, "already": …, "attachment_tlp": …, "attachment_tlp_ids": [...]}``."""
         resp = await self._request(
             "POST",
             f"/inventory-manager/inventories/{path_segment(inventory_id)}/attach",
@@ -427,7 +546,9 @@ class InventoryManagerAPI:
         """REPLACE an inventory's attached reference artifacts in one call (the bulk twin of
         :meth:`attach_to_inventory`), PRESERVING the inventory's inventory / monitoring / alert-prefs.
         Only attachable kinds (``input`` / ``enrichment`` / ``report``) are kept; inventories and inventory enrichments
-        are skipped. Deduped + capped at 100. Returns ``{"id", "linked_count", "attached", "skipped", "mode"}``.
+        are skipped. Deduped + capped at 100. Each newly attached artifact takes the inventory's own TLP 2.0
+        marking. Returns ``{"id", "linked_count", "attached", "skipped", "mode", "attachment_tlp",
+        "attachment_tlp_ids"}``.
         """
         return (
             await self._request(
@@ -440,7 +561,8 @@ class InventoryManagerAPI:
     async def add_attachments(self, inventory_id: str, artifact_ids: list[str]) -> dict[str, Any]:
         """APPEND several artifacts to an inventory's attachments in one call (bulk
         :meth:`attach_to_inventory`), preserving everything else. Same filtering/cap/return as
-        :meth:`set_attachments`."""
+        :meth:`set_attachments` — including the re-marking of the newly attached artifacts to the
+        inventory's own TLP 2.0 marking."""
         return (
             await self._request(
                 "PATCH",
@@ -556,7 +678,14 @@ class InventoryManagerAPI:
         ``attachment_omissions`` records (``attachment_id`` + ``reason``) for every skipped artifact.
         Set ``strict_attachments=True`` to fail before submission if any requested attachment is unavailable.
 
-        Returns ``{enrichment_id, report}``. If the inventory's inventory is empty this short-circuits and
+        The inventory's attached **VEX suppression overlay** (imported with ``format="vex"``) always rides along
+        as the engine's ``vex_overlay``, so findings the VEX marks ``not_affected``/``fixed`` come back
+        ``suppressed_by_vex`` (retained + justification, excluded from the actionable counts) instead of being
+        re-reported. Nothing to pass — it is read from the inventory manifest.
+
+        Returns ``{enrichment_id, report}``; ``report`` is the InventoryEnrichmentResult (per-asset CVEs with
+        CVSS vectors, EPSS percentile, NIST LEV (``lev``), KEV detail, Metasploit / Nuclei, ``provenance``; plus
+        ``technique_catalog`` and ``mitigation_catalog``). If the inventory's inventory is empty this short-circuits and
         returns ``{"enrichment_id": None, "empty": True}`` without submitting. Raises
         :class:`UnexpectedStatus` on a non-2xx (or enrichment error), or :class:`TimeoutError` if the
         enrichment doesn't finish within ``timeout`` seconds.
@@ -567,7 +696,7 @@ class InventoryManagerAPI:
         if not items:
             return {"enrichment_id": None, "empty": True}
         do_attach = bool(manifest.get("enrich_attachments")) if enrich_attachments is None else enrich_attachments
-        attachments_text: str | None = None
+        attachments_texts: list[dict[str, str]] = []
         attachments_files: list[dict[str, str]] = []
         attachment_omissions: list[dict[str, str]] = []
         if do_attach:
@@ -576,7 +705,7 @@ class InventoryManagerAPI:
                 for attachment in (manifest.get("attached") or [])
                 if isinstance(attachment, dict) and (attachment_id := attachment.get("id"))
             ]
-            attachments_text, attachments_files, attachment_omissions = await self._resolve_attachments(ids)
+            attachments_texts, attachments_files, attachment_omissions = await self._resolve_attachments(ids)
             if strict_attachments and attachment_omissions:
                 omitted_ids = ", ".join(item["attachment_id"] for item in attachment_omissions)
                 raise RuntimeError(
@@ -588,8 +717,9 @@ class InventoryManagerAPI:
             poll_interval=poll_interval,
             timeout=timeout,
             on_progress=on_progress,
-            attachments_text=attachments_text,
+            attachments_texts=attachments_texts,
             attachments_files=attachments_files,
+            vex_overlay=_manifest_vex_overlay(manifest),
         )
         if do_attach:
             result["attachment_omissions"] = attachment_omissions
@@ -599,9 +729,15 @@ class InventoryManagerAPI:
 
     async def _resolve_attachments(
         self, attachment_ids: list[str]
-    ) -> tuple[str | None, list[dict[str, str]], list[dict[str, str]]]:
-        """Resolve attachment evidence and return text, files, and structured omission records."""
-        parts: list[str] = []
+    ) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+        """Resolve attachment evidence and return per-artifact texts, files, and structured omission records.
+
+        Each resolved entry names the artifact it came from (``source_artifact_id``), so the engine
+        attributes every reference to the artifact it actually appeared in rather than to the run as a
+        whole — the caller is the only party that knows which artifact contributed which block, and that
+        knowledge is captured here instead of being reconstructed from the text later.
+        """
+        texts: list[dict[str, str]] = []
         files: list[dict[str, str]] = []
         omissions = [
             {
@@ -637,7 +773,7 @@ class InventoryManagerAPI:
                     continue
                 name = unquote(resp.headers.get("X-Artifact-Name", "") or attachment_id)
                 if resp.headers.get("X-Artifact-Format", "") == "file":
-                    files.append({"filename": name, "content_b64": content})
+                    files.append({"filename": name, "content_b64": content, "source_artifact_id": attachment_id})
                     continue
                 if total >= 500_000:
                     omissions.append(
@@ -648,7 +784,7 @@ class InventoryManagerAPI:
                     )
                     continue
                 chunk = content[: min(80_000, 500_000 - total)]
-                parts.append(f"--- Attached: {name} ---\n{chunk}")
+                texts.append({"text": chunk, "source_artifact_id": attachment_id, "filename": name})
                 total += len(chunk)
             except Exception as exc:  # noqa: BLE001 — permissive mode reports each omitted attachment
                 omissions.append(
@@ -657,8 +793,7 @@ class InventoryManagerAPI:
                         "reason": str(exc) or type(exc).__name__,
                     }
                 )
-        text = "\n\n".join(parts)
-        return (text if text.strip() else None, files, omissions)
+        return (texts, files, omissions)
 
     async def save_enrichment(self, inventory_id: str, enrichment_id: str) -> dict[str, Any]:
         """Persist a COMPLETED inventory enrichment into this inventory's saved history, by its engine
@@ -690,13 +825,20 @@ class InventoryManagerAPI:
         timeout: float,
         on_progress: ProgressCallback | None = None,
         attachments_text: str | None = None,
+        attachments_texts: list[dict[str, Any]] | None = None,
+        attached_artifact_ids: list[str] | None = None,
         attachments_files: list[dict[str, str]] | None = None,
+        vex_overlay: str | None = None,
     ) -> dict[str, Any]:
         """Submit a raw asset list to the ``/v1/inventory-enrich`` engine, poll until done, and return
         ``{enrichment_id, report}``. The shared submit→poll core behind :meth:`enrich_inventory` and the
-        scan-ingest workflow. ``on_progress`` streams the live job each poll. ``attachments_text`` +
-        ``attachments_files`` (optional) drive the engine's mini Artifact-Enricher stage over the inventory's
-        attached artifacts (text-rendered + raw binary files the engine parses). Raises
+        scan-ingest workflow. ``on_progress`` streams the live job each poll. ``attachments_text`` (one
+        opaque blob) and ``attachments_texts`` (one entry per artifact — ``{text, source_artifact_id?,
+        filename?}``) plus ``attachments_files`` (raw binary the engine parses) drive the engine's mini
+        Artifact-Enricher stage over the inventory's attached artifacts; ``attached_artifact_ids`` names
+        the artifacts an opaque ``attachments_text`` blob came from. ``vex_overlay`` (optional) is an
+        OpenVEX 0.2.0 / CSAF 2.0 VEX document text — statements that are ``not_affected``/``fixed`` for a
+        CVE on one of the submitted assets mark that finding ``suppressed_by_vex`` in the result. Raises
         :class:`UnexpectedStatus` on a non-2xx / engine error, or :class:`TimeoutError` on the deadline."""
         validate_poll_options(poll_interval, timeout)
         body: dict[str, Any] = {"items": items}
@@ -704,8 +846,14 @@ class InventoryManagerAPI:
             body["include"] = include
         if attachments_text:
             body["attachments_text"] = attachments_text
+        if attachments_texts:
+            body["attachments_texts"] = attachments_texts
+        if attached_artifact_ids:
+            body["attached_artifact_ids"] = attached_artifact_ids
         if attachments_files:
             body["attachments_files"] = attachments_files
+        if vex_overlay:
+            body["vex_overlay"] = {"format": "vex", "content": vex_overlay}
         enrichment_id = (await self._request("POST", "/v1/inventory-enrich", json=body)).json()["enrichment_id"]
         job = await poll_until_done(
             self._request,
@@ -720,9 +868,12 @@ class InventoryManagerAPI:
     async def parse_scan(self, content: str | bytes, scan_format: str) -> dict[str, Any]:
         """Parse a scan / inventory FILE into canonical asset items WITHOUT saving anything (the parse-only
         twin of :meth:`import_inventory`). You PICK the ``scan_format`` — one of ``json``/``sbom``/``csv``/
-        ``nmap``/``list``/``grype``/``trivy``/``depcheck``/``nessus``/``gvm``/``xlsx`` (no auto-detect; pass
-        ``bytes`` for the binary ``xlsx``). Returns ``{format, items, count, inventory_name?, truncated?}``.
-        Usage-exempt — the building block for :meth:`ingest_scan`."""
+        ``nmap``/``list``/``grype``/``trivy``/``depcheck``/``nessus``/``gvm``/``xlsx``/``vex`` (no auto-detect;
+        pass ``bytes`` for the binary ``xlsx``; ``vex`` is a VEX suppression overlay — OpenVEX / CSAF — that
+        parses to zero assets plus a ``vex_overlay``). Returns
+        ``{format, items, count, inventory_name?, truncated?, dropped?}``
+        (``dropped`` — SBOM only — is the dependency edges not retained, #334). Usage-exempt — the building block
+        for :meth:`ingest_scan`."""
         return (
             await self._request(
                 "POST",
@@ -744,12 +895,14 @@ class InventoryManagerAPI:
         against the ``/v1/inventory-enrich`` ranking engine, and assemble a structured briefing.
 
         ``scan_format`` is one of ``json``/``sbom``/``csv``/``nmap``/``list``/``grype``/``trivy``/``depcheck``/
-        ``nessus``/``gvm``/``xlsx`` (pass ``bytes`` for the binary ``xlsx``).
+        ``nessus``/``gvm``/``xlsx``/``vex`` (pass ``bytes`` for the binary ``xlsx``).
         The parse is usage-exempt; the enrichment **submit counts toward your usage** (one
         ``/v1/inventory-enrich`` request — far cheaper than enriching each product separately). Returns
-        ``{format, parsed_count, truncated?, enrichment_id, report, recommended_actions}`` where ``report`` is
-        the engine's KEV-first-ranked findings + rollup and ``recommended_actions`` is the top prioritized
-        CVEs. An empty parse short-circuits to ``{format, parsed_count: 0, enrichment_id: None, empty: True}``.
+        ``{format, parsed_count, truncated?, enrichment_id, report, recommended_actions,
+        unverified_assets}`` where ``report`` is
+        the engine's KEV-first-ranked findings + rollup, ``recommended_actions`` is the top prioritized
+        CVEs, and ``unverified_assets`` names the assets whose identity never resolved. An empty parse
+        short-circuits to ``{format, parsed_count: 0, enrichment_id: None, empty: True}``.
         Raises :class:`UnexpectedStatus` / :class:`TimeoutError` like :meth:`enrich_inventory`."""
         from .ingest import ingest_scan as _run_ingest  # the shared scan-ingest component
 

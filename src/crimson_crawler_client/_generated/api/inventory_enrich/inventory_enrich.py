@@ -87,19 +87,25 @@ def sync_detailed(
     Returns an `enrichment_id` with HTTP 202. Poll
     `/v1/inventory-enrich/{enrichment_id}` for stage progress and the finished findings.
 
-    Submit 1-200 assets. Product assets use product, vendor, and up to five versions for CPE-based
-    vulnerability matching. Package assets add `ecosystem` and use package-advisory matching.
+    Submit 1-1000 assets (at most 200 product assets). Product assets use product, vendor, and up to
+    five versions for CPE-based vulnerability matching. Package assets add `ecosystem` and use
+    package-advisory matching.
     Asset category, criticality, deployment context, owner, tags, and group metadata are preserved
     in the result. Optional `attachments_text` and `attachments_files` run Artifact Enrichment over
     reports, IOC lists, scans, email, and other evidence attached to the inventory.
 
     `include` selects the per-CVE evidence retained for each asset and replaces the default list.
-    `summary`, `web`, `web_scrape`, and `navigator` are accepted for product-schema compatibility
+    `summary` and `navigator` are accepted for product-schema compatibility
     but intentionally omitted from this deterministic background workflow.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -109,6 +115,11 @@ def sync_detailed(
             Product assets use CPE matching. Assets with `ecosystem` set use package-advisory
             matching.
             Each asset can carry deployment and ownership context, which is preserved in the result.
+            An optional `vex_overlay` carries VEX statements (OpenVEX 0.2.0 / CSAF 2.0) that mark
+            matching
+            `not_affected` / `fixed` findings `suppressed_by_vex` — retained with their justification,
+            excluded
+            from the actionable counts — instead of re-reporting them.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,19 +152,25 @@ def sync(
     Returns an `enrichment_id` with HTTP 202. Poll
     `/v1/inventory-enrich/{enrichment_id}` for stage progress and the finished findings.
 
-    Submit 1-200 assets. Product assets use product, vendor, and up to five versions for CPE-based
-    vulnerability matching. Package assets add `ecosystem` and use package-advisory matching.
+    Submit 1-1000 assets (at most 200 product assets). Product assets use product, vendor, and up to
+    five versions for CPE-based vulnerability matching. Package assets add `ecosystem` and use
+    package-advisory matching.
     Asset category, criticality, deployment context, owner, tags, and group metadata are preserved
     in the result. Optional `attachments_text` and `attachments_files` run Artifact Enrichment over
     reports, IOC lists, scans, email, and other evidence attached to the inventory.
 
     `include` selects the per-CVE evidence retained for each asset and replaces the default list.
-    `summary`, `web`, `web_scrape`, and `navigator` are accepted for product-schema compatibility
+    `summary` and `navigator` are accepted for product-schema compatibility
     but intentionally omitted from this deterministic background workflow.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -163,6 +180,11 @@ def sync(
             Product assets use CPE matching. Assets with `ecosystem` set use package-advisory
             matching.
             Each asset can carry deployment and ownership context, which is preserved in the result.
+            An optional `vex_overlay` carries VEX statements (OpenVEX 0.2.0 / CSAF 2.0) that mark
+            matching
+            `not_affected` / `fixed` findings `suppressed_by_vex` — retained with their justification,
+            excluded
+            from the actionable counts — instead of re-reporting them.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -190,19 +212,25 @@ async def asyncio_detailed(
     Returns an `enrichment_id` with HTTP 202. Poll
     `/v1/inventory-enrich/{enrichment_id}` for stage progress and the finished findings.
 
-    Submit 1-200 assets. Product assets use product, vendor, and up to five versions for CPE-based
-    vulnerability matching. Package assets add `ecosystem` and use package-advisory matching.
+    Submit 1-1000 assets (at most 200 product assets). Product assets use product, vendor, and up to
+    five versions for CPE-based vulnerability matching. Package assets add `ecosystem` and use
+    package-advisory matching.
     Asset category, criticality, deployment context, owner, tags, and group metadata are preserved
     in the result. Optional `attachments_text` and `attachments_files` run Artifact Enrichment over
     reports, IOC lists, scans, email, and other evidence attached to the inventory.
 
     `include` selects the per-CVE evidence retained for each asset and replaces the default list.
-    `summary`, `web`, `web_scrape`, and `navigator` are accepted for product-schema compatibility
+    `summary` and `navigator` are accepted for product-schema compatibility
     but intentionally omitted from this deterministic background workflow.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -212,6 +240,11 @@ async def asyncio_detailed(
             Product assets use CPE matching. Assets with `ecosystem` set use package-advisory
             matching.
             Each asset can carry deployment and ownership context, which is preserved in the result.
+            An optional `vex_overlay` carries VEX statements (OpenVEX 0.2.0 / CSAF 2.0) that mark
+            matching
+            `not_affected` / `fixed` findings `suppressed_by_vex` — retained with their justification,
+            excluded
+            from the actionable counts — instead of re-reporting them.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -242,19 +275,25 @@ async def asyncio(
     Returns an `enrichment_id` with HTTP 202. Poll
     `/v1/inventory-enrich/{enrichment_id}` for stage progress and the finished findings.
 
-    Submit 1-200 assets. Product assets use product, vendor, and up to five versions for CPE-based
-    vulnerability matching. Package assets add `ecosystem` and use package-advisory matching.
+    Submit 1-1000 assets (at most 200 product assets). Product assets use product, vendor, and up to
+    five versions for CPE-based vulnerability matching. Package assets add `ecosystem` and use
+    package-advisory matching.
     Asset category, criticality, deployment context, owner, tags, and group metadata are preserved
     in the result. Optional `attachments_text` and `attachments_files` run Artifact Enrichment over
     reports, IOC lists, scans, email, and other evidence attached to the inventory.
 
     `include` selects the per-CVE evidence retained for each asset and replaces the default list.
-    `summary`, `web`, `web_scrape`, and `navigator` are accepted for product-schema compatibility
+    `summary` and `navigator` are accepted for product-schema compatibility
     but intentionally omitted from this deterministic background workflow.
 
-    Submission consumes one request unit. Polling consumes none. Each API key can run 3 Artifact or
-    Inventory Enrichments at once and can hold 20 running or queued jobs across both engines. Jobs
-    beyond the running limit remain `queued`; a full queue returns 429. If queue state cannot be
+    An ACCEPTED submission (202) consumes one request unit; a refused one (429/503) and every poll
+    consume
+    none. Each API key can run 3 Artifact, Inventory, or Event Enrichments at once and can hold 20
+    running
+    or queued jobs across all three enrichment engines (the caps are shared, so the limit binds them
+    jointly). Jobs
+    beyond the running limit remain `queued`; a full queue returns 429, and that cap is enforced
+    atomically, so simultaneous submits cannot push an owner past it. If queue state cannot be
     verified, the request returns 503 and no job is created.
 
     Args:
@@ -264,6 +303,11 @@ async def asyncio(
             Product assets use CPE matching. Assets with `ecosystem` set use package-advisory
             matching.
             Each asset can carry deployment and ownership context, which is preserved in the result.
+            An optional `vex_overlay` carries VEX statements (OpenVEX 0.2.0 / CSAF 2.0) that mark
+            matching
+            `not_affected` / `fixed` findings `suppressed_by_vex` — retained with their justification,
+            excluded
+            from the actionable counts — instead of re-reporting them.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

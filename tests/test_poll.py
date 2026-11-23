@@ -1,7 +1,7 @@
 """Unit tests for the shared submit→poll core (`client._poll`).
 
 Mocks the httpx layer — no network. Covers the deadline-based timeout, the progress
-callback (sync + async), and callback-error swallowing for the two async engines.
+callback (sync + async), and callback-error swallowing for the three async engines.
 """
 
 from __future__ import annotations

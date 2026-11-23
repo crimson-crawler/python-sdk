@@ -33,8 +33,8 @@ class FetchPoCSourceResponse:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.error_detail import ErrorDetail
-        from ..models.po_c_source_summary import PoCSourceSummary
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.po_c_source_summary import PoCSourceSummary  # noqa: PLC0415
 
         repo_url = self.repo_url
 
@@ -69,8 +69,8 @@ class FetchPoCSourceResponse:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.error_detail import ErrorDetail
-        from ..models.po_c_source_summary import PoCSourceSummary
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.po_c_source_summary import PoCSourceSummary  # noqa: PLC0415
 
         d = dict(src_dict)
         repo_url = d.pop("repo_url")

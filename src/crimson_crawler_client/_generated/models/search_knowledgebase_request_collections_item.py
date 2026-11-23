@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SearchKnowledgebaseRequestCollectionsItem(str, Enum):
+class SearchKnowledgebaseRequestCollectionsItem(StrEnum):
     LARGE = "large"
     MAIN = "main"
     RED_TEAM = "red_team"

@@ -16,11 +16,15 @@ class BatchDISARMItem:
     """Batch item: enrich a DISARM disinformation technique.
 
     Attributes:
-        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            countermeasures, defend, details, detections, groups, knowledgebase, mitigations, navigator, software, summary,
-            techniques, tie, web, web_scrape.
+        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: details,
+            knowledgebase, summary, techniques, versions. `techniques` populates `related_disarm_techniques` (the DISARM
+            parent/sub-technique family). DISARM declares no ATT&CK-Enterprise-keyed layers. `versions` attaches the
+            object's KB revision history (`revision_history`).
         search (None | str | Unset): Text query to search disinformation techniques
-        technique_id (None | str | Unset): DISARM technique ID for direct lookup (e.g. T0001)
+        technique_id (None | str | Unset): DISARM technique ID for direct lookup. Verified present in the current
+            corpus: `T0002`, `TA01`. Note `T0001` is NOT in the seeded DISARM set despite the sequential-looking id — an id
+            that does not resolve returns an empty result with `identifier_resolved: false` (no `errors` entry: nothing
+            failed, the id simply is not in the corpus).
         type_ (Literal['disarm'] | Unset): Selects DISARM enrichment for this batch item Default: 'disarm'.
     """
 

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnrichTechniqueRequestFramework(str, Enum):
+class EnrichTechniqueRequestFramework(StrEnum):
     ENTERPRISE = "enterprise"
     ICS = "ics"
     MOBILE = "mobile"

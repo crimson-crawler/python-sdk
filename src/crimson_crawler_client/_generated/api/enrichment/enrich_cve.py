@@ -91,20 +91,27 @@ def sync_detailed(
     - `details` — core CVE data including CVSS, severity, description, dates, and references
     - `epss` — EPSS exploit probability score and percentile ranking
     - `kev` — Known Exploited Vulnerabilities catalog status
+    - `cisa_kev` — the stored CISA KEV catalog fills the `kev` entry columns the mirror
+      cannot carry (`vendor_project`, `product`, `forensic_triage`) and marks it
+      `supplemented_from='cisa-official'`; a CVE the mirror does not carry gets its entry from CISA.
+    - `versions` — KB revision history (`revision_history`) for the knowledge-base detail rows this
+      response returns — the CWE weaknesses, CAPEC patterns and ATT&CK entities, each read from its
+      own corpus and deduplicated per object. A request without the token reads no history at all
     - `cwe` — root cause weakness classification with descriptions
     - `capec` — attack patterns describing how the weakness is exploited
     - `techniques` — ATT&CK techniques linked through published vulnerability relationships
     - `tie` — technique likelihood predictions (probability per technique)
     - `misp` — matching threat intelligence events from your threat feed
     - `knowledgebase` — related context from the intelligence knowledge base
-    - `web` — live web search for exploit PoCs, advisories, and security research
-    - `web_scrape` — scraped article text added to the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with vendor, product, version, and CPE string
+    - `criteria` *(opt-in)* — the NVD match criterion each `match_criteria_id` on
+      `affected_products` names: its matchstring, version bounds, covered software and revision
+      stamps. Loads the affected-product rows it reads for itself, and publishes none of them
     - `poc` — proof-of-concept exploits from GitHub (count + repo metadata)
     - `poc_source` — AI-assisted analysis of selected PoC repositories (trigger, affected path,
       preconditions, and mitigation); raw source code is never returned
-    - `exploits` — confirmed exploit records from the KEV exploit feed (real evidence, not the
-      heuristic `has_public_exploit` boolean)
+    - `exploits` — confirmed exploit records from ExploitDB public exploit evidence (real
+      evidence, not the heuristic `has_public_exploit` boolean)
     - `osv` — OSV.dev advisories aliased to this CVE (GHSA/PYSEC/RUSTSEC records plus per-ecosystem
       fixed versions; the same advisory source used by `/v1/enrich/package`)
     - `groups` — threat actor groups known to use the linked ATT&CK techniques
@@ -113,10 +120,18 @@ def sync_detailed(
     - `mitigations` — defensive courses of action for each linked technique
     - `detections` — data sources and components for detecting each linked technique
     - `defend` — D3FEND defensive techniques and countermeasures
+    - `metasploit` *(opt-in)* — `metasploit_modules`: Metasploit Framework modules naming this CVE
+    - `nuclei` *(opt-in)* — `nuclei_templates`: Nuclei templates naming this CVE (header fields only)
+    - `vendor_advisories` *(opt-in)* — `vendor_advisories`: Microsoft / Red Hat / Cisco advisory
+      metadata for this CVE, one row per source that answered
+    - `distro_advisories` *(opt-in)* — `distro_advisories`: SUSE CSAF-VEX, Ubuntu OpenVEX and Alpine
+    secdb rows
+      per release (fixed / not_affected / needs_triage / open), each with its licence and attribution;
+    Debian is absent
     - `similar_cves` — up to 15 CVEs with overlapping weakness/technique fingerprint, ranked by
       weighted Jaccard similarity (signal-by-signal breakdown included)
-    - `sector_context` — evidence-based industry sector detection from threat group targeting patterns
-    - `timeline` — EPSS score history for trend visualisation (pair with `epss_velocity`)
+    - `timeline` — EPSS score history plus the derived `epss_velocity`; co-request `epss` and
+      `timeline`, and both populate only when history is available
     - `navigator` — ATT&CK Navigator layer JSON for MITRE's Navigator tool
     - `summary` — AI-generated 3-5 sentence executive brief covering severity, exploitation
       status, and key attack techniques
@@ -125,6 +140,8 @@ def sync_detailed(
     authoritative.
     - `nist_controls` *(default-on)* — NIST SP 800-53 rev 5 controls that mitigate the CVE's mapped
       techniques, based on MITRE Center for Threat-Informed Defense mappings
+    - `weakness_ranks` *(opt-in)* — `weakness_ranks`: the CWE Top 25 and OWASP Top 10 / API / LLM
+      positions this CVE's weakness ids occupy, matched by CWE id
     - `ssvc` — SSVC vulnerability-prioritisation decision (CERT/CC Deployer tree by default, or CISA
       Coordinator tree). Stakeholder context comes from the optional `stakeholder` request field;
       defaults to the worst-reasonable case for an unknown environment.
@@ -133,6 +150,20 @@ def sync_detailed(
     class of `techniques[]`), `likely_tactics` (vendor tactic-class hints when the chain walk is
     empty), `confidence` (importance-weighted completeness indicator), `weaponization_score` (0-100
     composite).
+
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, which this endpoint resolves
+    itself (its chain walk plus its CAPEC links). Asked for ALONE each one resolves what it reads and
+    publishes only its own section, so `techniques[]` still requires its own token. Measured
+    2026-10-15: `["tie"]` alone → 20 predictions and `["timeline"]` alone → 72 EPSS points, both with
+    `techniques: []`.
+
+    OSV advisories are returned in budget-sized pages. When `osv_next_offset` is present, repeat the
+    same
+    request with `osv_offset` set to it and `osv_snapshot_id` from the response until it is absent; each
+    continuation page carries only OSV advisories and errors. `osv_advisories_total` stays exact, a
+    changed or expired snapshot returns 409 `snapshot_expired`, and an unreadable snapshot store or
+    stored OSV copy returns 503 `snapshot_unavailable`.
 
     Omitted include values return as `null` or empty arrays. The `errors` array reports any partial
     failures.
@@ -180,20 +211,27 @@ def sync(
     - `details` — core CVE data including CVSS, severity, description, dates, and references
     - `epss` — EPSS exploit probability score and percentile ranking
     - `kev` — Known Exploited Vulnerabilities catalog status
+    - `cisa_kev` — the stored CISA KEV catalog fills the `kev` entry columns the mirror
+      cannot carry (`vendor_project`, `product`, `forensic_triage`) and marks it
+      `supplemented_from='cisa-official'`; a CVE the mirror does not carry gets its entry from CISA.
+    - `versions` — KB revision history (`revision_history`) for the knowledge-base detail rows this
+      response returns — the CWE weaknesses, CAPEC patterns and ATT&CK entities, each read from its
+      own corpus and deduplicated per object. A request without the token reads no history at all
     - `cwe` — root cause weakness classification with descriptions
     - `capec` — attack patterns describing how the weakness is exploited
     - `techniques` — ATT&CK techniques linked through published vulnerability relationships
     - `tie` — technique likelihood predictions (probability per technique)
     - `misp` — matching threat intelligence events from your threat feed
     - `knowledgebase` — related context from the intelligence knowledge base
-    - `web` — live web search for exploit PoCs, advisories, and security research
-    - `web_scrape` — scraped article text added to the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with vendor, product, version, and CPE string
+    - `criteria` *(opt-in)* — the NVD match criterion each `match_criteria_id` on
+      `affected_products` names: its matchstring, version bounds, covered software and revision
+      stamps. Loads the affected-product rows it reads for itself, and publishes none of them
     - `poc` — proof-of-concept exploits from GitHub (count + repo metadata)
     - `poc_source` — AI-assisted analysis of selected PoC repositories (trigger, affected path,
       preconditions, and mitigation); raw source code is never returned
-    - `exploits` — confirmed exploit records from the KEV exploit feed (real evidence, not the
-      heuristic `has_public_exploit` boolean)
+    - `exploits` — confirmed exploit records from ExploitDB public exploit evidence (real
+      evidence, not the heuristic `has_public_exploit` boolean)
     - `osv` — OSV.dev advisories aliased to this CVE (GHSA/PYSEC/RUSTSEC records plus per-ecosystem
       fixed versions; the same advisory source used by `/v1/enrich/package`)
     - `groups` — threat actor groups known to use the linked ATT&CK techniques
@@ -202,10 +240,18 @@ def sync(
     - `mitigations` — defensive courses of action for each linked technique
     - `detections` — data sources and components for detecting each linked technique
     - `defend` — D3FEND defensive techniques and countermeasures
+    - `metasploit` *(opt-in)* — `metasploit_modules`: Metasploit Framework modules naming this CVE
+    - `nuclei` *(opt-in)* — `nuclei_templates`: Nuclei templates naming this CVE (header fields only)
+    - `vendor_advisories` *(opt-in)* — `vendor_advisories`: Microsoft / Red Hat / Cisco advisory
+      metadata for this CVE, one row per source that answered
+    - `distro_advisories` *(opt-in)* — `distro_advisories`: SUSE CSAF-VEX, Ubuntu OpenVEX and Alpine
+    secdb rows
+      per release (fixed / not_affected / needs_triage / open), each with its licence and attribution;
+    Debian is absent
     - `similar_cves` — up to 15 CVEs with overlapping weakness/technique fingerprint, ranked by
       weighted Jaccard similarity (signal-by-signal breakdown included)
-    - `sector_context` — evidence-based industry sector detection from threat group targeting patterns
-    - `timeline` — EPSS score history for trend visualisation (pair with `epss_velocity`)
+    - `timeline` — EPSS score history plus the derived `epss_velocity`; co-request `epss` and
+      `timeline`, and both populate only when history is available
     - `navigator` — ATT&CK Navigator layer JSON for MITRE's Navigator tool
     - `summary` — AI-generated 3-5 sentence executive brief covering severity, exploitation
       status, and key attack techniques
@@ -214,6 +260,8 @@ def sync(
     authoritative.
     - `nist_controls` *(default-on)* — NIST SP 800-53 rev 5 controls that mitigate the CVE's mapped
       techniques, based on MITRE Center for Threat-Informed Defense mappings
+    - `weakness_ranks` *(opt-in)* — `weakness_ranks`: the CWE Top 25 and OWASP Top 10 / API / LLM
+      positions this CVE's weakness ids occupy, matched by CWE id
     - `ssvc` — SSVC vulnerability-prioritisation decision (CERT/CC Deployer tree by default, or CISA
       Coordinator tree). Stakeholder context comes from the optional `stakeholder` request field;
       defaults to the worst-reasonable case for an unknown environment.
@@ -222,6 +270,20 @@ def sync(
     class of `techniques[]`), `likely_tactics` (vendor tactic-class hints when the chain walk is
     empty), `confidence` (importance-weighted completeness indicator), `weaponization_score` (0-100
     composite).
+
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, which this endpoint resolves
+    itself (its chain walk plus its CAPEC links). Asked for ALONE each one resolves what it reads and
+    publishes only its own section, so `techniques[]` still requires its own token. Measured
+    2026-10-15: `["tie"]` alone → 20 predictions and `["timeline"]` alone → 72 EPSS points, both with
+    `techniques: []`.
+
+    OSV advisories are returned in budget-sized pages. When `osv_next_offset` is present, repeat the
+    same
+    request with `osv_offset` set to it and `osv_snapshot_id` from the response until it is absent; each
+    continuation page carries only OSV advisories and errors. `osv_advisories_total` stays exact, a
+    changed or expired snapshot returns 409 `snapshot_expired`, and an unreadable snapshot store or
+    stored OSV copy returns 503 `snapshot_unavailable`.
 
     Omitted include values return as `null` or empty arrays. The `errors` array reports any partial
     failures.
@@ -264,20 +326,27 @@ async def asyncio_detailed(
     - `details` — core CVE data including CVSS, severity, description, dates, and references
     - `epss` — EPSS exploit probability score and percentile ranking
     - `kev` — Known Exploited Vulnerabilities catalog status
+    - `cisa_kev` — the stored CISA KEV catalog fills the `kev` entry columns the mirror
+      cannot carry (`vendor_project`, `product`, `forensic_triage`) and marks it
+      `supplemented_from='cisa-official'`; a CVE the mirror does not carry gets its entry from CISA.
+    - `versions` — KB revision history (`revision_history`) for the knowledge-base detail rows this
+      response returns — the CWE weaknesses, CAPEC patterns and ATT&CK entities, each read from its
+      own corpus and deduplicated per object. A request without the token reads no history at all
     - `cwe` — root cause weakness classification with descriptions
     - `capec` — attack patterns describing how the weakness is exploited
     - `techniques` — ATT&CK techniques linked through published vulnerability relationships
     - `tie` — technique likelihood predictions (probability per technique)
     - `misp` — matching threat intelligence events from your threat feed
     - `knowledgebase` — related context from the intelligence knowledge base
-    - `web` — live web search for exploit PoCs, advisories, and security research
-    - `web_scrape` — scraped article text added to the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with vendor, product, version, and CPE string
+    - `criteria` *(opt-in)* — the NVD match criterion each `match_criteria_id` on
+      `affected_products` names: its matchstring, version bounds, covered software and revision
+      stamps. Loads the affected-product rows it reads for itself, and publishes none of them
     - `poc` — proof-of-concept exploits from GitHub (count + repo metadata)
     - `poc_source` — AI-assisted analysis of selected PoC repositories (trigger, affected path,
       preconditions, and mitigation); raw source code is never returned
-    - `exploits` — confirmed exploit records from the KEV exploit feed (real evidence, not the
-      heuristic `has_public_exploit` boolean)
+    - `exploits` — confirmed exploit records from ExploitDB public exploit evidence (real
+      evidence, not the heuristic `has_public_exploit` boolean)
     - `osv` — OSV.dev advisories aliased to this CVE (GHSA/PYSEC/RUSTSEC records plus per-ecosystem
       fixed versions; the same advisory source used by `/v1/enrich/package`)
     - `groups` — threat actor groups known to use the linked ATT&CK techniques
@@ -286,10 +355,18 @@ async def asyncio_detailed(
     - `mitigations` — defensive courses of action for each linked technique
     - `detections` — data sources and components for detecting each linked technique
     - `defend` — D3FEND defensive techniques and countermeasures
+    - `metasploit` *(opt-in)* — `metasploit_modules`: Metasploit Framework modules naming this CVE
+    - `nuclei` *(opt-in)* — `nuclei_templates`: Nuclei templates naming this CVE (header fields only)
+    - `vendor_advisories` *(opt-in)* — `vendor_advisories`: Microsoft / Red Hat / Cisco advisory
+      metadata for this CVE, one row per source that answered
+    - `distro_advisories` *(opt-in)* — `distro_advisories`: SUSE CSAF-VEX, Ubuntu OpenVEX and Alpine
+    secdb rows
+      per release (fixed / not_affected / needs_triage / open), each with its licence and attribution;
+    Debian is absent
     - `similar_cves` — up to 15 CVEs with overlapping weakness/technique fingerprint, ranked by
       weighted Jaccard similarity (signal-by-signal breakdown included)
-    - `sector_context` — evidence-based industry sector detection from threat group targeting patterns
-    - `timeline` — EPSS score history for trend visualisation (pair with `epss_velocity`)
+    - `timeline` — EPSS score history plus the derived `epss_velocity`; co-request `epss` and
+      `timeline`, and both populate only when history is available
     - `navigator` — ATT&CK Navigator layer JSON for MITRE's Navigator tool
     - `summary` — AI-generated 3-5 sentence executive brief covering severity, exploitation
       status, and key attack techniques
@@ -298,6 +375,8 @@ async def asyncio_detailed(
     authoritative.
     - `nist_controls` *(default-on)* — NIST SP 800-53 rev 5 controls that mitigate the CVE's mapped
       techniques, based on MITRE Center for Threat-Informed Defense mappings
+    - `weakness_ranks` *(opt-in)* — `weakness_ranks`: the CWE Top 25 and OWASP Top 10 / API / LLM
+      positions this CVE's weakness ids occupy, matched by CWE id
     - `ssvc` — SSVC vulnerability-prioritisation decision (CERT/CC Deployer tree by default, or CISA
       Coordinator tree). Stakeholder context comes from the optional `stakeholder` request field;
       defaults to the worst-reasonable case for an unknown environment.
@@ -306,6 +385,20 @@ async def asyncio_detailed(
     class of `techniques[]`), `likely_tactics` (vendor tactic-class hints when the chain walk is
     empty), `confidence` (importance-weighted completeness indicator), `weaponization_score` (0-100
     composite).
+
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, which this endpoint resolves
+    itself (its chain walk plus its CAPEC links). Asked for ALONE each one resolves what it reads and
+    publishes only its own section, so `techniques[]` still requires its own token. Measured
+    2026-10-15: `["tie"]` alone → 20 predictions and `["timeline"]` alone → 72 EPSS points, both with
+    `techniques: []`.
+
+    OSV advisories are returned in budget-sized pages. When `osv_next_offset` is present, repeat the
+    same
+    request with `osv_offset` set to it and `osv_snapshot_id` from the response until it is absent; each
+    continuation page carries only OSV advisories and errors. `osv_advisories_total` stays exact, a
+    changed or expired snapshot returns 409 `snapshot_expired`, and an unreadable snapshot store or
+    stored OSV copy returns 503 `snapshot_unavailable`.
 
     Omitted include values return as `null` or empty arrays. The `errors` array reports any partial
     failures.
@@ -351,20 +444,27 @@ async def asyncio(
     - `details` — core CVE data including CVSS, severity, description, dates, and references
     - `epss` — EPSS exploit probability score and percentile ranking
     - `kev` — Known Exploited Vulnerabilities catalog status
+    - `cisa_kev` — the stored CISA KEV catalog fills the `kev` entry columns the mirror
+      cannot carry (`vendor_project`, `product`, `forensic_triage`) and marks it
+      `supplemented_from='cisa-official'`; a CVE the mirror does not carry gets its entry from CISA.
+    - `versions` — KB revision history (`revision_history`) for the knowledge-base detail rows this
+      response returns — the CWE weaknesses, CAPEC patterns and ATT&CK entities, each read from its
+      own corpus and deduplicated per object. A request without the token reads no history at all
     - `cwe` — root cause weakness classification with descriptions
     - `capec` — attack patterns describing how the weakness is exploited
     - `techniques` — ATT&CK techniques linked through published vulnerability relationships
     - `tie` — technique likelihood predictions (probability per technique)
     - `misp` — matching threat intelligence events from your threat feed
     - `knowledgebase` — related context from the intelligence knowledge base
-    - `web` — live web search for exploit PoCs, advisories, and security research
-    - `web_scrape` — scraped article text added to the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with vendor, product, version, and CPE string
+    - `criteria` *(opt-in)* — the NVD match criterion each `match_criteria_id` on
+      `affected_products` names: its matchstring, version bounds, covered software and revision
+      stamps. Loads the affected-product rows it reads for itself, and publishes none of them
     - `poc` — proof-of-concept exploits from GitHub (count + repo metadata)
     - `poc_source` — AI-assisted analysis of selected PoC repositories (trigger, affected path,
       preconditions, and mitigation); raw source code is never returned
-    - `exploits` — confirmed exploit records from the KEV exploit feed (real evidence, not the
-      heuristic `has_public_exploit` boolean)
+    - `exploits` — confirmed exploit records from ExploitDB public exploit evidence (real
+      evidence, not the heuristic `has_public_exploit` boolean)
     - `osv` — OSV.dev advisories aliased to this CVE (GHSA/PYSEC/RUSTSEC records plus per-ecosystem
       fixed versions; the same advisory source used by `/v1/enrich/package`)
     - `groups` — threat actor groups known to use the linked ATT&CK techniques
@@ -373,10 +473,18 @@ async def asyncio(
     - `mitigations` — defensive courses of action for each linked technique
     - `detections` — data sources and components for detecting each linked technique
     - `defend` — D3FEND defensive techniques and countermeasures
+    - `metasploit` *(opt-in)* — `metasploit_modules`: Metasploit Framework modules naming this CVE
+    - `nuclei` *(opt-in)* — `nuclei_templates`: Nuclei templates naming this CVE (header fields only)
+    - `vendor_advisories` *(opt-in)* — `vendor_advisories`: Microsoft / Red Hat / Cisco advisory
+      metadata for this CVE, one row per source that answered
+    - `distro_advisories` *(opt-in)* — `distro_advisories`: SUSE CSAF-VEX, Ubuntu OpenVEX and Alpine
+    secdb rows
+      per release (fixed / not_affected / needs_triage / open), each with its licence and attribution;
+    Debian is absent
     - `similar_cves` — up to 15 CVEs with overlapping weakness/technique fingerprint, ranked by
       weighted Jaccard similarity (signal-by-signal breakdown included)
-    - `sector_context` — evidence-based industry sector detection from threat group targeting patterns
-    - `timeline` — EPSS score history for trend visualisation (pair with `epss_velocity`)
+    - `timeline` — EPSS score history plus the derived `epss_velocity`; co-request `epss` and
+      `timeline`, and both populate only when history is available
     - `navigator` — ATT&CK Navigator layer JSON for MITRE's Navigator tool
     - `summary` — AI-generated 3-5 sentence executive brief covering severity, exploitation
       status, and key attack techniques
@@ -385,6 +493,8 @@ async def asyncio(
     authoritative.
     - `nist_controls` *(default-on)* — NIST SP 800-53 rev 5 controls that mitigate the CVE's mapped
       techniques, based on MITRE Center for Threat-Informed Defense mappings
+    - `weakness_ranks` *(opt-in)* — `weakness_ranks`: the CWE Top 25 and OWASP Top 10 / API / LLM
+      positions this CVE's weakness ids occupy, matched by CWE id
     - `ssvc` — SSVC vulnerability-prioritisation decision (CERT/CC Deployer tree by default, or CISA
       Coordinator tree). Stakeholder context comes from the optional `stakeholder` request field;
       defaults to the worst-reasonable case for an unknown environment.
@@ -393,6 +503,20 @@ async def asyncio(
     class of `techniques[]`), `likely_tactics` (vendor tactic-class hints when the chain walk is
     empty), `confidence` (importance-weighted completeness indicator), `weaponization_score` (0-100
     composite).
+
+    The technique-derived layers — `groups`, `software`, `campaigns`, `mitigations`, `detections`,
+    `defend` and `nist_controls` — read the resolved technique set, which this endpoint resolves
+    itself (its chain walk plus its CAPEC links). Asked for ALONE each one resolves what it reads and
+    publishes only its own section, so `techniques[]` still requires its own token. Measured
+    2026-10-15: `["tie"]` alone → 20 predictions and `["timeline"]` alone → 72 EPSS points, both with
+    `techniques: []`.
+
+    OSV advisories are returned in budget-sized pages. When `osv_next_offset` is present, repeat the
+    same
+    request with `osv_offset` set to it and `osv_snapshot_id` from the response until it is absent; each
+    continuation page carries only OSV advisories and errors. `osv_advisories_total` stays exact, a
+    changed or expired snapshot returns 409 `snapshot_expired`, and an unreadable snapshot store or
+    stored OSV copy returns 503 `snapshot_unavailable`.
 
     Omitted include values return as `null` or empty arrays. The `errors` array reports any partial
     failures.

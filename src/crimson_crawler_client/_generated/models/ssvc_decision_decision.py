@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionDecision(str, Enum):
+class SSVCDecisionDecision(StrEnum):
     ACT = "act"
     ATTEND = "attend"
     DEFER = "defer"

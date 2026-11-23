@@ -21,8 +21,11 @@ class BatchCampaignItem:
         framework (BatchCampaignItemFramework | Unset): ATT&CK framework: enterprise, ics, or mobile Default:
             BatchCampaignItemFramework.ENTERPRISE.
         include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: cves,
-            defend, details, detections, groups, knowledgebase, mitigations, navigator, nist_controls, software, summary,
-            techniques, tie, web, web_scrape.
+            defend, details, detections, groups, knowledgebase, log_sources, mitigations, navigator, nist_controls,
+            software, summary, techniques, tie, versions. `versions` attaches the object's KB revision history
+            (`revision_history`). `details` GATES this endpoint's own `campaign` object — as do `versions` and
+            `nist_controls`: without any of the three, a `campaign_id` lookup returns no object (and no `nist_controls`
+            mapping).
         search (None | str | Unset): Text query to search campaigns by name or description
         type_ (Literal['campaign'] | Unset): Selects campaign enrichment for this batch item Default: 'campaign'.
     """

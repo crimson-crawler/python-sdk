@@ -20,8 +20,9 @@ class BatchSoftwareItem:
         framework (BatchSoftwareItemFramework | Unset): ATT&CK framework: enterprise, ics, or mobile Default:
             BatchSoftwareItemFramework.ENTERPRISE.
         include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, misp, mitigations, navigator, nist_controls, summary,
-            techniques, tie, web, web_scrape.
+            cves, defend, details, detections, groups, knowledgebase, log_sources, misp, mitigations, navigator,
+            nist_controls, summary, techniques, tie, versions. `versions` attaches the object's KB revision history
+            (`revision_history`).
         search (None | str | Unset): Text query to search by name or alias (e.g. 'Cobalt Strike')
         software_id (None | str | Unset): ATT&CK software ID for direct lookup (e.g. S0154)
         type_ (Literal['software'] | Unset): Selects software enrichment for this batch item Default: 'software'.

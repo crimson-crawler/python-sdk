@@ -80,10 +80,15 @@ def sync_detailed(
 
      Retrieve ATT&CK technique details with threat predictions and related intelligence.
 
-    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), or text search (`search`),
-    across the `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is
-    enriched with threat predictions (TIE) and optionally related intelligence from the knowledge base.
-    If all three lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), text search (`search`), or —
+    ICS only — an asset class (`asset_id`, mutually exclusive with the other three), across the
+    `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is enriched
+    with threat predictions (TIE) and optionally related intelligence from the knowledge base.
+    If all four lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+
+    **`asset_id`** answers the inverse question — "which techniques target this control-system asset
+    class" — from the ICS corpus's own `targets` edges. The asset is returned in `asset`, and its
+    real targets in `techniques`; no technique is ever substituted for the asset.
 
     **Include options**
 
@@ -99,11 +104,14 @@ def sync_detailed(
     - `cves` — CVEs mapped to the technique
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for technique-related research and analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the technique's usage and detection priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the technique,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `fraud` *(opt-in)* — `f3_techniques`: the MITRE F3 (Fight Fraud Framework) techniques whose own
+      identity is this technique's ATT&CK id, on each returned technique row
+    - `asset_classes` *(opt-in)* — `asset_classes`: the ICS asset classes this technique targets, on
+      an `ics` framework request (the corpus has no CVE→ICS technique link, so this token is
+      technique-only)
 
     Args:
         body (EnrichTechniqueRequest): Retrieve ATT&CK technique details with threat predictions
@@ -137,10 +145,15 @@ def sync(
 
      Retrieve ATT&CK technique details with threat predictions and related intelligence.
 
-    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), or text search (`search`),
-    across the `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is
-    enriched with threat predictions (TIE) and optionally related intelligence from the knowledge base.
-    If all three lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), text search (`search`), or —
+    ICS only — an asset class (`asset_id`, mutually exclusive with the other three), across the
+    `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is enriched
+    with threat predictions (TIE) and optionally related intelligence from the knowledge base.
+    If all four lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+
+    **`asset_id`** answers the inverse question — "which techniques target this control-system asset
+    class" — from the ICS corpus's own `targets` edges. The asset is returned in `asset`, and its
+    real targets in `techniques`; no technique is ever substituted for the asset.
 
     **Include options**
 
@@ -156,11 +169,14 @@ def sync(
     - `cves` — CVEs mapped to the technique
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for technique-related research and analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the technique's usage and detection priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the technique,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `fraud` *(opt-in)* — `f3_techniques`: the MITRE F3 (Fight Fraud Framework) techniques whose own
+      identity is this technique's ATT&CK id, on each returned technique row
+    - `asset_classes` *(opt-in)* — `asset_classes`: the ICS asset classes this technique targets, on
+      an `ics` framework request (the corpus has no CVE→ICS technique link, so this token is
+      technique-only)
 
     Args:
         body (EnrichTechniqueRequest): Retrieve ATT&CK technique details with threat predictions
@@ -189,10 +205,15 @@ async def asyncio_detailed(
 
      Retrieve ATT&CK technique details with threat predictions and related intelligence.
 
-    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), or text search (`search`),
-    across the `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is
-    enriched with threat predictions (TIE) and optionally related intelligence from the knowledge base.
-    If all three lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), text search (`search`), or —
+    ICS only — an asset class (`asset_id`, mutually exclusive with the other three), across the
+    `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is enriched
+    with threat predictions (TIE) and optionally related intelligence from the knowledge base.
+    If all four lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+
+    **`asset_id`** answers the inverse question — "which techniques target this control-system asset
+    class" — from the ICS corpus's own `targets` edges. The asset is returned in `asset`, and its
+    real targets in `techniques`; no technique is ever substituted for the asset.
 
     **Include options**
 
@@ -208,11 +229,14 @@ async def asyncio_detailed(
     - `cves` — CVEs mapped to the technique
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for technique-related research and analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the technique's usage and detection priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the technique,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `fraud` *(opt-in)* — `f3_techniques`: the MITRE F3 (Fight Fraud Framework) techniques whose own
+      identity is this technique's ATT&CK id, on each returned technique row
+    - `asset_classes` *(opt-in)* — `asset_classes`: the ICS asset classes this technique targets, on
+      an `ics` framework request (the corpus has no CVE→ICS technique link, so this token is
+      technique-only)
 
     Args:
         body (EnrichTechniqueRequest): Retrieve ATT&CK technique details with threat predictions
@@ -244,10 +268,15 @@ async def asyncio(
 
      Retrieve ATT&CK technique details with threat predictions and related intelligence.
 
-    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), or text search (`search`),
-    across the `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is
-    enriched with threat predictions (TIE) and optionally related intelligence from the knowledge base.
-    If all three lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+    Supports a single ID (`technique_id`), batch IDs (`technique_ids`), text search (`search`), or —
+    ICS only — an asset class (`asset_id`, mutually exclusive with the other three), across the
+    `enterprise`, `ics`, or `mobile` framework (default `enterprise`). Each technique is enriched
+    with threat predictions (TIE) and optionally related intelligence from the knowledge base.
+    If all four lookup fields are omitted, the endpoint returns HTTP 200 with an empty technique list.
+
+    **`asset_id`** answers the inverse question — "which techniques target this control-system asset
+    class" — from the ICS corpus's own `targets` edges. The asset is returned in `asset`, and its
+    real targets in `techniques`; no technique is ever substituted for the asset.
 
     **Include options**
 
@@ -263,11 +292,14 @@ async def asyncio(
     - `cves` — CVEs mapped to the technique
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for technique-related research and analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `summary` — AI-generated executive brief covering the technique's usage and detection priorities
     - `nist_controls` *(opt-in)* — NIST SP 800-53 rev 5 controls that mitigate the technique,
       based on MITRE Center for Threat-Informed Defense mappings
+    - `fraud` *(opt-in)* — `f3_techniques`: the MITRE F3 (Fight Fraud Framework) techniques whose own
+      identity is this technique's ATT&CK id, on each returned technique row
+    - `asset_classes` *(opt-in)* — `asset_classes`: the ICS asset classes this technique targets, on
+      an `ics` framework request (the corpus has no CVE→ICS technique link, so this token is
+      technique-only)
 
     Args:
         body (EnrichTechniqueRequest): Retrieve ATT&CK technique details with threat predictions

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnrichmentJobEventLevel(str, Enum):
+class EnrichmentJobEventLevel(StrEnum):
     ERROR = "error"
     INFO = "info"
     WARN = "warn"

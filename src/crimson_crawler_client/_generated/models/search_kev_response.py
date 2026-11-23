@@ -9,6 +9,7 @@ from attrs import field as _attrs_field
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.corpus_statistics import CorpusStatistics
     from ..models.error_detail import ErrorDetail
     from ..models.kev_entry import KEVEntry
 
@@ -23,15 +24,20 @@ class SearchKEVResponse:
     Attributes:
         errors (list[ErrorDetail] | Unset): Partial failure details
         results (list[KEVEntry] | Unset): Matching KEV entries
+        statistics (CorpusStatistics | None | Unset): Deployment-wide corpus coverage and freshness. Included by
+            default; an explicit include list replaces the defaults, and include=[] omits it. Same block `/v1/search/cve`
+            returns, including `kev_by_year` and `kev_created_since`.
     """
 
     errors: list[ErrorDetail] | Unset = UNSET
     results: list[KEVEntry] | Unset = UNSET
+    statistics: CorpusStatistics | None | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.error_detail import ErrorDetail
-        from ..models.kev_entry import KEVEntry
+        from ..models.corpus_statistics import CorpusStatistics  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.kev_entry import KEVEntry  # noqa: PLC0415
 
         errors: list[dict[str, Any]] | Unset = UNSET
         if not isinstance(self.errors, Unset):
@@ -47,6 +53,14 @@ class SearchKEVResponse:
                 results_item = results_item_data.to_dict()
                 results.append(results_item)
 
+        statistics: dict[str, Any] | None | Unset
+        if isinstance(self.statistics, Unset):
+            statistics = UNSET
+        elif isinstance(self.statistics, CorpusStatistics):
+            statistics = self.statistics.to_dict()
+        else:
+            statistics = self.statistics
+
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
@@ -54,13 +68,16 @@ class SearchKEVResponse:
             field_dict["errors"] = errors
         if results is not UNSET:
             field_dict["results"] = results
+        if statistics is not UNSET:
+            field_dict["statistics"] = statistics
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.error_detail import ErrorDetail
-        from ..models.kev_entry import KEVEntry
+        from ..models.corpus_statistics import CorpusStatistics  # noqa: PLC0415
+        from ..models.error_detail import ErrorDetail  # noqa: PLC0415
+        from ..models.kev_entry import KEVEntry  # noqa: PLC0415
 
         d = dict(src_dict)
         _errors = d.pop("errors", UNSET)
@@ -81,9 +98,27 @@ class SearchKEVResponse:
 
                 results.append(results_item)
 
+        def _parse_statistics(data: object) -> CorpusStatistics | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                statistics_type_0 = CorpusStatistics.from_dict(data)
+
+                return statistics_type_0
+            except (TypeError, ValueError, AttributeError, KeyError):
+                pass
+            return cast(CorpusStatistics | None | Unset, data)
+
+        statistics = _parse_statistics(d.pop("statistics", UNSET))
+
         search_kev_response = cls(
             errors=errors,
             results=results,
+            statistics=statistics,
         )
 
         search_kev_response.additional_properties = d

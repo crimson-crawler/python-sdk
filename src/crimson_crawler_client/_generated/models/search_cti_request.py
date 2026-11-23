@@ -19,17 +19,21 @@ class SearchCTIRequest:
     Attributes:
         query (str): Text search query
         deprecated (bool | None | Unset): Set to false to exclude objects marked deprecated by their source.
+        include (list[str] | Unset): Extra response layers. Only `kb_versions` — the installed/available KB revision for
+            each  requestedsource, so a caller can see that the answer is served from e.g. ATT&CK 18.0  while 19.1 exists.
+            Allowedvalues: kb_versions.
         limit (int | Unset): Maximum number of results to return (1-100) Default: 20.
         page (int | Unset): Page number for pagination (1-indexed, max 100) Default: 1.
         revoked (bool | None | Unset): Set to false to exclude objects marked revoked by their source.
         sources (list[str] | Unset): Knowledge bases to search. Options: attack (ATT&CK Enterprise), attack-enterprise,
-            attack-ics, attack-mobile, cwe, capec, atlas, disarm, location, sector
+            attack-ics, attack-mobile, cwe, capec, atlas, disarm, f3, cloak, location, sector
         types (list[SearchCTIRequestTypesType0Item] | None | Unset): Filter by object type: attack-pattern, intrusion-
             set, malware, tool, campaign, weakness, course-of-action
     """
 
     query: str
     deprecated: bool | None | Unset = UNSET
+    include: list[str] | Unset = UNSET
     limit: int | Unset = 20
     page: int | Unset = 1
     revoked: bool | None | Unset = UNSET
@@ -45,6 +49,10 @@ class SearchCTIRequest:
             deprecated = UNSET
         else:
             deprecated = self.deprecated
+
+        include: list[str] | Unset = UNSET
+        if not isinstance(self.include, Unset):
+            include = self.include
 
         limit = self.limit
 
@@ -81,6 +89,8 @@ class SearchCTIRequest:
         )
         if deprecated is not UNSET:
             field_dict["deprecated"] = deprecated
+        if include is not UNSET:
+            field_dict["include"] = include
         if limit is not UNSET:
             field_dict["limit"] = limit
         if page is not UNSET:
@@ -107,6 +117,8 @@ class SearchCTIRequest:
             return cast(bool | None | Unset, data)
 
         deprecated = _parse_deprecated(d.pop("deprecated", UNSET))
+
+        include = cast(list[str], d.pop("include", UNSET))
 
         limit = d.pop("limit", UNSET)
 
@@ -148,6 +160,7 @@ class SearchCTIRequest:
         search_cti_request = cls(
             query=query,
             deprecated=deprecated,
+            include=include,
             limit=limit,
             page=page,
             revoked=revoked,

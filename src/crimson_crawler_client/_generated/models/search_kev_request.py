@@ -18,6 +18,8 @@ class SearchKEVRequest:
 
     Attributes:
         cve_id (None | str | Unset): CVE ID to check against the KEV catalog
+        include (list[str] | Unset): Corpus coverage block. `statistics` is on by default and reports deployment-wide
+            CVE/KEV totals, per-year counts, and creation deltas; pass an empty list for results only.
         limit (int | Unset): Maximum number of results to return (1-100) Default: 50.
         page (int | Unset): Page number for pagination (1-indexed, max 100) Default: 1.
         ransomware_status (None | SearchKEVRequestRansomwareStatusType0 | Unset): Filter by ransomware campaign use:
@@ -25,6 +27,7 @@ class SearchKEVRequest:
     """
 
     cve_id: None | str | Unset = UNSET
+    include: list[str] | Unset = UNSET
     limit: int | Unset = 50
     page: int | Unset = 1
     ransomware_status: None | SearchKEVRequestRansomwareStatusType0 | Unset = UNSET
@@ -36,6 +39,10 @@ class SearchKEVRequest:
             cve_id = UNSET
         else:
             cve_id = self.cve_id
+
+        include: list[str] | Unset = UNSET
+        if not isinstance(self.include, Unset):
+            include = self.include
 
         limit = self.limit
 
@@ -54,6 +61,8 @@ class SearchKEVRequest:
         field_dict.update({})
         if cve_id is not UNSET:
             field_dict["cve_id"] = cve_id
+        if include is not UNSET:
+            field_dict["include"] = include
         if limit is not UNSET:
             field_dict["limit"] = limit
         if page is not UNSET:
@@ -75,6 +84,8 @@ class SearchKEVRequest:
             return cast(None | str | Unset, data)
 
         cve_id = _parse_cve_id(d.pop("cve_id", UNSET))
+
+        include = cast(list[str], d.pop("include", UNSET))
 
         limit = d.pop("limit", UNSET)
 
@@ -99,6 +110,7 @@ class SearchKEVRequest:
 
         search_kev_request = cls(
             cve_id=cve_id,
+            include=include,
             limit=limit,
             page=page,
             ransomware_status=ransomware_status,

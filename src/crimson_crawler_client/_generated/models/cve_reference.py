@@ -13,20 +13,26 @@ T = TypeVar("T", bound="CVEReference")
 
 @_attrs_define
 class CVEReference:
-    """Advisory or reference link from a CVE entry.
+    """Advisory or reference link carried by a CVE or CWE record.
 
     Attributes:
+        description (str | Unset): The reference's own tag text. NVD uses this as a controlled vocabulary on CVE refs
+            ('Patch', 'Exploit', 'Vendor Advisory', 'Third Party Advisory,VDB Entry'), which is how an exploit link is told
+            apart from an advisory one; CWE refs leave it empty. Default: ''.
         external_id (str | Unset): External identifier at the source Default: ''.
         source (str | Unset): Reference source name (e.g. 'nvd', 'cve') Default: ''.
         url (str | Unset): Reference URL Default: ''.
     """
 
+    description: str | Unset = ""
     external_id: str | Unset = ""
     source: str | Unset = ""
     url: str | Unset = ""
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        description = self.description
+
         external_id = self.external_id
 
         source = self.source
@@ -36,6 +42,8 @@ class CVEReference:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if description is not UNSET:
+            field_dict["description"] = description
         if external_id is not UNSET:
             field_dict["external_id"] = external_id
         if source is not UNSET:
@@ -48,6 +56,8 @@ class CVEReference:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+        description = d.pop("description", UNSET)
+
         external_id = d.pop("external_id", UNSET)
 
         source = d.pop("source", UNSET)
@@ -55,6 +65,7 @@ class CVEReference:
         url = d.pop("url", UNSET)
 
         cve_reference = cls(
+            description=description,
             external_id=external_id,
             source=source,
             url=url,

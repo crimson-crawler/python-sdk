@@ -16,7 +16,7 @@ class SourceContribution:
     """How much one intelligence source contributed to the report.
 
     Attributes:
-        source (str): Source name (kev, epss, cisa-kev, attack, misp, poc, d3fend, web, knowledgebase, …)
+        source (str): Source name (kev, epss, cisa-kev, attack, misp, poc, d3fend, knowledgebase, …)
         references_touched (int | Unset): References this source produced a signal for Default: 0.
     """
 

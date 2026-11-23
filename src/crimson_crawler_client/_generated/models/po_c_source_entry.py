@@ -29,7 +29,7 @@ class PoCSourceEntry:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        from ..models.po_c_source_summary import PoCSourceSummary
+        from ..models.po_c_source_summary import PoCSourceSummary  # noqa: PLC0415
 
         repo_url = self.repo_url
 
@@ -53,7 +53,7 @@ class PoCSourceEntry:
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
-        from ..models.po_c_source_summary import PoCSourceSummary
+        from ..models.po_c_source_summary import PoCSourceSummary  # noqa: PLC0415
 
         d = dict(src_dict)
         repo_url = d.pop("repo_url", UNSET)

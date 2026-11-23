@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AdmiraltyGradeReliability(str, Enum):
+class AdmiraltyGradeReliability(StrEnum):
     A = "A"
     B = "B"
     C = "C"

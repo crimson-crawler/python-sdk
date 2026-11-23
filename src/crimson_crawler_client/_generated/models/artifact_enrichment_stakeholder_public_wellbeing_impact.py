@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentStakeholderPublicWellbeingImpact(str, Enum):
+class ArtifactEnrichmentStakeholderPublicWellbeingImpact(StrEnum):
     IRREVERSIBLE = "irreversible"
     MATERIAL = "material"
     MINIMAL = "minimal"

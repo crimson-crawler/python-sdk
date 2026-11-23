@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SearchKEVRequestRansomwareStatusType0(str, Enum):
+class SearchKEVRequestRansomwareStatusType0(StrEnum):
     KNOWN = "Known"
     UNKNOWN = "Unknown"
 

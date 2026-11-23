@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SearchCTIRequestTypesType0Item(str, Enum):
+class SearchCTIRequestTypesType0Item(StrEnum):
     ATTACK_PATTERN = "attack-pattern"
     CAMPAIGN = "campaign"
     COURSE_OF_ACTION = "course-of-action"

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ArtifactEnrichmentStakeholderMethod(str, Enum):
+class ArtifactEnrichmentStakeholderMethod(StrEnum):
     CISA_COORDINATOR = "cisa_coordinator"
     DEPLOYER = "deployer"
 

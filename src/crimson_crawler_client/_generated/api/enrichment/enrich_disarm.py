@@ -81,29 +81,21 @@ def sync_detailed(
      Look up or search disinformation techniques from the DISARM framework.
 
     Covers influence operation tactics and techniques. Provide `technique_id` for a direct lookup
-    (e.g. T0001) or `search` for discovery. Returns ATT&CK technique mappings even when the DISARM
-    technique has sparse data.
+    (e.g. T0002) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full DISARM technique object with description and tactic context
-    - `countermeasures` — courses of action from the DISARM framework
-    - `techniques` — linked ATT&CK techniques (infrastructure, social engineering) that support or
-      enable this influence operation, resolved into full objects
-    - `tie` — technique likelihood predictions for linked ATT&CK techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked techniques
-    - `groups` — threat actor groups using the linked techniques
-    - `software` — malware and tools using the linked techniques
-    - `campaigns` — threat campaigns using the linked techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
+    - `techniques` — the DISARM parent/sub-technique family this object belongs to, resolved into
+      full objects from the object's own DISARM bundle
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for disinformation analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the disinformation technique and its
-    countermeasures
+    - `summary` — AI-generated executive brief covering the disinformation technique
+
+    DISARM has no ATT&CK-Enterprise-keyed layers: its 410-object corpus is attack-pattern (388) +
+    x-mitre-tactic (20) + identity + marking-definition, so groups/software/campaigns/mitigations/
+    detections/defend, TIE predictions and a Navigator layer have no source and are not declared
+    (Navigator loads enterprise/mobile/ICS ATT&CK layers only).
 
     Args:
         body (EnrichDISARMRequest): Look up or search disinformation techniques from the DISARM
@@ -138,29 +130,21 @@ def sync(
      Look up or search disinformation techniques from the DISARM framework.
 
     Covers influence operation tactics and techniques. Provide `technique_id` for a direct lookup
-    (e.g. T0001) or `search` for discovery. Returns ATT&CK technique mappings even when the DISARM
-    technique has sparse data.
+    (e.g. T0002) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full DISARM technique object with description and tactic context
-    - `countermeasures` — courses of action from the DISARM framework
-    - `techniques` — linked ATT&CK techniques (infrastructure, social engineering) that support or
-      enable this influence operation, resolved into full objects
-    - `tie` — technique likelihood predictions for linked ATT&CK techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked techniques
-    - `groups` — threat actor groups using the linked techniques
-    - `software` — malware and tools using the linked techniques
-    - `campaigns` — threat campaigns using the linked techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
+    - `techniques` — the DISARM parent/sub-technique family this object belongs to, resolved into
+      full objects from the object's own DISARM bundle
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for disinformation analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the disinformation technique and its
-    countermeasures
+    - `summary` — AI-generated executive brief covering the disinformation technique
+
+    DISARM has no ATT&CK-Enterprise-keyed layers: its 410-object corpus is attack-pattern (388) +
+    x-mitre-tactic (20) + identity + marking-definition, so groups/software/campaigns/mitigations/
+    detections/defend, TIE predictions and a Navigator layer have no source and are not declared
+    (Navigator loads enterprise/mobile/ICS ATT&CK layers only).
 
     Args:
         body (EnrichDISARMRequest): Look up or search disinformation techniques from the DISARM
@@ -190,29 +174,21 @@ async def asyncio_detailed(
      Look up or search disinformation techniques from the DISARM framework.
 
     Covers influence operation tactics and techniques. Provide `technique_id` for a direct lookup
-    (e.g. T0001) or `search` for discovery. Returns ATT&CK technique mappings even when the DISARM
-    technique has sparse data.
+    (e.g. T0002) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full DISARM technique object with description and tactic context
-    - `countermeasures` — courses of action from the DISARM framework
-    - `techniques` — linked ATT&CK techniques (infrastructure, social engineering) that support or
-      enable this influence operation, resolved into full objects
-    - `tie` — technique likelihood predictions for linked ATT&CK techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked techniques
-    - `groups` — threat actor groups using the linked techniques
-    - `software` — malware and tools using the linked techniques
-    - `campaigns` — threat campaigns using the linked techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
+    - `techniques` — the DISARM parent/sub-technique family this object belongs to, resolved into
+      full objects from the object's own DISARM bundle
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for disinformation analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the disinformation technique and its
-    countermeasures
+    - `summary` — AI-generated executive brief covering the disinformation technique
+
+    DISARM has no ATT&CK-Enterprise-keyed layers: its 410-object corpus is attack-pattern (388) +
+    x-mitre-tactic (20) + identity + marking-definition, so groups/software/campaigns/mitigations/
+    detections/defend, TIE predictions and a Navigator layer have no source and are not declared
+    (Navigator loads enterprise/mobile/ICS ATT&CK layers only).
 
     Args:
         body (EnrichDISARMRequest): Look up or search disinformation techniques from the DISARM
@@ -245,29 +221,21 @@ async def asyncio(
      Look up or search disinformation techniques from the DISARM framework.
 
     Covers influence operation tactics and techniques. Provide `technique_id` for a direct lookup
-    (e.g. T0001) or `search` for discovery. Returns ATT&CK technique mappings even when the DISARM
-    technique has sparse data.
+    (e.g. T0002) or `search` for discovery.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected technique.
 
     **Include options**
 
     - `details` — full DISARM technique object with description and tactic context
-    - `countermeasures` — courses of action from the DISARM framework
-    - `techniques` — linked ATT&CK techniques (infrastructure, social engineering) that support or
-      enable this influence operation, resolved into full objects
-    - `tie` — technique likelihood predictions for linked ATT&CK techniques
-    - `navigator` — ATT&CK Navigator layer JSON for linked techniques
-    - `groups` — threat actor groups using the linked techniques
-    - `software` — malware and tools using the linked techniques
-    - `campaigns` — threat campaigns using the linked techniques
-    - `mitigations` — defensive courses of action per linked technique
-    - `detections` — detection data sources per linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
+    - `techniques` — the DISARM parent/sub-technique family this object belongs to, resolved into
+      full objects from the object's own DISARM bundle
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for disinformation analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the disinformation technique and its
-    countermeasures
+    - `summary` — AI-generated executive brief covering the disinformation technique
+
+    DISARM has no ATT&CK-Enterprise-keyed layers: its 410-object corpus is attack-pattern (388) +
+    x-mitre-tactic (20) + identity + marking-definition, so groups/software/campaigns/mitigations/
+    detections/defend, TIE predictions and a Navigator layer have no source and are not declared
+    (Navigator loads enterprise/mobile/ICS ATT&CK layers only).
 
     Args:
         body (EnrichDISARMRequest): Look up or search disinformation techniques from the DISARM

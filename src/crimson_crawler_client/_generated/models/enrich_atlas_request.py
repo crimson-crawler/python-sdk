@@ -16,9 +16,12 @@ class EnrichATLASRequest:
     """Look up or search adversarial machine learning techniques from the ATLAS knowledge base.
 
     Attributes:
-        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, mitigations, navigator, nist_controls, software,
-            summary, techniques, tie, web, web_scrape.
+        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: details,
+            knowledgebase, mitigations, summary, techniques, versions. `techniques` populates `related_atlas_techniques`
+            (the ATLAS parent/sub-technique family). `mitigations` populates the ATLAS-native course-of-action objects
+            (AML.M####) this technique is joined to, and is self-sufficient — neither `details` nor `techniques` is required
+            alongside it. ATLAS declares no ATT&CK-Enterprise-keyed layers: the imported ATLAS corpus carries no ATLAS-to-
+            Enterprise edge. `versions` attaches the object's KB revision history (`revision_history`).
         search (None | str | Unset): Text query to search AI/ML attack techniques
         technique_id (None | str | Unset): ATLAS technique ID for direct lookup (e.g. AML.T0043)
     """

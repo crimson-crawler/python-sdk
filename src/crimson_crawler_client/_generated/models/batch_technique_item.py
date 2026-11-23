@@ -17,17 +17,44 @@ class BatchTechniqueItem:
     """Batch item: enrich an ATT&CK technique.
 
     Attributes:
+        asset_id (None | str | Unset): ICS asset class id for the inverse lookup (e.g. 'A0007'). Valid only with
+            `framework='ics'`, and mutually exclusive with `technique_id`, `technique_ids`, and `search`: it answers 'which
+            techniques target this asset class', returning the asset in `asset` and its targets in `techniques`.
         framework (BatchTechniqueItemFramework | Unset): ATT&CK framework: enterprise, ics, or mobile Default:
             BatchTechniqueItemFramework.ENTERPRISE.
-        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, misp, mitigations, navigator, nist_controls, software,
-            summary, tie, web, web_scrape.
+        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values:
+            analytic_details, asset_classes, atomic_red_team, campaigns, cisa_campaigns, cves, defend, details, detections,
+            fight, framework_mappings, fraud, groups, knowledgebase, log_sources, lolbas, lotl, misp, mitigations,
+            navigator, nist_controls, sigma, software, summary, tie, versions. `versions` attaches the object's KB revision
+            history (`revision_history`). `analytic_details` attaches each detection analytic's tunable fields and log
+            sources. `fraud` attaches `f3_techniques` — the MITRE F3 fraud techniques sharing this technique's own ATT&CK
+            id. `asset_classes` attaches `asset_classes[]` — the ICS asset classes this technique targets, on an `ics`
+            framework request. `sigma` attaches `sigma_rules[]` — the SigmaHQ detection rules whose ATT&CK tags name this
+            technique (DRL-1.1). `lotl` attaches `lol_drivers[]` (the LOLDrivers entries exercising this technique),
+            `gtfobins_binaries[]` (GTFOBins tools whose functions/contexts map onto it) and `hijacklibs_entries[]`
+            (HijackLibs DLL hijacks whose type maps onto it) — facts only, joined through the committed function/type →
+            ATT&CK map, never by name. Each source is capped at 50 rows per technique; `lol_drivers_total`,
+            `gtfobins_binaries_total` and `hijacklibs_entries_total` carry the true counts. `fight` attaches
+            `fight_techniques[]` — the MITRE FiGHT 5G techniques whose own `FGT` id maps onto this ATT&CK id (id-only join,
+            never name matching; FiGHT-specific sub-techniques with no ATT&CK parent answer nothing). `lolbas` attaches
+            `lolbas_binaries[]` — the LOLBAS binaries whose commands declare this ATT&CK technique, as names and ids only
+            (no commands or descriptions). `framework_mappings` attaches `framework_mappings[]` — the CTID
+            control/capability mappings for this technique across the aws, azure, gcp, m365, csa_ccm, veris, cri_profile,
+            intel-vpro and cis frameworks; each row carries its own ATT&CK version because the families were built against
+            different ones. `cisa_campaigns` attaches `cisa_campaigns[]` — the CISA joint cybersecurity advisories (AA-
+            series) whose STIX bundle names this technique (a parent technique also matches advisories naming one of its
+            sub-techniques), with their actors, sectors, locations and observable count. `atomic_red_team` attaches
+            `atomic_tests[]` — the Red Canary Atomic Red Team tests exercising this technique (a parent also matches its
+            sub-techniques), first 50 per technique with `atomic_tests_total` carrying the true count; each row carries the
+            test name, auto_generated_guid, supported platforms, executor name, elevation flag and the upstream YAML link,
+            never a command body.
         search (None | str | Unset): Text query to search techniques by name or description
         technique_id (None | str | Unset): Single technique ID for direct lookup (e.g. T1190)
         technique_ids (list[str] | None | Unset): List of technique IDs for batch lookup (max 50)
         type_ (Literal['technique'] | Unset): Selects ATT&CK technique enrichment for this item Default: 'technique'.
     """
 
+    asset_id: None | str | Unset = UNSET
     framework: BatchTechniqueItemFramework | Unset = BatchTechniqueItemFramework.ENTERPRISE
     include: list[str] | Unset = UNSET
     search: None | str | Unset = UNSET
@@ -37,6 +64,12 @@ class BatchTechniqueItem:
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
+        asset_id: None | str | Unset
+        if isinstance(self.asset_id, Unset):
+            asset_id = UNSET
+        else:
+            asset_id = self.asset_id
+
         framework: str | Unset = UNSET
         if not isinstance(self.framework, Unset):
             framework = self.framework.value
@@ -71,6 +104,8 @@ class BatchTechniqueItem:
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
+        if asset_id is not UNSET:
+            field_dict["asset_id"] = asset_id
         if framework is not UNSET:
             field_dict["framework"] = framework
         if include is not UNSET:
@@ -89,6 +124,16 @@ class BatchTechniqueItem:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
+
+        def _parse_asset_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        asset_id = _parse_asset_id(d.pop("asset_id", UNSET))
+
         _framework = d.pop("framework", UNSET)
         framework: BatchTechniqueItemFramework | Unset
         if isinstance(_framework, Unset):
@@ -138,6 +183,7 @@ class BatchTechniqueItem:
             raise ValueError(f"type must match const 'technique', got '{type_}'")
 
         batch_technique_item = cls(
+            asset_id=asset_id,
             framework=framework,
             include=include,
             search=search,

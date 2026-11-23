@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SSVCDecisionTreeSource(str, Enum):
+class SSVCDecisionTreeSource(StrEnum):
     CSV = "csv"
     FALLBACK = "fallback"
     VERBATIM = "verbatim"

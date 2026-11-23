@@ -76,37 +76,22 @@ def sync_detailed(
     client: AuthenticatedClient,
     body: EnrichSectorRequest,
 ) -> Response[Any | EnrichSectorResponse]:
-    r"""Enrich Sector
+    """Enrich Sector
 
-     Enrich the threat landscape for an industry sector.
+     Enrich an industry sector.
 
-    Returns threat groups known to target this sector and the ATT&CK techniques they employ, with full
-    defensive context. Provide `sector_id` for a direct lookup (e.g. \"financial-services\") or `search`
-    by name.
+    Returns the sector's profile with optional knowledge-base context. Provide `sector_id`
+    for a direct lookup (e.g. "financial-organizations") or `search` by name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected sector.
 
     **Include options**
 
-    - `details` — sector metadata with associated groups and techniques
-    - `groups` — resolved threat group profiles targeting this sector
-    - `techniques` — resolved ATT&CK technique objects used against this sector
-    - `software` — malware and tools that employ the linked techniques
-    - `campaigns` — threat campaigns that used the linked techniques
-    - `tie` — technique likelihood predictions for sector-relevant techniques
-    - `navigator` — ATT&CK Navigator layer JSON for technique coverage
-    - `mitigations` — defensive courses of action for each linked technique
-    - `detections` — data sources and components for detecting each linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the sector's techniques
-    - `locations` — geographic regions where this sector is targeted
+    - `details` — sector metadata (sub-sectors, aliases, identity class)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for sector-specific threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the sector's threat landscape
+    - `summary` — AI-generated executive brief covering the sector's profile
 
     Args:
-        body (EnrichSectorRequest): Enrich the threat landscape for an industry sector with
-            groups, techniques, and defensive context.
+        body (EnrichSectorRequest): Enrich an industry sector with knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -132,37 +117,22 @@ def sync(
     client: AuthenticatedClient,
     body: EnrichSectorRequest,
 ) -> Any | EnrichSectorResponse | None:
-    r"""Enrich Sector
+    """Enrich Sector
 
-     Enrich the threat landscape for an industry sector.
+     Enrich an industry sector.
 
-    Returns threat groups known to target this sector and the ATT&CK techniques they employ, with full
-    defensive context. Provide `sector_id` for a direct lookup (e.g. \"financial-services\") or `search`
-    by name.
+    Returns the sector's profile with optional knowledge-base context. Provide `sector_id`
+    for a direct lookup (e.g. "financial-organizations") or `search` by name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected sector.
 
     **Include options**
 
-    - `details` — sector metadata with associated groups and techniques
-    - `groups` — resolved threat group profiles targeting this sector
-    - `techniques` — resolved ATT&CK technique objects used against this sector
-    - `software` — malware and tools that employ the linked techniques
-    - `campaigns` — threat campaigns that used the linked techniques
-    - `tie` — technique likelihood predictions for sector-relevant techniques
-    - `navigator` — ATT&CK Navigator layer JSON for technique coverage
-    - `mitigations` — defensive courses of action for each linked technique
-    - `detections` — data sources and components for detecting each linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the sector's techniques
-    - `locations` — geographic regions where this sector is targeted
+    - `details` — sector metadata (sub-sectors, aliases, identity class)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for sector-specific threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the sector's threat landscape
+    - `summary` — AI-generated executive brief covering the sector's profile
 
     Args:
-        body (EnrichSectorRequest): Enrich the threat landscape for an industry sector with
-            groups, techniques, and defensive context.
+        body (EnrichSectorRequest): Enrich an industry sector with knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,37 +153,22 @@ async def asyncio_detailed(
     client: AuthenticatedClient,
     body: EnrichSectorRequest,
 ) -> Response[Any | EnrichSectorResponse]:
-    r"""Enrich Sector
+    """Enrich Sector
 
-     Enrich the threat landscape for an industry sector.
+     Enrich an industry sector.
 
-    Returns threat groups known to target this sector and the ATT&CK techniques they employ, with full
-    defensive context. Provide `sector_id` for a direct lookup (e.g. \"financial-services\") or `search`
-    by name.
+    Returns the sector's profile with optional knowledge-base context. Provide `sector_id`
+    for a direct lookup (e.g. "financial-organizations") or `search` by name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected sector.
 
     **Include options**
 
-    - `details` — sector metadata with associated groups and techniques
-    - `groups` — resolved threat group profiles targeting this sector
-    - `techniques` — resolved ATT&CK technique objects used against this sector
-    - `software` — malware and tools that employ the linked techniques
-    - `campaigns` — threat campaigns that used the linked techniques
-    - `tie` — technique likelihood predictions for sector-relevant techniques
-    - `navigator` — ATT&CK Navigator layer JSON for technique coverage
-    - `mitigations` — defensive courses of action for each linked technique
-    - `detections` — data sources and components for detecting each linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the sector's techniques
-    - `locations` — geographic regions where this sector is targeted
+    - `details` — sector metadata (sub-sectors, aliases, identity class)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for sector-specific threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the sector's threat landscape
+    - `summary` — AI-generated executive brief covering the sector's profile
 
     Args:
-        body (EnrichSectorRequest): Enrich the threat landscape for an industry sector with
-            groups, techniques, and defensive context.
+        body (EnrichSectorRequest): Enrich an industry sector with knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -237,37 +192,22 @@ async def asyncio(
     client: AuthenticatedClient,
     body: EnrichSectorRequest,
 ) -> Any | EnrichSectorResponse | None:
-    r"""Enrich Sector
+    """Enrich Sector
 
-     Enrich the threat landscape for an industry sector.
+     Enrich an industry sector.
 
-    Returns threat groups known to target this sector and the ATT&CK techniques they employ, with full
-    defensive context. Provide `sector_id` for a direct lookup (e.g. \"financial-services\") or `search`
-    by name.
+    Returns the sector's profile with optional knowledge-base context. Provide `sector_id`
+    for a direct lookup (e.g. "financial-organizations") or `search` by name.
     If both lookup fields are omitted, the endpoint returns HTTP 200 with no selected sector.
 
     **Include options**
 
-    - `details` — sector metadata with associated groups and techniques
-    - `groups` — resolved threat group profiles targeting this sector
-    - `techniques` — resolved ATT&CK technique objects used against this sector
-    - `software` — malware and tools that employ the linked techniques
-    - `campaigns` — threat campaigns that used the linked techniques
-    - `tie` — technique likelihood predictions for sector-relevant techniques
-    - `navigator` — ATT&CK Navigator layer JSON for technique coverage
-    - `mitigations` — defensive courses of action for each linked technique
-    - `detections` — data sources and components for detecting each linked technique
-    - `defend` — D3FEND defensive techniques and countermeasures
-    - `cves` — CVEs mapped to the sector's techniques
-    - `locations` — geographic regions where this sector is targeted
+    - `details` — sector metadata (sub-sectors, aliases, identity class)
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for sector-specific threat landscape analysis
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
-    - `summary` — AI-generated executive brief covering the sector's threat landscape
+    - `summary` — AI-generated executive brief covering the sector's profile
 
     Args:
-        body (EnrichSectorRequest): Enrich the threat landscape for an industry sector with
-            groups, techniques, and defensive context.
+        body (EnrichSectorRequest): Enrich an industry sector with knowledge-base context.
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

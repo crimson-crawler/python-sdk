@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class EnrichmentJobSubstageStatus(str, Enum):
+class EnrichmentJobSubstageStatus(StrEnum):
     DONE = "done"
     ERROR = "error"
     PENDING = "pending"

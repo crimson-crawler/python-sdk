@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PrioritizedActionEffortType0(str, Enum):
+class PrioritizedActionEffortType0(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
 

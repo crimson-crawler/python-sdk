@@ -13,10 +13,12 @@ T = TypeVar("T", bound="EnrichProductResponseCveFixVersions")
 
 @_attrs_define
 class EnrichProductResponseCveFixVersions:
-    """Remediation guidance: `{cve_id: fix_version}` — the lowest version that resolves each CVE for this product (from the
-    NVD `versionEndExcluding` applicability bound above the requested `version`). Only populated when `version` is set.
-    A CVE is absent when NVD published no clean upper bound (all-versions-affected / fixed-after-unknown) — never a
-    fabricated version.
+    """Remediation guidance: `{cve_id: fix_version}` — the lowest version that resolves each CVE for this product, strictly
+    above the requested `version`. From the NVD `versionEndExcluding` applicability bound; for a CVE whose NVD
+    configuration enumerates releases and so has no bound, from the CNA's own CVE record (a vendor hotfix such as PAN-OS
+    `10.2.9-h1`) when the deployment enables public metadata (`ENRICH_PUBLIC_METADATA`) — that entry is named in
+    `cve_fix_sources`. Only populated when `version` is set. A CVE is absent when no source published a clean fixed
+    version (all-versions-affected / fixed-after-unknown) — never a fabricated version.
 
     """
 

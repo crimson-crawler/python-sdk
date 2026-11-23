@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, BinaryIO, Generator, TextIO, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Generator, TextIO, TypeVar, cast
 
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
@@ -17,6 +17,9 @@ class MitigationDetail:
 
     Attributes:
         description (str | Unset): How this mitigation addresses the technique Default: ''.
+        labels (list[str] | Unset): Compliance mapping MITRE attaches as STIX labels — ICS mitigations carry their IEC
+            62443 SR/CR and NIST SP 800-53 control ids here (46 of 52 ICS course-of-action objects; none on enterprise or
+            mobile mitigations).
         mitigation_id (str | Unset): ATT&CK mitigation ID (e.g. M1036) Default: ''.
         name (str | Unset): Mitigation name Default: ''.
         stix_id (str | Unset): Unique object identifier for cross-referencing Default: ''.
@@ -24,6 +27,7 @@ class MitigationDetail:
     """
 
     description: str | Unset = ""
+    labels: list[str] | Unset = UNSET
     mitigation_id: str | Unset = ""
     name: str | Unset = ""
     stix_id: str | Unset = ""
@@ -32,6 +36,10 @@ class MitigationDetail:
 
     def to_dict(self) -> dict[str, Any]:
         description = self.description
+
+        labels: list[str] | Unset = UNSET
+        if not isinstance(self.labels, Unset):
+            labels = self.labels
 
         mitigation_id = self.mitigation_id
 
@@ -46,6 +54,8 @@ class MitigationDetail:
         field_dict.update({})
         if description is not UNSET:
             field_dict["description"] = description
+        if labels is not UNSET:
+            field_dict["labels"] = labels
         if mitigation_id is not UNSET:
             field_dict["mitigation_id"] = mitigation_id
         if name is not UNSET:
@@ -62,6 +72,8 @@ class MitigationDetail:
         d = dict(src_dict)
         description = d.pop("description", UNSET)
 
+        labels = cast(list[str], d.pop("labels", UNSET))
+
         mitigation_id = d.pop("mitigation_id", UNSET)
 
         name = d.pop("name", UNSET)
@@ -72,6 +84,7 @@ class MitigationDetail:
 
         mitigation_detail = cls(
             description=description,
+            labels=labels,
             mitigation_id=mitigation_id,
             name=name,
             stix_id=stix_id,

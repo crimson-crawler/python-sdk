@@ -88,8 +88,7 @@ def sync_detailed(
     - `details` — full D3FEND object with description and defensive form
     - `techniques` — ATT&CK techniques this defensive technique mitigates or detects
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for defensive technique research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
+    - `versions` — the object's KB revision history (`revision_history`)
     - `summary` — AI-generated summary of the defensive technique
 
     Args:
@@ -132,8 +131,7 @@ def sync(
     - `details` — full D3FEND object with description and defensive form
     - `techniques` — ATT&CK techniques this defensive technique mitigates or detects
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for defensive technique research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
+    - `versions` — the object's KB revision history (`revision_history`)
     - `summary` — AI-generated summary of the defensive technique
 
     Args:
@@ -171,8 +169,7 @@ async def asyncio_detailed(
     - `details` — full D3FEND object with description and defensive form
     - `techniques` — ATT&CK techniques this defensive technique mitigates or detects
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for defensive technique research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
+    - `versions` — the object's KB revision history (`revision_history`)
     - `summary` — AI-generated summary of the defensive technique
 
     Args:
@@ -213,8 +210,7 @@ async def asyncio(
     - `details` — full D3FEND object with description and defensive form
     - `techniques` — ATT&CK techniques this defensive technique mitigates or detects
     - `knowledgebase` — related intelligence from the knowledge base
-    - `web` — live web search for defensive technique research
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
+    - `versions` — the object's KB revision history (`revision_history`)
     - `summary` — AI-generated summary of the defensive technique
 
     Args:

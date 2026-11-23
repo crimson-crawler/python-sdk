@@ -21,7 +21,9 @@ class AssessTechniqueCoverageRequest:
         framework (AssessTechniqueCoverageRequestFramework | Unset): ATT&CK framework: enterprise, ics, or mobile
             Default: AssessTechniqueCoverageRequestFramework.ENTERPRISE.
         include (list[str] | Unset): Assessment layers to include. Replaces the default list. Allowed values:
-            coverage_score, cves, defend, detections, mitigations, navigator, nist_controls, summary, tie.
+            asset_classes, cisa_campaigns, coverage_score, cves, defend, defend_full, detections, log_sources,
+            log_sources_full, mitigations, navigator, nist_controls, summary, tie, versions. Asset classes are available for
+            the ICS framework; CISA campaigns are deduplicated advisories naming the assessed techniques.
     """
 
     technique_ids: list[str]

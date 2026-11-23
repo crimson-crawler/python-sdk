@@ -82,7 +82,11 @@ def sync_detailed(
 
     Searches by product name, version, and vendor using CPE matching, then runs every matched CVE
     through the same multi-source chain as `/v1/enrich/cve`. Supply `vendor` to narrow CPE matches
-    and `version` to hard-filter discovered CVEs to those affecting that release.
+    and `version` to hard-filter discovered CVEs to those affecting that release. A version that
+    filters nothing says so: when no matched CVE states a version for the product, `errors[]` carries
+    `version_filter`/`version_not_applied` and the CVE set is the same for every version. NVD states
+    per-edition products, not one OS product — query `windows_10_22h2` (not `windows`) to filter by
+    Windows build number.
 
     The include options drive the per-CVE enrichment depth (each value behaves exactly as it does on
     `/v1/enrich/cve`); the product-level extras roll those results up across the matched set.
@@ -101,8 +105,6 @@ def sync_detailed(
     - `navigator` — ATT&CK Navigator layer JSON
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related knowledge-base context
-    - `web` — live web search for exploits and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with CPE strings
     - `poc` — proof-of-concept exploits from GitHub
     - `groups` — threat actor groups using the linked techniques
@@ -126,7 +128,15 @@ def sync_detailed(
 
     The response also carries `likely_tactics`, an always-on set of ATT&CK tactic-class hints based on
     the requested vendor. These hints are useful when matched CVEs have sparse technique coverage.
-    Returns up to 20 enriched CVEs per request.
+    Discovery and enrichment are bounded. The response reports the discovered count, limits,
+    and whether discovery was truncated or its completeness is unknown.
+
+    The technique-derived per-CVE layers — `groups`, `software`, `campaigns`, `mitigations`,
+    `detections`, `defend` and `nist_controls` — read the technique set each nested CVE resolves for
+    itself, so they answer without `techniques` in the same request. The product-level `nist_controls`
+    rollup is the union of the nested `cves[].techniques`: the nested call is asked for those rows and
+    they are cleared again unless `techniques` was itself requested, so the rollup maps a real control
+    set without publishing a section the caller did not ask for.
 
     Args:
         body (EnrichProductRequest): Find vulnerabilities affecting a specific product and enrich
@@ -162,7 +172,11 @@ def sync(
 
     Searches by product name, version, and vendor using CPE matching, then runs every matched CVE
     through the same multi-source chain as `/v1/enrich/cve`. Supply `vendor` to narrow CPE matches
-    and `version` to hard-filter discovered CVEs to those affecting that release.
+    and `version` to hard-filter discovered CVEs to those affecting that release. A version that
+    filters nothing says so: when no matched CVE states a version for the product, `errors[]` carries
+    `version_filter`/`version_not_applied` and the CVE set is the same for every version. NVD states
+    per-edition products, not one OS product — query `windows_10_22h2` (not `windows`) to filter by
+    Windows build number.
 
     The include options drive the per-CVE enrichment depth (each value behaves exactly as it does on
     `/v1/enrich/cve`); the product-level extras roll those results up across the matched set.
@@ -181,8 +195,6 @@ def sync(
     - `navigator` — ATT&CK Navigator layer JSON
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related knowledge-base context
-    - `web` — live web search for exploits and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with CPE strings
     - `poc` — proof-of-concept exploits from GitHub
     - `groups` — threat actor groups using the linked techniques
@@ -206,7 +218,15 @@ def sync(
 
     The response also carries `likely_tactics`, an always-on set of ATT&CK tactic-class hints based on
     the requested vendor. These hints are useful when matched CVEs have sparse technique coverage.
-    Returns up to 20 enriched CVEs per request.
+    Discovery and enrichment are bounded. The response reports the discovered count, limits,
+    and whether discovery was truncated or its completeness is unknown.
+
+    The technique-derived per-CVE layers — `groups`, `software`, `campaigns`, `mitigations`,
+    `detections`, `defend` and `nist_controls` — read the technique set each nested CVE resolves for
+    itself, so they answer without `techniques` in the same request. The product-level `nist_controls`
+    rollup is the union of the nested `cves[].techniques`: the nested call is asked for those rows and
+    they are cleared again unless `techniques` was itself requested, so the rollup maps a real control
+    set without publishing a section the caller did not ask for.
 
     Args:
         body (EnrichProductRequest): Find vulnerabilities affecting a specific product and enrich
@@ -237,7 +257,11 @@ async def asyncio_detailed(
 
     Searches by product name, version, and vendor using CPE matching, then runs every matched CVE
     through the same multi-source chain as `/v1/enrich/cve`. Supply `vendor` to narrow CPE matches
-    and `version` to hard-filter discovered CVEs to those affecting that release.
+    and `version` to hard-filter discovered CVEs to those affecting that release. A version that
+    filters nothing says so: when no matched CVE states a version for the product, `errors[]` carries
+    `version_filter`/`version_not_applied` and the CVE set is the same for every version. NVD states
+    per-edition products, not one OS product — query `windows_10_22h2` (not `windows`) to filter by
+    Windows build number.
 
     The include options drive the per-CVE enrichment depth (each value behaves exactly as it does on
     `/v1/enrich/cve`); the product-level extras roll those results up across the matched set.
@@ -256,8 +280,6 @@ async def asyncio_detailed(
     - `navigator` — ATT&CK Navigator layer JSON
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related knowledge-base context
-    - `web` — live web search for exploits and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with CPE strings
     - `poc` — proof-of-concept exploits from GitHub
     - `groups` — threat actor groups using the linked techniques
@@ -281,7 +303,15 @@ async def asyncio_detailed(
 
     The response also carries `likely_tactics`, an always-on set of ATT&CK tactic-class hints based on
     the requested vendor. These hints are useful when matched CVEs have sparse technique coverage.
-    Returns up to 20 enriched CVEs per request.
+    Discovery and enrichment are bounded. The response reports the discovered count, limits,
+    and whether discovery was truncated or its completeness is unknown.
+
+    The technique-derived per-CVE layers — `groups`, `software`, `campaigns`, `mitigations`,
+    `detections`, `defend` and `nist_controls` — read the technique set each nested CVE resolves for
+    itself, so they answer without `techniques` in the same request. The product-level `nist_controls`
+    rollup is the union of the nested `cves[].techniques`: the nested call is asked for those rows and
+    they are cleared again unless `techniques` was itself requested, so the rollup maps a real control
+    set without publishing a section the caller did not ask for.
 
     Args:
         body (EnrichProductRequest): Find vulnerabilities affecting a specific product and enrich
@@ -315,7 +345,11 @@ async def asyncio(
 
     Searches by product name, version, and vendor using CPE matching, then runs every matched CVE
     through the same multi-source chain as `/v1/enrich/cve`. Supply `vendor` to narrow CPE matches
-    and `version` to hard-filter discovered CVEs to those affecting that release.
+    and `version` to hard-filter discovered CVEs to those affecting that release. A version that
+    filters nothing says so: when no matched CVE states a version for the product, `errors[]` carries
+    `version_filter`/`version_not_applied` and the CVE set is the same for every version. NVD states
+    per-edition products, not one OS product — query `windows_10_22h2` (not `windows`) to filter by
+    Windows build number.
 
     The include options drive the per-CVE enrichment depth (each value behaves exactly as it does on
     `/v1/enrich/cve`); the product-level extras roll those results up across the matched set.
@@ -334,8 +368,6 @@ async def asyncio(
     - `navigator` — ATT&CK Navigator layer JSON
     - `misp` — matching threat intelligence events
     - `knowledgebase` — related knowledge-base context
-    - `web` — live web search for exploits and advisories
-    - `web_scrape` — scraped article text on the top web results (requires `web`)
     - `affected_products` — confirmed vulnerable software with CPE strings
     - `poc` — proof-of-concept exploits from GitHub
     - `groups` — threat actor groups using the linked techniques
@@ -359,7 +391,15 @@ async def asyncio(
 
     The response also carries `likely_tactics`, an always-on set of ATT&CK tactic-class hints based on
     the requested vendor. These hints are useful when matched CVEs have sparse technique coverage.
-    Returns up to 20 enriched CVEs per request.
+    Discovery and enrichment are bounded. The response reports the discovered count, limits,
+    and whether discovery was truncated or its completeness is unknown.
+
+    The technique-derived per-CVE layers — `groups`, `software`, `campaigns`, `mitigations`,
+    `detections`, `defend` and `nist_controls` — read the technique set each nested CVE resolves for
+    itself, so they answer without `techniques` in the same request. The product-level `nist_controls`
+    rollup is the union of the nested `cves[].techniques`: the nested call is asked for those rows and
+    they are cleared again unless `techniques` was itself requested, so the rollup maps a real control
+    set without publishing a section the caller did not ask for.
 
     Args:
         body (EnrichProductRequest): Find vulnerabilities affecting a specific product and enrich

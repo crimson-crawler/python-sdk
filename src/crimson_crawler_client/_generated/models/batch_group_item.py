@@ -21,16 +21,23 @@ class BatchGroupItem:
             BatchGroupItemFramework.ENTERPRISE.
         group_id (None | str | Unset): ATT&CK group ID for direct lookup (e.g. G0016)
         include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, knowledgebase, locations, misp, mitigations, navigator, nist_controls,
-            sectors, software, summary, techniques, tie, web, web_scrape.
+            cves, defend, details, detections, knowledgebase, log_sources, misp, mitigations, navigator, nist_controls,
+            software, summary, techniques, tie, versions. `defend_full` and `log_sources_full` restore full rows. Technique
+            pages are ordered by ID. `log_source_refs` maps each technique ID to indices in the page's `log_source_catalog`.
+        limit (int | Unset): Maximum group techniques per page (1–50) Default: 10.
+        offset (int | Unset): Zero-based offset into the sorted technique IDs Default: 0.
         search (None | str | Unset): Text query to search groups by name or alias (e.g. 'APT28')
+        snapshot_id (None | str | Unset): Snapshot returned by page 0; required for later pages
         type_ (Literal['group'] | Unset): Selects threat-group enrichment for this batch item Default: 'group'.
     """
 
     framework: BatchGroupItemFramework | Unset = BatchGroupItemFramework.ENTERPRISE
     group_id: None | str | Unset = UNSET
     include: list[str] | Unset = UNSET
+    limit: int | Unset = 10
+    offset: int | Unset = 0
     search: None | str | Unset = UNSET
+    snapshot_id: None | str | Unset = UNSET
     type_: Literal["group"] | Unset = "group"
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
@@ -49,11 +56,21 @@ class BatchGroupItem:
         if not isinstance(self.include, Unset):
             include = self.include
 
+        limit = self.limit
+
+        offset = self.offset
+
         search: None | str | Unset
         if isinstance(self.search, Unset):
             search = UNSET
         else:
             search = self.search
+
+        snapshot_id: None | str | Unset
+        if isinstance(self.snapshot_id, Unset):
+            snapshot_id = UNSET
+        else:
+            snapshot_id = self.snapshot_id
 
         type_ = self.type_
 
@@ -66,8 +83,14 @@ class BatchGroupItem:
             field_dict["group_id"] = group_id
         if include is not UNSET:
             field_dict["include"] = include
+        if limit is not UNSET:
+            field_dict["limit"] = limit
+        if offset is not UNSET:
+            field_dict["offset"] = offset
         if search is not UNSET:
             field_dict["search"] = search
+        if snapshot_id is not UNSET:
+            field_dict["snapshot_id"] = snapshot_id
         if type_ is not UNSET:
             field_dict["type"] = type_
 
@@ -94,6 +117,10 @@ class BatchGroupItem:
 
         include = cast(list[str], d.pop("include", UNSET))
 
+        limit = d.pop("limit", UNSET)
+
+        offset = d.pop("offset", UNSET)
+
         def _parse_search(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -103,6 +130,15 @@ class BatchGroupItem:
 
         search = _parse_search(d.pop("search", UNSET))
 
+        def _parse_snapshot_id(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        snapshot_id = _parse_snapshot_id(d.pop("snapshot_id", UNSET))
+
         type_ = cast(Literal["group"] | Unset, d.pop("type", UNSET))
         if type_ != "group" and not isinstance(type_, Unset):
             raise ValueError(f"type must match const 'group', got '{type_}'")
@@ -111,7 +147,10 @@ class BatchGroupItem:
             framework=framework,
             group_id=group_id,
             include=include,
+            limit=limit,
+            offset=offset,
             search=search,
+            snapshot_id=snapshot_id,
             type_=type_,
         )
 

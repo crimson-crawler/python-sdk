@@ -16,10 +16,11 @@ class BatchLocationItem:
     """Batch item: enrich a geographic location.
 
     Attributes:
-        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: campaigns,
-            cves, defend, details, detections, groups, knowledgebase, mitigations, navigator, sectors, software, summary,
-            techniques, tie, web, web_scrape.
-        location_id (None | str | Unset): ATT&CK location ID for direct lookup
+        include (list[str] | Unset): Response layers to include. Replaces the default list. Allowed values: details,
+            knowledgebase, summary, versions. `versions` attaches the object's KB revision history (`revision_history`).
+        location_id (None | str | Unset): Location identifier for direct lookup — an ISO country code (`US`, `CN`) or a
+            STIX `location--` id. Not an ATT&CK-style `L####` id: those do not resolve and return an empty result with
+            `identifier_resolved: false` (no `errors` entry: nothing failed, the id simply is not in the corpus).
         search (None | str | Unset): Text query to search by country or region name (e.g. 'United States')
         type_ (Literal['location'] | Unset): Selects location enrichment for this batch item Default: 'location'.
     """
